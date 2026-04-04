@@ -1,0 +1,2880 @@
+[
+  {
+    "id": 1,
+    "name": "Supino Reto com Barra",
+    "name_en": "Barbell Bench Press",
+    "category": "Peito",
+    "muscle_primary": "Peitoral Maior",
+    "muscle_secondary": [
+      "Tríceps",
+      "Deltoide Anterior"
+    ],
+    "equipment": [
+      "Barra",
+      "Banco"
+    ],
+    "training_style": [
+      "Força",
+      "Hipertrofia"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Força"
+  },
+  {
+    "id": 2,
+    "name": "Supino Inclinado com Halteres",
+    "name_en": "Incline Dumbbell Press",
+    "category": "Peito",
+    "muscle_primary": "Peitoral Superior",
+    "muscle_secondary": [
+      "Tríceps",
+      "Deltoide Anterior"
+    ],
+    "equipment": [
+      "Halteres",
+      "Banco Inclinado"
+    ],
+    "training_style": [
+      "Força",
+      "Hipertrofia"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Força"
+  },
+  {
+    "id": 3,
+    "name": "Supino Declinado com Barra",
+    "name_en": "Decline Bench Press",
+    "category": "Peito",
+    "muscle_primary": "Peitoral Inferior",
+    "muscle_secondary": [
+      "Tríceps"
+    ],
+    "equipment": [
+      "Barra",
+      "Banco Declinado"
+    ],
+    "training_style": [
+      "Força",
+      "Hipertrofia"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Força"
+  },
+  {
+    "id": 4,
+    "name": "Crucifixo com Halteres",
+    "name_en": "Dumbbell Fly",
+    "category": "Peito",
+    "muscle_primary": "Peitoral Maior",
+    "muscle_secondary": [
+      "Deltoide Anterior"
+    ],
+    "equipment": [
+      "Halteres",
+      "Banco"
+    ],
+    "training_style": [
+      "Hipertrofia",
+      "Isolamento"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 5,
+    "name": "Crossover no Cabo",
+    "name_en": "Cable Crossover",
+    "category": "Peito",
+    "muscle_primary": "Peitoral Maior",
+    "muscle_secondary": [
+      "Deltoide Anterior"
+    ],
+    "equipment": [
+      "Cabo/Polia"
+    ],
+    "training_style": [
+      "Hipertrofia",
+      "Isolamento"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Isolamento"
+  },
+  {
+    "id": 6,
+    "name": "Flexão de Braço",
+    "name_en": "Push-up",
+    "category": "Peito",
+    "muscle_primary": "Peitoral Maior",
+    "muscle_secondary": [
+      "Tríceps",
+      "Core"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Calistenia",
+      "Força",
+      "HIIT"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Composto"
+  },
+  {
+    "id": 7,
+    "name": "Flexão Diamante",
+    "name_en": "Diamond Push-up",
+    "category": "Peito",
+    "muscle_primary": "Tríceps",
+    "muscle_secondary": [
+      "Peitoral Maior"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Calistenia",
+      "Hipertrofia"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Composto"
+  },
+  {
+    "id": 8,
+    "name": "Flexão Arqueiro",
+    "name_en": "Archer Push-up",
+    "category": "Peito",
+    "muscle_primary": "Peitoral Maior",
+    "muscle_secondary": [
+      "Tríceps",
+      "Bíceps"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Calistenia"
+    ],
+    "difficulty": "Avançado",
+    "type": "Composto"
+  },
+  {
+    "id": 9,
+    "name": "Peck Deck / Voador",
+    "name_en": "Pec Deck Machine",
+    "category": "Peito",
+    "muscle_primary": "Peitoral Maior",
+    "muscle_secondary": [],
+    "equipment": [
+      "Máquina"
+    ],
+    "training_style": [
+      "Hipertrofia",
+      "Isolamento"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 10,
+    "name": "Dips no Paralelo",
+    "name_en": "Chest Dip",
+    "category": "Peito",
+    "muscle_primary": "Peitoral Inferior",
+    "muscle_secondary": [
+      "Tríceps",
+      "Deltoide"
+    ],
+    "equipment": [
+      "Barras Paralelas"
+    ],
+    "training_style": [
+      "Calistenia",
+      "Força"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Composto"
+  },
+  {
+    "id": 11,
+    "name": "Barra Fixa",
+    "name_en": "Pull-up",
+    "category": "Costas",
+    "muscle_primary": "Latíssimo do Dorso",
+    "muscle_secondary": [
+      "Bíceps",
+      "Romboides"
+    ],
+    "equipment": [
+      "Barra Fixa"
+    ],
+    "training_style": [
+      "Calistenia",
+      "Força"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Composto"
+  },
+  {
+    "id": 12,
+    "name": "Barra Fixa Supinada",
+    "name_en": "Chin-up",
+    "category": "Costas",
+    "muscle_primary": "Latíssimo do Dorso",
+    "muscle_secondary": [
+      "Bíceps"
+    ],
+    "equipment": [
+      "Barra Fixa"
+    ],
+    "training_style": [
+      "Calistenia",
+      "Força"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Composto"
+  },
+  {
+    "id": 13,
+    "name": "Pulldown na Polia",
+    "name_en": "Lat Pulldown",
+    "category": "Costas",
+    "muscle_primary": "Latíssimo do Dorso",
+    "muscle_secondary": [
+      "Bíceps",
+      "Romboides"
+    ],
+    "equipment": [
+      "Cabo/Polia"
+    ],
+    "training_style": [
+      "Hipertrofia",
+      "Força"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Composto"
+  },
+  {
+    "id": 14,
+    "name": "Remada Curvada com Barra",
+    "name_en": "Bent-Over Barbell Row",
+    "category": "Costas",
+    "muscle_primary": "Latíssimo do Dorso",
+    "muscle_secondary": [
+      "Romboides",
+      "Bíceps",
+      "Eretores"
+    ],
+    "equipment": [
+      "Barra"
+    ],
+    "training_style": [
+      "Força",
+      "Hipertrofia"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Composto"
+  },
+  {
+    "id": 15,
+    "name": "Remada com Haltere",
+    "name_en": "Single-Arm Dumbbell Row",
+    "category": "Costas",
+    "muscle_primary": "Latíssimo do Dorso",
+    "muscle_secondary": [
+      "Romboides",
+      "Bíceps"
+    ],
+    "equipment": [
+      "Halteres",
+      "Banco"
+    ],
+    "training_style": [
+      "Hipertrofia"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Composto"
+  },
+  {
+    "id": 16,
+    "name": "Remada Sentado no Cabo",
+    "name_en": "Seated Cable Row",
+    "category": "Costas",
+    "muscle_primary": "Romboides",
+    "muscle_secondary": [
+      "Latíssimo do Dorso",
+      "Bíceps"
+    ],
+    "equipment": [
+      "Cabo/Polia"
+    ],
+    "training_style": [
+      "Hipertrofia"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Composto"
+  },
+  {
+    "id": 17,
+    "name": "Levantamento Terra",
+    "name_en": "Deadlift",
+    "category": "Costas",
+    "muscle_primary": "Eretores da Espinha",
+    "muscle_secondary": [
+      "Glúteos",
+      "Isquiotibiais",
+      "Trapézio"
+    ],
+    "equipment": [
+      "Barra"
+    ],
+    "training_style": [
+      "Força",
+      "Powerlifting"
+    ],
+    "difficulty": "Avançado",
+    "type": "Composto"
+  },
+  {
+    "id": 18,
+    "name": "Superman",
+    "name_en": "Superman",
+    "category": "Costas",
+    "muscle_primary": "Eretores da Espinha",
+    "muscle_secondary": [
+      "Glúteos"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Mobilidade",
+      "Calistenia"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 19,
+    "name": "Face Pull",
+    "name_en": "Face Pull",
+    "category": "Costas",
+    "muscle_primary": "Deltoide Posterior",
+    "muscle_secondary": [
+      "Romboides",
+      "Trapézio"
+    ],
+    "equipment": [
+      "Cabo/Polia"
+    ],
+    "training_style": [
+      "Hipertrofia",
+      "Mobilidade"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 20,
+    "name": "Hiperextensão",
+    "name_en": "Back Extension",
+    "category": "Costas",
+    "muscle_primary": "Eretores da Espinha",
+    "muscle_secondary": [
+      "Glúteos",
+      "Isquiotibiais"
+    ],
+    "equipment": [
+      "Banco Romano"
+    ],
+    "training_style": [
+      "Força",
+      "Reabilitação"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 21,
+    "name": "Remada T-Bar",
+    "name_en": "T-Bar Row",
+    "category": "Costas",
+    "muscle_primary": "Latíssimo do Dorso",
+    "muscle_secondary": [
+      "Romboides",
+      "Trapézio"
+    ],
+    "equipment": [
+      "Barra",
+      "T-Bar"
+    ],
+    "training_style": [
+      "Força",
+      "Hipertrofia"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Composto"
+  },
+  {
+    "id": 22,
+    "name": "Pullover com Halter",
+    "name_en": "Dumbbell Pullover",
+    "category": "Costas",
+    "muscle_primary": "Latíssimo do Dorso",
+    "muscle_secondary": [
+      "Peitoral",
+      "Tríceps"
+    ],
+    "equipment": [
+      "Halteres",
+      "Banco"
+    ],
+    "training_style": [
+      "Hipertrofia"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Isolamento"
+  },
+  {
+    "id": 23,
+    "name": "Desenvolvimento com Barra",
+    "name_en": "Overhead Barbell Press",
+    "category": "Ombros",
+    "muscle_primary": "Deltoide",
+    "muscle_secondary": [
+      "Tríceps",
+      "Trapézio"
+    ],
+    "equipment": [
+      "Barra"
+    ],
+    "training_style": [
+      "Força",
+      "Hipertrofia"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Composto"
+  },
+  {
+    "id": 24,
+    "name": "Desenvolvimento com Halteres",
+    "name_en": "Dumbbell Shoulder Press",
+    "category": "Ombros",
+    "muscle_primary": "Deltoide",
+    "muscle_secondary": [
+      "Tríceps"
+    ],
+    "equipment": [
+      "Halteres"
+    ],
+    "training_style": [
+      "Hipertrofia"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Composto"
+  },
+  {
+    "id": 25,
+    "name": "Arnold Press",
+    "name_en": "Arnold Press",
+    "category": "Ombros",
+    "muscle_primary": "Deltoide (3 porções)",
+    "muscle_secondary": [
+      "Tríceps"
+    ],
+    "equipment": [
+      "Halteres"
+    ],
+    "training_style": [
+      "Hipertrofia"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Composto"
+  },
+  {
+    "id": 26,
+    "name": "Elevação Lateral",
+    "name_en": "Lateral Raise",
+    "category": "Ombros",
+    "muscle_primary": "Deltoide Lateral",
+    "muscle_secondary": [],
+    "equipment": [
+      "Halteres"
+    ],
+    "training_style": [
+      "Hipertrofia",
+      "Isolamento"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 27,
+    "name": "Elevação Frontal",
+    "name_en": "Front Raise",
+    "category": "Ombros",
+    "muscle_primary": "Deltoide Anterior",
+    "muscle_secondary": [],
+    "equipment": [
+      "Halteres",
+      "Barra"
+    ],
+    "training_style": [
+      "Hipertrofia",
+      "Isolamento"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 28,
+    "name": "Crucifixo Inverso",
+    "name_en": "Reverse Fly",
+    "category": "Ombros",
+    "muscle_primary": "Deltoide Posterior",
+    "muscle_secondary": [
+      "Romboides"
+    ],
+    "equipment": [
+      "Halteres",
+      "Cabo/Polia"
+    ],
+    "training_style": [
+      "Hipertrofia",
+      "Isolamento"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 29,
+    "name": "Remada Alta",
+    "name_en": "Upright Row",
+    "category": "Ombros",
+    "muscle_primary": "Trapézio",
+    "muscle_secondary": [
+      "Deltoide"
+    ],
+    "equipment": [
+      "Barra",
+      "Halteres"
+    ],
+    "training_style": [
+      "Hipertrofia"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Composto"
+  },
+  {
+    "id": 30,
+    "name": "Flexão de Braço em Pike",
+    "name_en": "Pike Push-up",
+    "category": "Ombros",
+    "muscle_primary": "Deltoide",
+    "muscle_secondary": [
+      "Tríceps"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Calistenia"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Composto"
+  },
+  {
+    "id": 31,
+    "name": "Handstand Push-up",
+    "name_en": "Handstand Push-up",
+    "category": "Ombros",
+    "muscle_primary": "Deltoide",
+    "muscle_secondary": [
+      "Tríceps",
+      "Core"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Calistenia"
+    ],
+    "difficulty": "Avançado",
+    "type": "Composto"
+  },
+  {
+    "id": 32,
+    "name": "Rosca Direta com Barra",
+    "name_en": "Barbell Curl",
+    "category": "Bíceps",
+    "muscle_primary": "Bíceps Braquial",
+    "muscle_secondary": [
+      "Braquial",
+      "Braquiorradial"
+    ],
+    "equipment": [
+      "Barra"
+    ],
+    "training_style": [
+      "Hipertrofia",
+      "Isolamento"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 33,
+    "name": "Rosca com Halteres",
+    "name_en": "Dumbbell Curl",
+    "category": "Bíceps",
+    "muscle_primary": "Bíceps Braquial",
+    "muscle_secondary": [
+      "Braquial"
+    ],
+    "equipment": [
+      "Halteres"
+    ],
+    "training_style": [
+      "Hipertrofia",
+      "Isolamento"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 34,
+    "name": "Rosca Martelo",
+    "name_en": "Hammer Curl",
+    "category": "Bíceps",
+    "muscle_primary": "Braquiorradial",
+    "muscle_secondary": [
+      "Bíceps Braquial"
+    ],
+    "equipment": [
+      "Halteres"
+    ],
+    "training_style": [
+      "Hipertrofia",
+      "Isolamento"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 35,
+    "name": "Rosca Concentrada",
+    "name_en": "Concentration Curl",
+    "category": "Bíceps",
+    "muscle_primary": "Bíceps Braquial",
+    "muscle_secondary": [],
+    "equipment": [
+      "Halteres"
+    ],
+    "training_style": [
+      "Isolamento"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 36,
+    "name": "Rosca Scott",
+    "name_en": "Preacher Curl",
+    "category": "Bíceps",
+    "muscle_primary": "Bíceps Braquial (cabeça longa)",
+    "muscle_secondary": [],
+    "equipment": [
+      "Barra",
+      "Banco Scott"
+    ],
+    "training_style": [
+      "Hipertrofia",
+      "Isolamento"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 37,
+    "name": "Rosca no Cabo",
+    "name_en": "Cable Curl",
+    "category": "Bíceps",
+    "muscle_primary": "Bíceps Braquial",
+    "muscle_secondary": [],
+    "equipment": [
+      "Cabo/Polia"
+    ],
+    "training_style": [
+      "Isolamento"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 38,
+    "name": "Rosca Inclinada",
+    "name_en": "Incline Dumbbell Curl",
+    "category": "Bíceps",
+    "muscle_primary": "Bíceps Braquial (cabeça longa)",
+    "muscle_secondary": [],
+    "equipment": [
+      "Halteres",
+      "Banco Inclinado"
+    ],
+    "training_style": [
+      "Isolamento"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Isolamento"
+  },
+  {
+    "id": 39,
+    "name": "Tríceps Testa",
+    "name_en": "Skull Crusher",
+    "category": "Tríceps",
+    "muscle_primary": "Tríceps Braquial",
+    "muscle_secondary": [],
+    "equipment": [
+      "Barra",
+      "Banco"
+    ],
+    "training_style": [
+      "Hipertrofia",
+      "Isolamento"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Isolamento"
+  },
+  {
+    "id": 40,
+    "name": "Extensão de Tríceps Acima da Cabeça",
+    "name_en": "Overhead Triceps Extension",
+    "category": "Tríceps",
+    "muscle_primary": "Tríceps (cabeça longa)",
+    "muscle_secondary": [],
+    "equipment": [
+      "Halteres",
+      "Cabo/Polia"
+    ],
+    "training_style": [
+      "Hipertrofia",
+      "Isolamento"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 41,
+    "name": "Pulldown de Tríceps",
+    "name_en": "Triceps Pushdown",
+    "category": "Tríceps",
+    "muscle_primary": "Tríceps Braquial",
+    "muscle_secondary": [],
+    "equipment": [
+      "Cabo/Polia"
+    ],
+    "training_style": [
+      "Isolamento"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 42,
+    "name": "Tríceps Coice",
+    "name_en": "Triceps Kickback",
+    "category": "Tríceps",
+    "muscle_primary": "Tríceps Braquial",
+    "muscle_secondary": [],
+    "equipment": [
+      "Halteres"
+    ],
+    "training_style": [
+      "Isolamento"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 43,
+    "name": "Supino Fechado",
+    "name_en": "Close-Grip Bench Press",
+    "category": "Tríceps",
+    "muscle_primary": "Tríceps Braquial",
+    "muscle_secondary": [
+      "Peitoral",
+      "Deltoide"
+    ],
+    "equipment": [
+      "Barra",
+      "Banco"
+    ],
+    "training_style": [
+      "Força",
+      "Hipertrofia"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Composto"
+  },
+  {
+    "id": 44,
+    "name": "Dips para Tríceps",
+    "name_en": "Triceps Dip",
+    "category": "Tríceps",
+    "muscle_primary": "Tríceps Braquial",
+    "muscle_secondary": [
+      "Peitoral",
+      "Deltoide"
+    ],
+    "equipment": [
+      "Banco",
+      "Barras Paralelas"
+    ],
+    "training_style": [
+      "Calistenia",
+      "Força"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Composto"
+  },
+  {
+    "id": 45,
+    "name": "Agachamento com Barra",
+    "name_en": "Back Squat",
+    "category": "Quadríceps",
+    "muscle_primary": "Quadríceps",
+    "muscle_secondary": [
+      "Glúteos",
+      "Isquiotibiais"
+    ],
+    "equipment": [
+      "Barra"
+    ],
+    "training_style": [
+      "Força",
+      "Powerlifting",
+      "Hipertrofia"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Composto"
+  },
+  {
+    "id": 46,
+    "name": "Agachamento Frontal",
+    "name_en": "Front Squat",
+    "category": "Quadríceps",
+    "muscle_primary": "Quadríceps",
+    "muscle_secondary": [
+      "Core",
+      "Glúteos"
+    ],
+    "equipment": [
+      "Barra"
+    ],
+    "training_style": [
+      "Força",
+      "Hipertrofia"
+    ],
+    "difficulty": "Avançado",
+    "type": "Composto"
+  },
+  {
+    "id": 47,
+    "name": "Leg Press",
+    "name_en": "Leg Press",
+    "category": "Quadríceps",
+    "muscle_primary": "Quadríceps",
+    "muscle_secondary": [
+      "Glúteos",
+      "Isquiotibiais"
+    ],
+    "equipment": [
+      "Máquina"
+    ],
+    "training_style": [
+      "Hipertrofia"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Composto"
+  },
+  {
+    "id": 48,
+    "name": "Extensão de Perna",
+    "name_en": "Leg Extension",
+    "category": "Quadríceps",
+    "muscle_primary": "Quadríceps",
+    "muscle_secondary": [],
+    "equipment": [
+      "Máquina"
+    ],
+    "training_style": [
+      "Isolamento"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 49,
+    "name": "Avanço",
+    "name_en": "Lunge",
+    "category": "Quadríceps",
+    "muscle_primary": "Quadríceps",
+    "muscle_secondary": [
+      "Glúteos",
+      "Isquiotibiais"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Calistenia",
+      "Hipertrofia",
+      "Funcional"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Composto"
+  },
+  {
+    "id": 50,
+    "name": "Agachamento Búlgaro",
+    "name_en": "Bulgarian Split Squat",
+    "category": "Quadríceps",
+    "muscle_primary": "Quadríceps",
+    "muscle_secondary": [
+      "Glúteos"
+    ],
+    "equipment": [
+      "Banco"
+    ],
+    "training_style": [
+      "Hipertrofia",
+      "Funcional"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Composto"
+  },
+  {
+    "id": 51,
+    "name": "Hack Squat",
+    "name_en": "Hack Squat",
+    "category": "Quadríceps",
+    "muscle_primary": "Quadríceps",
+    "muscle_secondary": [
+      "Glúteos"
+    ],
+    "equipment": [
+      "Máquina",
+      "Barra"
+    ],
+    "training_style": [
+      "Hipertrofia"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Composto"
+  },
+  {
+    "id": 52,
+    "name": "Agachamento Sumo",
+    "name_en": "Sumo Squat",
+    "category": "Quadríceps",
+    "muscle_primary": "Adutores",
+    "muscle_secondary": [
+      "Quadríceps",
+      "Glúteos"
+    ],
+    "equipment": [
+      "Halteres",
+      "Barra"
+    ],
+    "training_style": [
+      "Hipertrofia"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Composto"
+  },
+  {
+    "id": 53,
+    "name": "Agachamento Livre (sem peso)",
+    "name_en": "Bodyweight Squat",
+    "category": "Quadríceps",
+    "muscle_primary": "Quadríceps",
+    "muscle_secondary": [
+      "Glúteos"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Calistenia",
+      "Funcional",
+      "HIIT"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Composto"
+  },
+  {
+    "id": 54,
+    "name": "Agachamento no Pistol",
+    "name_en": "Pistol Squat",
+    "category": "Quadríceps",
+    "muscle_primary": "Quadríceps",
+    "muscle_secondary": [
+      "Glúteos",
+      "Core"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Calistenia"
+    ],
+    "difficulty": "Avançado",
+    "type": "Composto"
+  },
+  {
+    "id": 55,
+    "name": "Cadeira Extensora",
+    "name_en": "Leg Extension Machine",
+    "category": "Quadríceps",
+    "muscle_primary": "Quadríceps",
+    "muscle_secondary": [],
+    "equipment": [
+      "Máquina"
+    ],
+    "training_style": [
+      "Isolamento",
+      "Reabilitação"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 56,
+    "name": "Wall Sit",
+    "name_en": "Wall Sit",
+    "category": "Quadríceps",
+    "muscle_primary": "Quadríceps",
+    "muscle_secondary": [
+      "Glúteos"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Calistenia",
+      "Resistência"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isométrico"
+  },
+  {
+    "id": 57,
+    "name": "Levantamento Terra Romeno",
+    "name_en": "Romanian Deadlift",
+    "category": "Isquiotibiais",
+    "muscle_primary": "Isquiotibiais",
+    "muscle_secondary": [
+      "Glúteos",
+      "Eretores"
+    ],
+    "equipment": [
+      "Barra",
+      "Halteres"
+    ],
+    "training_style": [
+      "Força",
+      "Hipertrofia"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Composto"
+  },
+  {
+    "id": 58,
+    "name": "Flexão de Joelho (Mesa Flexora)",
+    "name_en": "Leg Curl Machine",
+    "category": "Isquiotibiais",
+    "muscle_primary": "Isquiotibiais",
+    "muscle_secondary": [],
+    "equipment": [
+      "Máquina"
+    ],
+    "training_style": [
+      "Isolamento"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 59,
+    "name": "Nordic Hamstring Curl",
+    "name_en": "Nordic Hamstring Curl",
+    "category": "Isquiotibiais",
+    "muscle_primary": "Isquiotibiais",
+    "muscle_secondary": [
+      "Glúteos"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Força",
+      "Reabilitação"
+    ],
+    "difficulty": "Avançado",
+    "type": "Isolamento"
+  },
+  {
+    "id": 60,
+    "name": "Good Morning",
+    "name_en": "Good Morning",
+    "category": "Isquiotibiais",
+    "muscle_primary": "Isquiotibiais",
+    "muscle_secondary": [
+      "Eretores",
+      "Glúteos"
+    ],
+    "equipment": [
+      "Barra"
+    ],
+    "training_style": [
+      "Força"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Composto"
+  },
+  {
+    "id": 61,
+    "name": "Levantamento Terra Stiff",
+    "name_en": "Stiff-Leg Deadlift",
+    "category": "Isquiotibiais",
+    "muscle_primary": "Isquiotibiais",
+    "muscle_secondary": [
+      "Glúteos",
+      "Eretores"
+    ],
+    "equipment": [
+      "Barra",
+      "Halteres"
+    ],
+    "training_style": [
+      "Força",
+      "Hipertrofia"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Composto"
+  },
+  {
+    "id": 62,
+    "name": "Swiss Ball Leg Curl",
+    "name_en": "Swiss Ball Leg Curl",
+    "category": "Isquiotibiais",
+    "muscle_primary": "Isquiotibiais",
+    "muscle_secondary": [
+      "Glúteos",
+      "Core"
+    ],
+    "equipment": [
+      "Bola Suíça"
+    ],
+    "training_style": [
+      "Funcional",
+      "Reabilitação"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Composto"
+  },
+  {
+    "id": 63,
+    "name": "Hip Thrust",
+    "name_en": "Hip Thrust",
+    "category": "Glúteos",
+    "muscle_primary": "Glúteo Máximo",
+    "muscle_secondary": [
+      "Isquiotibiais",
+      "Core"
+    ],
+    "equipment": [
+      "Barra",
+      "Banco"
+    ],
+    "training_style": [
+      "Hipertrofia",
+      "Força"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Composto"
+  },
+  {
+    "id": 64,
+    "name": "Ponte de Glúteo",
+    "name_en": "Glute Bridge",
+    "category": "Glúteos",
+    "muscle_primary": "Glúteo Máximo",
+    "muscle_secondary": [
+      "Isquiotibiais"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Calistenia",
+      "Reabilitação"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 65,
+    "name": "Kickback no Cabo",
+    "name_en": "Cable Kickback",
+    "category": "Glúteos",
+    "muscle_primary": "Glúteo Máximo",
+    "muscle_secondary": [],
+    "equipment": [
+      "Cabo/Polia"
+    ],
+    "training_style": [
+      "Isolamento"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 66,
+    "name": "Donkey Kick",
+    "name_en": "Donkey Kick",
+    "category": "Glúteos",
+    "muscle_primary": "Glúteo Máximo",
+    "muscle_secondary": [],
+    "equipment": [],
+    "training_style": [
+      "Calistenia",
+      "Isolamento"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 67,
+    "name": "Abdução com Faixa Elástica",
+    "name_en": "Lateral Band Walk",
+    "category": "Glúteos",
+    "muscle_primary": "Glúteo Médio",
+    "muscle_secondary": [
+      "Glúteo Mínimo"
+    ],
+    "equipment": [
+      "Faixa Elástica"
+    ],
+    "training_style": [
+      "Funcional",
+      "Reabilitação"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 68,
+    "name": "Avanço Reverso",
+    "name_en": "Reverse Lunge",
+    "category": "Glúteos",
+    "muscle_primary": "Glúteo Máximo",
+    "muscle_secondary": [
+      "Quadríceps"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Calistenia",
+      "Funcional"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Composto"
+  },
+  {
+    "id": 69,
+    "name": "Step-Up",
+    "name_en": "Step-Up",
+    "category": "Glúteos",
+    "muscle_primary": "Glúteo Máximo",
+    "muscle_secondary": [
+      "Quadríceps",
+      "Isquiotibiais"
+    ],
+    "equipment": [
+      "Banco",
+      "Caixote"
+    ],
+    "training_style": [
+      "Funcional",
+      "Hipertrofia"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Composto"
+  },
+  {
+    "id": 70,
+    "name": "Abdução na Máquina",
+    "name_en": "Hip Abduction Machine",
+    "category": "Glúteos",
+    "muscle_primary": "Glúteo Médio",
+    "muscle_secondary": [],
+    "equipment": [
+      "Máquina"
+    ],
+    "training_style": [
+      "Isolamento"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 71,
+    "name": "Elevação de Panturrilha em Pé",
+    "name_en": "Standing Calf Raise",
+    "category": "Panturrilha",
+    "muscle_primary": "Gastrocnêmio",
+    "muscle_secondary": [
+      "Sóleo"
+    ],
+    "equipment": [
+      "Máquina",
+      "Barra",
+      "Halteres"
+    ],
+    "training_style": [
+      "Isolamento",
+      "Hipertrofia"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 72,
+    "name": "Elevação de Panturrilha Sentado",
+    "name_en": "Seated Calf Raise",
+    "category": "Panturrilha",
+    "muscle_primary": "Sóleo",
+    "muscle_secondary": [
+      "Gastrocnêmio"
+    ],
+    "equipment": [
+      "Máquina"
+    ],
+    "training_style": [
+      "Isolamento"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 73,
+    "name": "Elevação de Panturrilha (Parede)",
+    "name_en": "Wall Calf Raise",
+    "category": "Panturrilha",
+    "muscle_primary": "Gastrocnêmio",
+    "muscle_secondary": [],
+    "equipment": [],
+    "training_style": [
+      "Calistenia"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 74,
+    "name": "Pulo de Corda",
+    "name_en": "Jump Rope",
+    "category": "Panturrilha",
+    "muscle_primary": "Gastrocnêmio",
+    "muscle_secondary": [
+      "Cardio"
+    ],
+    "equipment": [
+      "Corda"
+    ],
+    "training_style": [
+      "Cardio",
+      "HIIT"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Cardio"
+  },
+  {
+    "id": 75,
+    "name": "Box Jump",
+    "name_en": "Box Jump",
+    "category": "Panturrilha",
+    "muscle_primary": "Gastrocnêmio",
+    "muscle_secondary": [
+      "Quadríceps",
+      "Glúteos"
+    ],
+    "equipment": [
+      "Caixote"
+    ],
+    "training_style": [
+      "Explosão",
+      "HIIT",
+      "Pliométrico"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Pliométrico"
+  },
+  {
+    "id": 76,
+    "name": "Prancha",
+    "name_en": "Plank",
+    "category": "Core",
+    "muscle_primary": "Core (Transverso)",
+    "muscle_secondary": [
+      "Deltoide",
+      "Glúteos"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Calistenia",
+      "Funcional"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isométrico"
+  },
+  {
+    "id": 77,
+    "name": "Prancha Lateral",
+    "name_en": "Side Plank",
+    "category": "Core",
+    "muscle_primary": "Oblíquos",
+    "muscle_secondary": [
+      "Core",
+      "Quadratus Lumborum"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Calistenia",
+      "Funcional"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isométrico"
+  },
+  {
+    "id": 78,
+    "name": "Abdominal Crunch",
+    "name_en": "Crunch",
+    "category": "Core",
+    "muscle_primary": "Reto Abdominal",
+    "muscle_secondary": [],
+    "equipment": [],
+    "training_style": [
+      "Calistenia",
+      "Isolamento"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 79,
+    "name": "Elevação de Pernas",
+    "name_en": "Leg Raise",
+    "category": "Core",
+    "muscle_primary": "Reto Abdominal Inferior",
+    "muscle_secondary": [
+      "Flexores do Quadril"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Calistenia"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Isolamento"
+  },
+  {
+    "id": 80,
+    "name": "Elevação de Joelhos na Barra",
+    "name_en": "Hanging Knee Raise",
+    "category": "Core",
+    "muscle_primary": "Reto Abdominal",
+    "muscle_secondary": [
+      "Flexores do Quadril"
+    ],
+    "equipment": [
+      "Barra Fixa"
+    ],
+    "training_style": [
+      "Calistenia",
+      "Hipertrofia"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Isolamento"
+  },
+  {
+    "id": 81,
+    "name": "Russian Twist",
+    "name_en": "Russian Twist",
+    "category": "Core",
+    "muscle_primary": "Oblíquos",
+    "muscle_secondary": [
+      "Reto Abdominal"
+    ],
+    "equipment": [
+      "Peso Livre"
+    ],
+    "training_style": [
+      "Funcional",
+      "Calistenia"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 82,
+    "name": "Roda Abdominal",
+    "name_en": "Ab Wheel Rollout",
+    "category": "Core",
+    "muscle_primary": "Reto Abdominal",
+    "muscle_secondary": [
+      "Core",
+      "Dorsais"
+    ],
+    "equipment": [
+      "Roda Abdominal"
+    ],
+    "training_style": [
+      "Calistenia"
+    ],
+    "difficulty": "Avançado",
+    "type": "Composto"
+  },
+  {
+    "id": 83,
+    "name": "Mountain Climber",
+    "name_en": "Mountain Climber",
+    "category": "Core",
+    "muscle_primary": "Core",
+    "muscle_secondary": [
+      "Ombros",
+      "Flexores do Quadril"
+    ],
+    "equipment": [],
+    "training_style": [
+      "HIIT",
+      "Funcional",
+      "Cardio"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Cardio"
+  },
+  {
+    "id": 84,
+    "name": "Dead Bug",
+    "name_en": "Dead Bug",
+    "category": "Core",
+    "muscle_primary": "Core (Transverso)",
+    "muscle_secondary": [
+      "Reto Abdominal"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Funcional",
+      "Reabilitação"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 85,
+    "name": "Hollow Body Hold",
+    "name_en": "Hollow Body Hold",
+    "category": "Core",
+    "muscle_primary": "Reto Abdominal",
+    "muscle_secondary": [
+      "Core"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Calistenia",
+      "Ginástica"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Isométrico"
+  },
+  {
+    "id": 86,
+    "name": "L-Sit",
+    "name_en": "L-Sit",
+    "category": "Core",
+    "muscle_primary": "Core",
+    "muscle_secondary": [
+      "Tríceps",
+      "Flexores do Quadril"
+    ],
+    "equipment": [
+      "Barras Paralelas",
+      "Barra Fixa"
+    ],
+    "training_style": [
+      "Calistenia",
+      "Ginástica"
+    ],
+    "difficulty": "Avançado",
+    "type": "Isométrico"
+  },
+  {
+    "id": 87,
+    "name": "Dragon Flag",
+    "name_en": "Dragon Flag",
+    "category": "Core",
+    "muscle_primary": "Reto Abdominal",
+    "muscle_secondary": [
+      "Core",
+      "Dorsais"
+    ],
+    "equipment": [
+      "Banco"
+    ],
+    "training_style": [
+      "Calistenia"
+    ],
+    "difficulty": "Avançado",
+    "type": "Isolamento"
+  },
+  {
+    "id": 88,
+    "name": "Oblíquo no Cabo",
+    "name_en": "Cable Woodchop",
+    "category": "Core",
+    "muscle_primary": "Oblíquos",
+    "muscle_secondary": [
+      "Core",
+      "Ombros"
+    ],
+    "equipment": [
+      "Cabo/Polia"
+    ],
+    "training_style": [
+      "Funcional"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Funcional"
+  },
+  {
+    "id": 89,
+    "name": "Vacuum Abdominal",
+    "name_en": "Stomach Vacuum",
+    "category": "Core",
+    "muscle_primary": "Transverso Abdominal",
+    "muscle_secondary": [],
+    "equipment": [],
+    "training_style": [
+      "Funcional",
+      "Reabilitação"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isométrico"
+  },
+  {
+    "id": 90,
+    "name": "Burpee",
+    "name_en": "Burpee",
+    "category": "Cardio",
+    "muscle_primary": "Corpo Inteiro",
+    "muscle_secondary": [
+      "Cardio"
+    ],
+    "equipment": [],
+    "training_style": [
+      "HIIT",
+      "Funcional",
+      "Cardio"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Cardio"
+  },
+  {
+    "id": 91,
+    "name": "Jumping Jack",
+    "name_en": "Jumping Jack",
+    "category": "Cardio",
+    "muscle_primary": "Corpo Inteiro",
+    "muscle_secondary": [
+      "Ombros",
+      "Panturrilha"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Cardio",
+      "HIIT",
+      "Aquecimento"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Cardio"
+  },
+  {
+    "id": 92,
+    "name": "High Knees",
+    "name_en": "High Knees",
+    "category": "Cardio",
+    "muscle_primary": "Flexores do Quadril",
+    "muscle_secondary": [
+      "Quadríceps",
+      "Cardio"
+    ],
+    "equipment": [],
+    "training_style": [
+      "HIIT",
+      "Cardio"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Cardio"
+  },
+  {
+    "id": 93,
+    "name": "Corrida",
+    "name_en": "Running",
+    "category": "Cardio",
+    "muscle_primary": "Corpo Inteiro",
+    "muscle_secondary": [
+      "Isquiotibiais",
+      "Glúteos"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Cardio",
+      "Resistência"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Cardio"
+  },
+  {
+    "id": 94,
+    "name": "Remo Ergométrico",
+    "name_en": "Rowing Machine",
+    "category": "Cardio",
+    "muscle_primary": "Costas",
+    "muscle_secondary": [
+      "Bíceps",
+      "Quadríceps",
+      "Core"
+    ],
+    "equipment": [
+      "Remo Ergométrico"
+    ],
+    "training_style": [
+      "Cardio",
+      "Funcional"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Cardio"
+  },
+  {
+    "id": 95,
+    "name": "Bike Ergométrica",
+    "name_en": "Stationary Bike",
+    "category": "Cardio",
+    "muscle_primary": "Quadríceps",
+    "muscle_secondary": [
+      "Isquiotibiais",
+      "Panturrilha"
+    ],
+    "equipment": [
+      "Bicicleta Ergométrica"
+    ],
+    "training_style": [
+      "Cardio",
+      "Resistência"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Cardio"
+  },
+  {
+    "id": 96,
+    "name": "Battle Ropes",
+    "name_en": "Battle Ropes",
+    "category": "Cardio",
+    "muscle_primary": "Ombros",
+    "muscle_secondary": [
+      "Core",
+      "Braços",
+      "Cardio"
+    ],
+    "equipment": [
+      "Cordas de Batalha"
+    ],
+    "training_style": [
+      "HIIT",
+      "Funcional"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Cardio"
+  },
+  {
+    "id": 97,
+    "name": "Sprint",
+    "name_en": "Sprint",
+    "category": "Cardio",
+    "muscle_primary": "Quadríceps",
+    "muscle_secondary": [
+      "Isquiotibiais",
+      "Glúteos",
+      "Panturrilha"
+    ],
+    "equipment": [],
+    "training_style": [
+      "HIIT",
+      "Pliométrico"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Cardio"
+  },
+  {
+    "id": 98,
+    "name": "Escada Rolante / StairMaster",
+    "name_en": "Stair Climber",
+    "category": "Cardio",
+    "muscle_primary": "Glúteos",
+    "muscle_secondary": [
+      "Quadríceps",
+      "Panturrilha"
+    ],
+    "equipment": [
+      "StairMaster"
+    ],
+    "training_style": [
+      "Cardio"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Cardio"
+  },
+  {
+    "id": 99,
+    "name": "Polichinelo Agachado",
+    "name_en": "Squat Jump",
+    "category": "Cardio",
+    "muscle_primary": "Quadríceps",
+    "muscle_secondary": [
+      "Glúteos",
+      "Cardio"
+    ],
+    "equipment": [],
+    "training_style": [
+      "HIIT",
+      "Pliométrico"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Pliométrico"
+  },
+  {
+    "id": 100,
+    "name": "Levantamento Terra Convencional",
+    "name_en": "Conventional Deadlift",
+    "category": "Corpo Inteiro",
+    "muscle_primary": "Eretores da Espinha",
+    "muscle_secondary": [
+      "Glúteos",
+      "Isquiotibiais",
+      "Trapézio",
+      "Quadríceps"
+    ],
+    "equipment": [
+      "Barra"
+    ],
+    "training_style": [
+      "Força",
+      "Powerlifting"
+    ],
+    "difficulty": "Avançado",
+    "type": "Composto"
+  },
+  {
+    "id": 101,
+    "name": "Clean and Press",
+    "name_en": "Clean and Press",
+    "category": "Corpo Inteiro",
+    "muscle_primary": "Corpo Inteiro",
+    "muscle_secondary": [
+      "Ombros",
+      "Quadríceps",
+      "Core"
+    ],
+    "equipment": [
+      "Barra",
+      "Halteres",
+      "Kettlebell"
+    ],
+    "training_style": [
+      "Força",
+      "Funcional",
+      "Levantamento Olímpico"
+    ],
+    "difficulty": "Avançado",
+    "type": "Composto"
+  },
+  {
+    "id": 102,
+    "name": "Turkish Get-Up",
+    "name_en": "Turkish Get-Up",
+    "category": "Corpo Inteiro",
+    "muscle_primary": "Core",
+    "muscle_secondary": [
+      "Ombros",
+      "Glúteos",
+      "Quadríceps"
+    ],
+    "equipment": [
+      "Kettlebell",
+      "Halteres"
+    ],
+    "training_style": [
+      "Funcional",
+      "Mobilidade"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Funcional"
+  },
+  {
+    "id": 103,
+    "name": "Thruster",
+    "name_en": "Thruster",
+    "category": "Corpo Inteiro",
+    "muscle_primary": "Quadríceps",
+    "muscle_secondary": [
+      "Ombros",
+      "Glúteos",
+      "Core"
+    ],
+    "equipment": [
+      "Barra",
+      "Halteres",
+      "Kettlebell"
+    ],
+    "training_style": [
+      "CrossFit",
+      "HIIT",
+      "Funcional"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Composto"
+  },
+  {
+    "id": 104,
+    "name": "Farmer's Walk",
+    "name_en": "Farmer's Walk",
+    "category": "Corpo Inteiro",
+    "muscle_primary": "Trapézio",
+    "muscle_secondary": [
+      "Core",
+      "Antebraço",
+      "Quadríceps"
+    ],
+    "equipment": [
+      "Halteres",
+      "Kettlebell",
+      "Barra"
+    ],
+    "training_style": [
+      "Funcional",
+      "Força"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Funcional"
+  },
+  {
+    "id": 105,
+    "name": "Bear Crawl",
+    "name_en": "Bear Crawl",
+    "category": "Corpo Inteiro",
+    "muscle_primary": "Core",
+    "muscle_secondary": [
+      "Ombros",
+      "Quadríceps"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Funcional",
+      "Mobilidade"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Funcional"
+  },
+  {
+    "id": 106,
+    "name": "Swing com Kettlebell",
+    "name_en": "Kettlebell Swing",
+    "category": "Corpo Inteiro",
+    "muscle_primary": "Glúteos",
+    "muscle_secondary": [
+      "Isquiotibiais",
+      "Core",
+      "Ombros"
+    ],
+    "equipment": [
+      "Kettlebell"
+    ],
+    "training_style": [
+      "Funcional",
+      "HIIT",
+      "Cardio"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Funcional"
+  },
+  {
+    "id": 107,
+    "name": "Snatch com Kettlebell",
+    "name_en": "Kettlebell Snatch",
+    "category": "Corpo Inteiro",
+    "muscle_primary": "Corpo Inteiro",
+    "muscle_secondary": [
+      "Ombros",
+      "Core",
+      "Glúteos"
+    ],
+    "equipment": [
+      "Kettlebell"
+    ],
+    "training_style": [
+      "Funcional",
+      "Levantamento Olímpico"
+    ],
+    "difficulty": "Avançado",
+    "type": "Composto"
+  },
+  {
+    "id": 108,
+    "name": "Man Maker",
+    "name_en": "Man Maker",
+    "category": "Corpo Inteiro",
+    "muscle_primary": "Corpo Inteiro",
+    "muscle_secondary": [
+      "Peito",
+      "Costas",
+      "Ombros",
+      "Core"
+    ],
+    "equipment": [
+      "Halteres"
+    ],
+    "training_style": [
+      "CrossFit",
+      "HIIT"
+    ],
+    "difficulty": "Avançado",
+    "type": "Composto"
+  },
+  {
+    "id": 109,
+    "name": "Agachamento com Salto",
+    "name_en": "Jump Squat",
+    "category": "Corpo Inteiro",
+    "muscle_primary": "Quadríceps",
+    "muscle_secondary": [
+      "Glúteos",
+      "Panturrilha"
+    ],
+    "equipment": [],
+    "training_style": [
+      "HIIT",
+      "Pliométrico"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Pliométrico"
+  },
+  {
+    "id": 110,
+    "name": "Rosca de Punho",
+    "name_en": "Wrist Curl",
+    "category": "Antebraço",
+    "muscle_primary": "Flexores do Antebraço",
+    "muscle_secondary": [],
+    "equipment": [
+      "Barra",
+      "Halteres"
+    ],
+    "training_style": [
+      "Isolamento"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 111,
+    "name": "Extensão de Punho",
+    "name_en": "Wrist Extension",
+    "category": "Antebraço",
+    "muscle_primary": "Extensores do Antebraço",
+    "muscle_secondary": [],
+    "equipment": [
+      "Barra",
+      "Halteres"
+    ],
+    "training_style": [
+      "Isolamento"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 112,
+    "name": "Farmer's Hold",
+    "name_en": "Farmer's Hold",
+    "category": "Antebraço",
+    "muscle_primary": "Antebraço",
+    "muscle_secondary": [
+      "Trapézio"
+    ],
+    "equipment": [
+      "Halteres",
+      "Barra"
+    ],
+    "training_style": [
+      "Força",
+      "Funcional"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isométrico"
+  },
+  {
+    "id": 113,
+    "name": "Agachamento Profundo (mobilidade)",
+    "name_en": "Deep Squat Hold",
+    "category": "Mobilidade",
+    "muscle_primary": "Tornozelo",
+    "muscle_secondary": [
+      "Quadril",
+      "Torácica"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Mobilidade",
+      "Reabilitação"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Mobilidade"
+  },
+  {
+    "id": 114,
+    "name": "Hip Flexor Stretch",
+    "name_en": "Hip Flexor Stretch",
+    "category": "Mobilidade",
+    "muscle_primary": "Flexores do Quadril",
+    "muscle_secondary": [
+      "Glúteos"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Flexibilidade",
+      "Mobilidade"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Mobilidade"
+  },
+  {
+    "id": 115,
+    "name": "World's Greatest Stretch",
+    "name_en": "World's Greatest Stretch",
+    "category": "Mobilidade",
+    "muscle_primary": "Corpo Inteiro",
+    "muscle_secondary": [
+      "Quadril",
+      "Torácica",
+      "Isquiotibiais"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Mobilidade",
+      "Aquecimento"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Mobilidade"
+  },
+  {
+    "id": 116,
+    "name": "Rotação Torácica",
+    "name_en": "Thoracic Rotation",
+    "category": "Mobilidade",
+    "muscle_primary": "Coluna Torácica",
+    "muscle_secondary": [
+      "Oblíquos"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Mobilidade",
+      "Reabilitação"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Mobilidade"
+  },
+  {
+    "id": 117,
+    "name": "Alongamento de Isquiotibial",
+    "name_en": "Hamstring Stretch",
+    "category": "Mobilidade",
+    "muscle_primary": "Isquiotibiais",
+    "muscle_secondary": [],
+    "equipment": [],
+    "training_style": [
+      "Flexibilidade"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Mobilidade"
+  },
+  {
+    "id": 118,
+    "name": "Pigeon Pose",
+    "name_en": "Pigeon Pose",
+    "category": "Mobilidade",
+    "muscle_primary": "Glúteo Médio",
+    "muscle_secondary": [
+      "Flexores do Quadril",
+      "Piriforme"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Mobilidade",
+      "Yoga"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Mobilidade"
+  },
+  {
+    "id": 119,
+    "name": "Cat-Cow",
+    "name_en": "Cat-Cow",
+    "category": "Mobilidade",
+    "muscle_primary": "Coluna",
+    "muscle_secondary": [
+      "Core",
+      "Pescoço"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Mobilidade",
+      "Yoga",
+      "Reabilitação"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Mobilidade"
+  },
+  {
+    "id": 120,
+    "name": "Foam Rolling",
+    "name_en": "Foam Rolling",
+    "category": "Mobilidade",
+    "muscle_primary": "Variado",
+    "muscle_secondary": [],
+    "equipment": [
+      "Rolo de Espuma"
+    ],
+    "training_style": [
+      "Recuperação",
+      "Mobilidade"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Recuperação"
+  },
+  {
+    "id": 121,
+    "name": "Encolhimento de Ombros",
+    "name_en": "Barbell Shrug",
+    "category": "Trapézio",
+    "muscle_primary": "Trapézio Superior",
+    "muscle_secondary": [
+      "Levantador da Escápula"
+    ],
+    "equipment": [
+      "Barra",
+      "Halteres"
+    ],
+    "training_style": [
+      "Isolamento",
+      "Hipertrofia"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 122,
+    "name": "Encolhimento no Cabo",
+    "name_en": "Cable Shrug",
+    "category": "Trapézio",
+    "muscle_primary": "Trapézio Superior",
+    "muscle_secondary": [],
+    "equipment": [
+      "Cabo/Polia"
+    ],
+    "training_style": [
+      "Isolamento"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 123,
+    "name": "Clamshell",
+    "name_en": "Clamshell",
+    "category": "Glúteos",
+    "muscle_primary": "Glúteo Médio",
+    "muscle_secondary": [
+      "Glúteo Mínimo",
+      "Piriforme"
+    ],
+    "equipment": [
+      "Faixa Elástica"
+    ],
+    "training_style": [
+      "Reabilitação",
+      "Mobilidade"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 124,
+    "name": "Fire Hydrant",
+    "name_en": "Fire Hydrant",
+    "category": "Glúteos",
+    "muscle_primary": "Glúteo Médio",
+    "muscle_secondary": [],
+    "equipment": [],
+    "training_style": [
+      "Calistenia",
+      "Reabilitação"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 125,
+    "name": "Adução na Máquina",
+    "name_en": "Hip Adduction Machine",
+    "category": "Adutores",
+    "muscle_primary": "Adutores",
+    "muscle_secondary": [],
+    "equipment": [
+      "Máquina"
+    ],
+    "training_style": [
+      "Isolamento"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 126,
+    "name": "Copenhagen Plank",
+    "name_en": "Copenhagen Plank",
+    "category": "Adutores",
+    "muscle_primary": "Adutores",
+    "muscle_secondary": [
+      "Core",
+      "Oblíquos"
+    ],
+    "equipment": [
+      "Banco"
+    ],
+    "training_style": [
+      "Funcional",
+      "Força"
+    ],
+    "difficulty": "Avançado",
+    "type": "Isométrico"
+  },
+  {
+    "id": 127,
+    "name": "Sumo Deadlift",
+    "name_en": "Sumo Deadlift",
+    "category": "Adutores",
+    "muscle_primary": "Adutores",
+    "muscle_secondary": [
+      "Glúteos",
+      "Isquiotibiais",
+      "Quadríceps"
+    ],
+    "equipment": [
+      "Barra"
+    ],
+    "training_style": [
+      "Força",
+      "Powerlifting"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Composto"
+  },
+  {
+    "id": 128,
+    "name": "Elevação de Pescoço",
+    "name_en": "Neck Flexion",
+    "category": "Pescoço",
+    "muscle_primary": "Esternocleidomastoideo",
+    "muscle_secondary": [
+      "Trapézio Superior"
+    ],
+    "equipment": [
+      "Faixa",
+      "Placa"
+    ],
+    "training_style": [
+      "Isolamento",
+      "Reabilitação"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 129,
+    "name": "Cachorro Olhando para Baixo",
+    "name_en": "Downward Dog",
+    "category": "Yoga",
+    "muscle_primary": "Isquiotibiais",
+    "muscle_secondary": [
+      "Ombros",
+      "Panturrilha",
+      "Eretores"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Yoga",
+      "Mobilidade",
+      "Flexibilidade"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Mobilidade"
+  },
+  {
+    "id": 130,
+    "name": "Prancha Lateral com Rotação",
+    "name_en": "Side Plank with Rotation",
+    "category": "Core",
+    "muscle_primary": "Oblíquos",
+    "muscle_secondary": [
+      "Core",
+      "Ombros"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Funcional",
+      "Pilates"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Composto"
+  },
+  {
+    "id": 131,
+    "name": "Ponte com Elevação de Perna",
+    "name_en": "Single-Leg Glute Bridge",
+    "category": "Glúteos",
+    "muscle_primary": "Glúteo Máximo",
+    "muscle_secondary": [
+      "Isquiotibiais",
+      "Core"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Calistenia",
+      "Pilates"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 132,
+    "name": "Roll-Up",
+    "name_en": "Roll-Up",
+    "category": "Core",
+    "muscle_primary": "Reto Abdominal",
+    "muscle_secondary": [
+      "Flexores do Quadril",
+      "Core"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Pilates"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Isolamento"
+  },
+  {
+    "id": 133,
+    "name": "Salto em Profundidade",
+    "name_en": "Depth Jump",
+    "category": "Corpo Inteiro",
+    "muscle_primary": "Quadríceps",
+    "muscle_secondary": [
+      "Glúteos",
+      "Panturrilha"
+    ],
+    "equipment": [
+      "Caixote"
+    ],
+    "training_style": [
+      "Pliométrico",
+      "Esporte"
+    ],
+    "difficulty": "Avançado",
+    "type": "Pliométrico"
+  },
+  {
+    "id": 134,
+    "name": "Salto Lateral",
+    "name_en": "Lateral Bound",
+    "category": "Corpo Inteiro",
+    "muscle_primary": "Glúteo Médio",
+    "muscle_secondary": [
+      "Quadríceps",
+      "Panturrilha"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Pliométrico",
+      "Esporte",
+      "HIIT"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Pliométrico"
+  },
+  {
+    "id": 135,
+    "name": "Medicine Ball Slam",
+    "name_en": "Medicine Ball Slam",
+    "category": "Corpo Inteiro",
+    "muscle_primary": "Core",
+    "muscle_secondary": [
+      "Ombros",
+      "Dorsais",
+      "Quadríceps"
+    ],
+    "equipment": [
+      "Medicine Ball"
+    ],
+    "training_style": [
+      "HIIT",
+      "Funcional",
+      "Explosão"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Funcional"
+  },
+  {
+    "id": 136,
+    "name": "Lançamento de Medicine Ball",
+    "name_en": "Medicine Ball Throw",
+    "category": "Corpo Inteiro",
+    "muscle_primary": "Peitoral",
+    "muscle_secondary": [
+      "Core",
+      "Ombros"
+    ],
+    "equipment": [
+      "Medicine Ball"
+    ],
+    "training_style": [
+      "HIIT",
+      "Funcional"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Funcional"
+  },
+  {
+    "id": 137,
+    "name": "Corrida Lateral",
+    "name_en": "Lateral Shuffle",
+    "category": "Cardio",
+    "muscle_primary": "Glúteo Médio",
+    "muscle_secondary": [
+      "Quadríceps",
+      "Panturrilha"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Esporte",
+      "HIIT",
+      "Agilidade"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Cardio"
+  },
+  {
+    "id": 138,
+    "name": "Corrida em Zigue-Zague",
+    "name_en": "Agility Ladder",
+    "category": "Cardio",
+    "muscle_primary": "Quadríceps",
+    "muscle_secondary": [
+      "Panturrilha",
+      "Core"
+    ],
+    "equipment": [
+      "Escada de Agilidade"
+    ],
+    "training_style": [
+      "Agilidade",
+      "Esporte",
+      "HIIT"
+    ],
+    "difficulty": "Iniciante",
+    "type": "Cardio"
+  },
+  {
+    "id": 139,
+    "name": "Arremesso (Snatch)",
+    "name_en": "Snatch",
+    "category": "Corpo Inteiro",
+    "muscle_primary": "Corpo Inteiro",
+    "muscle_secondary": [
+      "Ombros",
+      "Quadríceps",
+      "Core",
+      "Dorsais"
+    ],
+    "equipment": [
+      "Barra"
+    ],
+    "training_style": [
+      "Levantamento Olímpico",
+      "Força"
+    ],
+    "difficulty": "Avançado",
+    "type": "Composto"
+  },
+  {
+    "id": 140,
+    "name": "Arranco (Clean & Jerk)",
+    "name_en": "Clean & Jerk",
+    "category": "Corpo Inteiro",
+    "muscle_primary": "Corpo Inteiro",
+    "muscle_secondary": [
+      "Ombros",
+      "Quadríceps",
+      "Core",
+      "Dorsais"
+    ],
+    "equipment": [
+      "Barra"
+    ],
+    "training_style": [
+      "Levantamento Olímpico",
+      "Força"
+    ],
+    "difficulty": "Avançado",
+    "type": "Composto"
+  },
+  {
+    "id": 141,
+    "name": "Power Clean",
+    "name_en": "Power Clean",
+    "category": "Corpo Inteiro",
+    "muscle_primary": "Glúteos",
+    "muscle_secondary": [
+      "Dorsais",
+      "Quadríceps",
+      "Ombros"
+    ],
+    "equipment": [
+      "Barra"
+    ],
+    "training_style": [
+      "Levantamento Olímpico",
+      "Força",
+      "Esporte"
+    ],
+    "difficulty": "Avançado",
+    "type": "Composto"
+  },
+  {
+    "id": 142,
+    "name": "Muscle-Up",
+    "name_en": "Muscle-Up",
+    "category": "Corpo Inteiro",
+    "muscle_primary": "Dorsais",
+    "muscle_secondary": [
+      "Bíceps",
+      "Tríceps",
+      "Core"
+    ],
+    "equipment": [
+      "Barra Fixa",
+      "Argolas"
+    ],
+    "training_style": [
+      "Calistenia",
+      "Ginástica"
+    ],
+    "difficulty": "Avançado",
+    "type": "Composto"
+  },
+  {
+    "id": 143,
+    "name": "Front Lever",
+    "name_en": "Front Lever",
+    "category": "Costas",
+    "muscle_primary": "Latíssimo do Dorso",
+    "muscle_secondary": [
+      "Core",
+      "Bíceps"
+    ],
+    "equipment": [
+      "Barra Fixa",
+      "Argolas"
+    ],
+    "training_style": [
+      "Calistenia",
+      "Ginástica"
+    ],
+    "difficulty": "Avançado",
+    "type": "Isométrico"
+  },
+  {
+    "id": 144,
+    "name": "Back Lever",
+    "name_en": "Back Lever",
+    "category": "Costas",
+    "muscle_primary": "Bíceps",
+    "muscle_secondary": [
+      "Peitoral",
+      "Core"
+    ],
+    "equipment": [
+      "Barra Fixa",
+      "Argolas"
+    ],
+    "training_style": [
+      "Calistenia",
+      "Ginástica"
+    ],
+    "difficulty": "Avançado",
+    "type": "Isométrico"
+  },
+  {
+    "id": 145,
+    "name": "Planche",
+    "name_en": "Planche",
+    "category": "Corpo Inteiro",
+    "muscle_primary": "Ombros",
+    "muscle_secondary": [
+      "Core",
+      "Peitoral",
+      "Tríceps"
+    ],
+    "equipment": [
+      "Chão",
+      "Paralelas"
+    ],
+    "training_style": [
+      "Calistenia",
+      "Ginástica"
+    ],
+    "difficulty": "Avançado",
+    "type": "Isométrico"
+  },
+  {
+    "id": 146,
+    "name": "Human Flag",
+    "name_en": "Human Flag",
+    "category": "Core",
+    "muscle_primary": "Oblíquos",
+    "muscle_secondary": [
+      "Dorsais",
+      "Ombros"
+    ],
+    "equipment": [
+      "Barra Vertical"
+    ],
+    "training_style": [
+      "Calistenia",
+      "Ginástica"
+    ],
+    "difficulty": "Avançado",
+    "type": "Isométrico"
+  },
+  {
+    "id": 147,
+    "name": "One-Arm Push-up",
+    "name_en": "One-Arm Push-up",
+    "category": "Peito",
+    "muscle_primary": "Peitoral Maior",
+    "muscle_secondary": [
+      "Tríceps",
+      "Core",
+      "Deltoide"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Calistenia"
+    ],
+    "difficulty": "Avançado",
+    "type": "Composto"
+  },
+  {
+    "id": 148,
+    "name": "One-Arm Pull-up",
+    "name_en": "One-Arm Pull-up",
+    "category": "Costas",
+    "muscle_primary": "Latíssimo do Dorso",
+    "muscle_secondary": [
+      "Bíceps",
+      "Core"
+    ],
+    "equipment": [
+      "Barra Fixa"
+    ],
+    "training_style": [
+      "Calistenia",
+      "Ginástica"
+    ],
+    "difficulty": "Avançado",
+    "type": "Composto"
+  },
+  {
+    "id": 149,
+    "name": "Pistol Squat",
+    "name_en": "Pistol Squat",
+    "category": "Quadríceps",
+    "muscle_primary": "Quadríceps",
+    "muscle_secondary": [
+      "Glúteos",
+      "Core",
+      "Tornozelo"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Calistenia"
+    ],
+    "difficulty": "Avançado",
+    "type": "Composto"
+  },
+  {
+    "id": 150,
+    "name": "Ring Dips",
+    "name_en": "Ring Dips",
+    "category": "Peito",
+    "muscle_primary": "Peitoral Maior",
+    "muscle_secondary": [
+      "Tríceps",
+      "Core"
+    ],
+    "equipment": [
+      "Argolas"
+    ],
+    "training_style": [
+      "Calistenia",
+      "CrossFit"
+    ],
+    "difficulty": "Avançado",
+    "type": "Composto"
+  },
+  {
+    "id": 151,
+    "name": "Tuck Planche",
+    "name_en": "Tuck Planche",
+    "category": "Corpo Inteiro",
+    "muscle_primary": "Ombros",
+    "muscle_secondary": [
+      "Core",
+      "Peitoral"
+    ],
+    "equipment": [],
+    "training_style": [
+      "Calistenia",
+      "Ginástica"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Isométrico"
+  },
+  {
+    "id": 152,
+    "name": "Jefferson Curl",
+    "name_en": "Jefferson Curl",
+    "category": "Costas",
+    "muscle_primary": "Eretores da Espinha",
+    "muscle_secondary": [
+      "Isquiotibiais",
+      "Core"
+    ],
+    "equipment": [
+      "Halteres",
+      "Barra"
+    ],
+    "training_style": [
+      "Mobilidade",
+      "Reabilitação"
+    ],
+    "difficulty": "Intermediário",
+    "type": "Mobilidade"
+  }
+]

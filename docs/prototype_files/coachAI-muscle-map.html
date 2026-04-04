@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CoachAI — Muscle Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root,[data-theme="light"]{
+  --bg:#f4f3ef;--surface:#fff;--s2:#f8f7f4;--s3:#f0efe9;
+  --border:#e0ded7;--border2:#cac8c0;
+  --text:#1a1916;--muted:#6e6d67;--faint:#b2b0a8;
+  --accent:#00a896;--accent-h:#007a6c;--accent-bg:rgba(0,168,150,.1);
+  --primary-muscle:#ef4444;--primary-bg:rgba(239,68,68,.15);
+  --secondary-muscle:#f97316;--secondary-bg:rgba(249,115,22,.12);
+  --body-fill:#e8e5df;--body-stroke:#c8c5bc;
+  --muscle-default:rgba(180,175,165,.4);--muscle-stroke:#a09d94;
+  --shadow:0 2px 12px rgba(0,0,0,.07);
+  --radius:10px;--font-body:'Inter',sans-serif;--font-display:'Space Grotesk',sans-serif;
+}
+[data-theme="dark"]{
+  --bg:#0e0e0c;--surface:#171614;--s2:#1e1d1b;--s3:#242320;
+  --border:#2c2b28;--border2:#3a3936;
+  --text:#d2d0ca;--muted:#76756e;--faint:#48473f;
+  --accent:#2ec8b0;--accent-h:#4fd6be;--accent-bg:rgba(46,200,176,.12);
+  --primary-muscle:#ff4444;--primary-bg:rgba(255,68,68,.18);
+  --secondary-muscle:#fb923c;--secondary-bg:rgba(251,146,60,.15);
+  --body-fill:#2a2926;--body-stroke:#3e3d38;
+  --muscle-default:rgba(80,78,72,.6);--muscle-stroke:#525048;
+  --shadow:0 2px 16px rgba(0,0,0,.4);
+}
+html{-webkit-font-smoothing:antialiased}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;line-height:1.5;min-height:100dvh;display:flex;flex-direction:column}
+button,select,input{font:inherit;color:inherit;cursor:pointer}
+button{background:none;border:none}
+
+/* HEADER */
+header{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50}
+.hdr{max-width:1400px;margin:0 auto;padding:0 20px;height:54px;display:flex;align-items:center;gap:12px}
+.logo{font-family:var(--font-display);font-weight:700;font-size:16px;color:var(--text);display:flex;align-items:center;gap:8px}
+.logo .dot{color:var(--accent)}
+.hdr-sub{font-size:12px;color:var(--muted);flex:1}
+.icon-btn{width:32px;height:32px;border-radius:8px;background:var(--s2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--muted);transition:all .15s}
+.icon-btn:hover{color:var(--accent);border-color:var(--accent)}
+
+/* LAYOUT */
+.app{flex:1;max-width:1400px;margin:0 auto;width:100%;padding:16px;display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start}
+@media(max-width:800px){.app{grid-template-columns:1fr}}
+
+/* SIDEBAR */
+.sidebar{}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:12px}
+.ph{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;font-family:var(--font-display);font-weight:700;font-size:13px}
+.ph svg{color:var(--accent);flex-shrink:0}
+.pb{padding:14px}
+.lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:7px;display:block}
+.search-w{position:relative;margin-bottom:10px}
+.search-w input{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:8px 10px 8px 32px;color:var(--text);font-size:12px;outline:none;transition:border-color .15s}
+.search-w input:focus{border-color:var(--accent)}
+.search-w svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--faint);pointer-events:none}
+.search-w input::placeholder{color:var(--faint)}
+.cat-filter{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.cf-btn{padding:3px 9px;border-radius:999px;font-size:11px;font-weight:500;background:var(--s2);border:1px solid var(--border);color:var(--muted);transition:all .12s}
+.cf-btn:hover{border-color:var(--accent);color:var(--accent)}
+.cf-btn.on{background:var(--accent-bg);border-color:var(--accent);color:var(--accent);font-weight:700}
+.ex-list{max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;background:var(--s2)}
+.ex-list::-webkit-scrollbar{width:3px}
+.ex-list::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+.ex-item{padding:8px 12px;display:flex;align-items:center;gap:6px;cursor:pointer;transition:background .1s;border-bottom:1px solid var(--border)}
+.ex-item:last-child{border-bottom:none}
+.ex-item:hover{background:var(--accent-bg)}
+.ex-item.sel{background:var(--accent-bg);border-left:3px solid var(--accent)}
+.ex-n{font-size:12px;font-weight:500;flex:1;line-height:1.3}
+.ex-c{font-size:10px;color:var(--faint)}
+.di{font-size:9px;font-weight:700;padding:1px 5px;border-radius:999px}
+.di-i{background:rgba(50,200,50,.12);color:#18a018}
+.di-m{background:rgba(240,140,0,.12);color:#c05500}
+.di-a{background:rgba(220,50,50,.12);color:#b81818}
+[data-theme="dark"] .di-i{color:#5add5a}
+[data-theme="dark"] .di-m{color:#ffb020}
+[data-theme="dark"] .di-a{color:#ff6060}
+
+/* LEGEND */
+.legend{display:flex;flex-direction:column;gap:7px}
+.leg-item{display:flex;align-items:center;gap:8px;font-size:12px}
+.leg-dot{width:14px;height:14px;border-radius:3px;flex-shrink:0}
+.leg-primary{background:var(--primary-muscle)}
+.leg-secondary{background:var(--secondary-muscle)}
+.leg-rest{background:var(--muscle-default);border:1px solid var(--muscle-stroke)}
+
+/* EXERCISE INFO */
+.ex-info{padding:14px;border-top:1px solid var(--border)}
+.info-name{font-family:var(--font-display);font-weight:700;font-size:15px;color:var(--text);margin-bottom:4px}
+.info-en{font-size:11px;color:var(--faint);font-style:italic;margin-bottom:10px}
+.muscle-tags{display:flex;gap:5px;flex-wrap:wrap}
+.m-tag-p{padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;background:var(--primary-bg);border:1px solid var(--primary-muscle);color:var(--primary-muscle)}
+.m-tag-s{padding:3px 9px;border-radius:999px;font-size:11px;font-weight:500;background:var(--secondary-bg);border:1px solid var(--secondary-muscle);color:var(--secondary-muscle)}
+
+/* MANNEQUIN PANEL */
+.mannequin-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.mp-head{padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.mp-head h2{font-family:var(--font-display);font-weight:700;font-size:14px;flex:1}
+.views-wrap{display:grid;grid-template-columns:1fr 1fr;gap:0;padding:20px 30px}
+.view-block{display:flex;flex-direction:column;align-items:center;gap:10px}
+.view-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.mannequin-svg{width:100%;max-width:200px}
+
+/* SVG MUSCLE STYLES */
+.muscle{fill:var(--muscle-default);stroke:var(--muscle-stroke);stroke-width:0.6;transition:fill .3s,stroke .3s,filter .3s;cursor:default}
+.body-outline{fill:var(--body-fill);stroke:var(--body-stroke);stroke-width:1}
+.bone-line{fill:none;stroke:var(--border2);stroke-width:0.5;stroke-dasharray:2,3}
+.muscle-label{font-size:4.5px;fill:var(--muted);text-anchor:middle;pointer-events:none;font-family:Inter,sans-serif}
+.muscle.primary{fill:var(--primary-muscle);stroke:#c41a1a;stroke-width:1;filter:drop-shadow(0 0 4px rgba(239,68,68,.5))}
+.muscle.secondary{fill:var(--secondary-muscle);stroke:#c45c00;stroke-width:0.8;filter:drop-shadow(0 0 3px rgba(249,115,22,.4))}
+.muscle:hover{opacity:.85;stroke-width:1}
+.head-shape{fill:var(--body-fill);stroke:var(--body-stroke);stroke-width:1}
+.hair-shape{fill:var(--border2);stroke:none}
+
+/* NO SELECTION */
+.no-sel{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:var(--muted);text-align:center;grid-column:1/-1}
+.no-sel h3{color:var(--text);margin-bottom:6px}
+
+/* TOOLTIP */
+.muscle-tooltip{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:11px;font-weight:600;color:var(--text);pointer-events:none;z-index:100;display:none;box-shadow:var(--shadow);white-space:nowrap}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr">
+    <div class="logo">
+      <svg width="24" height="24" viewBox="0 0 28 28" fill="none" style="color:var(--accent)">
+        <rect width="28" height="28" rx="7" fill="currentColor" opacity=".15"/>
+        <path d="M7 14h3l2-5 4 10 2-7 2 2h1" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Coach<span class="dot">AI</span>
+    </div>
+    <span class="hdr-sub">Muscle Map · Selecione um exercício para visualizar os músculos</span>
+    <button class="icon-btn" data-theme-toggle aria-label="Tema">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </div>
+</header>
+
+<div class="app">
+  <div class="sidebar">
+
+    <div class="panel">
+      <div class="ph">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        Exercícios
+      </div>
+      <div class="pb">
+        <div class="search-w">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="search" id="exSearch" placeholder="Buscar exercício…">
+        </div>
+        <div class="cat-filter" id="catFilter">
+          <button class="cf-btn on" onclick="setCat(this,'all')">Todos</button>
+        </div>
+        <div class="ex-list" id="exList"></div>
+      </div>
+      <div class="ex-info" id="exInfo" style="display:none"></div>
+    </div>
+
+    <div class="panel">
+      <div class="ph">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        Legenda
+      </div>
+      <div class="pb">
+        <div class="legend">
+          <div class="leg-item"><div class="leg-dot leg-primary"></div><span><b>Músculo Primário</b> — principal ativação</span></div>
+          <div class="leg-item"><div class="leg-dot leg-secondary"></div><span><b>Músculo Secundário</b> — ativação de apoio</span></div>
+          <div class="leg-item"><div class="leg-dot leg-rest"></div><span>Em repouso — não ativado</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MANNEQUIN -->
+  <div class="mannequin-panel">
+    <div class="mp-head">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent)"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      <h2 id="mpTitle">Selecione um exercício</h2>
+      <span id="mpSubtitle" style="font-size:11px;color:var(--muted)"></span>
+    </div>
+    <div class="views-wrap" id="viewsWrap">
+      <div class="no-sel">
+        <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" style="color:var(--faint);margin-bottom:16px"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        <h3>Nenhum exercício selecionado</h3>
+        <p style="font-size:12px">Escolha um exercício à esquerda para ver os músculos destacados</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="muscle-tooltip" id="tooltip"></div>
+
+<script>
+const EXERCISES = [{"id": 1, "name": "Supino Reto com Barra", "name_en": "Barbell Bench Press", "category": "Peito", "muscle_primary": "Peitoral Maior", "muscle_secondary": ["Tríceps", "Deltoide Anterior"], "equipment": ["Barra", "Banco"], "training_style": ["Força", "Hipertrofia"], "difficulty": "Intermediário", "type": "Força"}, {"id": 2, "name": "Supino Inclinado com Halteres", "name_en": "Incline Dumbbell Press", "category": "Peito", "muscle_primary": "Peitoral Superior", "muscle_secondary": ["Tríceps", "Deltoide Anterior"], "equipment": ["Halteres", "Banco Inclinado"], "training_style": ["Força", "Hipertrofia"], "difficulty": "Intermediário", "type": "Força"}, {"id": 3, "name": "Supino Declinado com Barra", "name_en": "Decline Bench Press", "category": "Peito", "muscle_primary": "Peitoral Inferior", "muscle_secondary": ["Tríceps"], "equipment": ["Barra", "Banco Declinado"], "training_style": ["Força", "Hipertrofia"], "difficulty": "Intermediário", "type": "Força"}, {"id": 4, "name": "Crucifixo com Halteres", "name_en": "Dumbbell Fly", "category": "Peito", "muscle_primary": "Peitoral Maior", "muscle_secondary": ["Deltoide Anterior"], "equipment": ["Halteres", "Banco"], "training_style": ["Hipertrofia", "Isolamento"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 5, "name": "Crossover no Cabo", "name_en": "Cable Crossover", "category": "Peito", "muscle_primary": "Peitoral Maior", "muscle_secondary": ["Deltoide Anterior"], "equipment": ["Cabo/Polia"], "training_style": ["Hipertrofia", "Isolamento"], "difficulty": "Intermediário", "type": "Isolamento"}, {"id": 6, "name": "Flexão de Braço", "name_en": "Push-up", "category": "Peito", "muscle_primary": "Peitoral Maior", "muscle_secondary": ["Tríceps", "Core"], "equipment": [], "training_style": ["Calistenia", "Força", "HIIT"], "difficulty": "Iniciante", "type": "Composto"}, {"id": 7, "name": "Flexão Diamante", "name_en": "Diamond Push-up", "category": "Peito", "muscle_primary": "Tríceps", "muscle_secondary": ["Peitoral Maior"], "equipment": [], "training_style": ["Calistenia", "Hipertrofia"], "difficulty": "Intermediário", "type": "Composto"}, {"id": 8, "name": "Flexão Arqueiro", "name_en": "Archer Push-up", "category": "Peito", "muscle_primary": "Peitoral Maior", "muscle_secondary": ["Tríceps", "Bíceps"], "equipment": [], "training_style": ["Calistenia"], "difficulty": "Avançado", "type": "Composto"}, {"id": 9, "name": "Peck Deck / Voador", "name_en": "Pec Deck Machine", "category": "Peito", "muscle_primary": "Peitoral Maior", "muscle_secondary": [], "equipment": ["Máquina"], "training_style": ["Hipertrofia", "Isolamento"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 10, "name": "Dips no Paralelo", "name_en": "Chest Dip", "category": "Peito", "muscle_primary": "Peitoral Inferior", "muscle_secondary": ["Tríceps", "Deltoide"], "equipment": ["Barras Paralelas"], "training_style": ["Calistenia", "Força"], "difficulty": "Intermediário", "type": "Composto"}, {"id": 11, "name": "Barra Fixa", "name_en": "Pull-up", "category": "Costas", "muscle_primary": "Latíssimo do Dorso", "muscle_secondary": ["Bíceps", "Romboides"], "equipment": ["Barra Fixa"], "training_style": ["Calistenia", "Força"], "difficulty": "Intermediário", "type": "Composto"}, {"id": 12, "name": "Barra Fixa Supinada", "name_en": "Chin-up", "category": "Costas", "muscle_primary": "Latíssimo do Dorso", "muscle_secondary": ["Bíceps"], "equipment": ["Barra Fixa"], "training_style": ["Calistenia", "Força"], "difficulty": "Intermediário", "type": "Composto"}, {"id": 13, "name": "Pulldown na Polia", "name_en": "Lat Pulldown", "category": "Costas", "muscle_primary": "Latíssimo do Dorso", "muscle_secondary": ["Bíceps", "Romboides"], "equipment": ["Cabo/Polia"], "training_style": ["Hipertrofia", "Força"], "difficulty": "Iniciante", "type": "Composto"}, {"id": 14, "name": "Remada Curvada com Barra", "name_en": "Bent-Over Barbell Row", "category": "Costas", "muscle_primary": "Latíssimo do Dorso", "muscle_secondary": ["Romboides", "Bíceps", "Eretores"], "equipment": ["Barra"], "training_style": ["Força", "Hipertrofia"], "difficulty": "Intermediário", "type": "Composto"}, {"id": 15, "name": "Remada com Haltere", "name_en": "Single-Arm Dumbbell Row", "category": "Costas", "muscle_primary": "Latíssimo do Dorso", "muscle_secondary": ["Romboides", "Bíceps"], "equipment": ["Halteres", "Banco"], "training_style": ["Hipertrofia"], "difficulty": "Iniciante", "type": "Composto"}, {"id": 16, "name": "Remada Sentado no Cabo", "name_en": "Seated Cable Row", "category": "Costas", "muscle_primary": "Romboides", "muscle_secondary": ["Latíssimo do Dorso", "Bíceps"], "equipment": ["Cabo/Polia"], "training_style": ["Hipertrofia"], "difficulty": "Iniciante", "type": "Composto"}, {"id": 17, "name": "Levantamento Terra", "name_en": "Deadlift", "category": "Costas", "muscle_primary": "Eretores da Espinha", "muscle_secondary": ["Glúteos", "Isquiotibiais", "Trapézio"], "equipment": ["Barra"], "training_style": ["Força", "Powerlifting"], "difficulty": "Avançado", "type": "Composto"}, {"id": 18, "name": "Superman", "name_en": "Superman", "category": "Costas", "muscle_primary": "Eretores da Espinha", "muscle_secondary": ["Glúteos"], "equipment": [], "training_style": ["Mobilidade", "Calistenia"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 19, "name": "Face Pull", "name_en": "Face Pull", "category": "Costas", "muscle_primary": "Deltoide Posterior", "muscle_secondary": ["Romboides", "Trapézio"], "equipment": ["Cabo/Polia"], "training_style": ["Hipertrofia", "Mobilidade"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 20, "name": "Hiperextensão", "name_en": "Back Extension", "category": "Costas", "muscle_primary": "Eretores da Espinha", "muscle_secondary": ["Glúteos", "Isquiotibiais"], "equipment": ["Banco Romano"], "training_style": ["Força", "Reabilitação"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 21, "name": "Remada T-Bar", "name_en": "T-Bar Row", "category": "Costas", "muscle_primary": "Latíssimo do Dorso", "muscle_secondary": ["Romboides", "Trapézio"], "equipment": ["Barra", "T-Bar"], "training_style": ["Força", "Hipertrofia"], "difficulty": "Intermediário", "type": "Composto"}, {"id": 22, "name": "Pullover com Halter", "name_en": "Dumbbell Pullover", "category": "Costas", "muscle_primary": "Latíssimo do Dorso", "muscle_secondary": ["Peitoral", "Tríceps"], "equipment": ["Halteres", "Banco"], "training_style": ["Hipertrofia"], "difficulty": "Intermediário", "type": "Isolamento"}, {"id": 23, "name": "Desenvolvimento com Barra", "name_en": "Overhead Barbell Press", "category": "Ombros", "muscle_primary": "Deltoide", "muscle_secondary": ["Tríceps", "Trapézio"], "equipment": ["Barra"], "training_style": ["Força", "Hipertrofia"], "difficulty": "Intermediário", "type": "Composto"}, {"id": 24, "name": "Desenvolvimento com Halteres", "name_en": "Dumbbell Shoulder Press", "category": "Ombros", "muscle_primary": "Deltoide", "muscle_secondary": ["Tríceps"], "equipment": ["Halteres"], "training_style": ["Hipertrofia"], "difficulty": "Iniciante", "type": "Composto"}, {"id": 25, "name": "Arnold Press", "name_en": "Arnold Press", "category": "Ombros", "muscle_primary": "Deltoide (3 porções)", "muscle_secondary": ["Tríceps"], "equipment": ["Halteres"], "training_style": ["Hipertrofia"], "difficulty": "Intermediário", "type": "Composto"}, {"id": 26, "name": "Elevação Lateral", "name_en": "Lateral Raise", "category": "Ombros", "muscle_primary": "Deltoide Lateral", "muscle_secondary": [], "equipment": ["Halteres"], "training_style": ["Hipertrofia", "Isolamento"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 27, "name": "Elevação Frontal", "name_en": "Front Raise", "category": "Ombros", "muscle_primary": "Deltoide Anterior", "muscle_secondary": [], "equipment": ["Halteres", "Barra"], "training_style": ["Hipertrofia", "Isolamento"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 28, "name": "Crucifixo Inverso", "name_en": "Reverse Fly", "category": "Ombros", "muscle_primary": "Deltoide Posterior", "muscle_secondary": ["Romboides"], "equipment": ["Halteres", "Cabo/Polia"], "training_style": ["Hipertrofia", "Isolamento"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 29, "name": "Remada Alta", "name_en": "Upright Row", "category": "Ombros", "muscle_primary": "Trapézio", "muscle_secondary": ["Deltoide"], "equipment": ["Barra", "Halteres"], "training_style": ["Hipertrofia"], "difficulty": "Intermediário", "type": "Composto"}, {"id": 30, "name": "Flexão de Braço em Pike", "name_en": "Pike Push-up", "category": "Ombros", "muscle_primary": "Deltoide", "muscle_secondary": ["Tríceps"], "equipment": [], "training_style": ["Calistenia"], "difficulty": "Iniciante", "type": "Composto"}, {"id": 31, "name": "Handstand Push-up", "name_en": "Handstand Push-up", "category": "Ombros", "muscle_primary": "Deltoide", "muscle_secondary": ["Tríceps", "Core"], "equipment": [], "training_style": ["Calistenia"], "difficulty": "Avançado", "type": "Composto"}, {"id": 32, "name": "Rosca Direta com Barra", "name_en": "Barbell Curl", "category": "Bíceps", "muscle_primary": "Bíceps Braquial", "muscle_secondary": ["Braquial", "Braquiorradial"], "equipment": ["Barra"], "training_style": ["Hipertrofia", "Isolamento"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 33, "name": "Rosca com Halteres", "name_en": "Dumbbell Curl", "category": "Bíceps", "muscle_primary": "Bíceps Braquial", "muscle_secondary": ["Braquial"], "equipment": ["Halteres"], "training_style": ["Hipertrofia", "Isolamento"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 34, "name": "Rosca Martelo", "name_en": "Hammer Curl", "category": "Bíceps", "muscle_primary": "Braquiorradial", "muscle_secondary": ["Bíceps Braquial"], "equipment": ["Halteres"], "training_style": ["Hipertrofia", "Isolamento"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 35, "name": "Rosca Concentrada", "name_en": "Concentration Curl", "category": "Bíceps", "muscle_primary": "Bíceps Braquial", "muscle_secondary": [], "equipment": ["Halteres"], "training_style": ["Isolamento"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 36, "name": "Rosca Scott", "name_en": "Preacher Curl", "category": "Bíceps", "muscle_primary": "Bíceps Braquial (cabeça longa)", "muscle_secondary": [], "equipment": ["Barra", "Banco Scott"], "training_style": ["Hipertrofia", "Isolamento"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 37, "name": "Rosca no Cabo", "name_en": "Cable Curl", "category": "Bíceps", "muscle_primary": "Bíceps Braquial", "muscle_secondary": [], "equipment": ["Cabo/Polia"], "training_style": ["Isolamento"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 38, "name": "Rosca Inclinada", "name_en": "Incline Dumbbell Curl", "category": "Bíceps", "muscle_primary": "Bíceps Braquial (cabeça longa)", "muscle_secondary": [], "equipment": ["Halteres", "Banco Inclinado"], "training_style": ["Isolamento"], "difficulty": "Intermediário", "type": "Isolamento"}, {"id": 39, "name": "Tríceps Testa", "name_en": "Skull Crusher", "category": "Tríceps", "muscle_primary": "Tríceps Braquial", "muscle_secondary": [], "equipment": ["Barra", "Banco"], "training_style": ["Hipertrofia", "Isolamento"], "difficulty": "Intermediário", "type": "Isolamento"}, {"id": 40, "name": "Extensão de Tríceps Acima da Cabeça", "name_en": "Overhead Triceps Extension", "category": "Tríceps", "muscle_primary": "Tríceps (cabeça longa)", "muscle_secondary": [], "equipment": ["Halteres", "Cabo/Polia"], "training_style": ["Hipertrofia", "Isolamento"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 41, "name": "Pulldown de Tríceps", "name_en": "Triceps Pushdown", "category": "Tríceps", "muscle_primary": "Tríceps Braquial", "muscle_secondary": [], "equipment": ["Cabo/Polia"], "training_style": ["Isolamento"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 42, "name": "Tríceps Coice", "name_en": "Triceps Kickback", "category": "Tríceps", "muscle_primary": "Tríceps Braquial", "muscle_secondary": [], "equipment": ["Halteres"], "training_style": ["Isolamento"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 43, "name": "Supino Fechado", "name_en": "Close-Grip Bench Press", "category": "Tríceps", "muscle_primary": "Tríceps Braquial", "muscle_secondary": ["Peitoral", "Deltoide"], "equipment": ["Barra", "Banco"], "training_style": ["Força", "Hipertrofia"], "difficulty": "Intermediário", "type": "Composto"}, {"id": 44, "name": "Dips para Tríceps", "name_en": "Triceps Dip", "category": "Tríceps", "muscle_primary": "Tríceps Braquial", "muscle_secondary": ["Peitoral", "Deltoide"], "equipment": ["Banco", "Barras Paralelas"], "training_style": ["Calistenia", "Força"], "difficulty": "Iniciante", "type": "Composto"}, {"id": 45, "name": "Agachamento com Barra", "name_en": "Back Squat", "category": "Quadríceps", "muscle_primary": "Quadríceps", "muscle_secondary": ["Glúteos", "Isquiotibiais"], "equipment": ["Barra"], "training_style": ["Força", "Powerlifting", "Hipertrofia"], "difficulty": "Intermediário", "type": "Composto"}, {"id": 46, "name": "Agachamento Frontal", "name_en": "Front Squat", "category": "Quadríceps", "muscle_primary": "Quadríceps", "muscle_secondary": ["Core", "Glúteos"], "equipment": ["Barra"], "training_style": ["Força", "Hipertrofia"], "difficulty": "Avançado", "type": "Composto"}, {"id": 47, "name": "Leg Press", "name_en": "Leg Press", "category": "Quadríceps", "muscle_primary": "Quadríceps", "muscle_secondary": ["Glúteos", "Isquiotibiais"], "equipment": ["Máquina"], "training_style": ["Hipertrofia"], "difficulty": "Iniciante", "type": "Composto"}, {"id": 48, "name": "Extensão de Perna", "name_en": "Leg Extension", "category": "Quadríceps", "muscle_primary": "Quadríceps", "muscle_secondary": [], "equipment": ["Máquina"], "training_style": ["Isolamento"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 49, "name": "Avanço", "name_en": "Lunge", "category": "Quadríceps", "muscle_primary": "Quadríceps", "muscle_secondary": ["Glúteos", "Isquiotibiais"], "equipment": [], "training_style": ["Calistenia", "Hipertrofia", "Funcional"], "difficulty": "Iniciante", "type": "Composto"}, {"id": 50, "name": "Agachamento Búlgaro", "name_en": "Bulgarian Split Squat", "category": "Quadríceps", "muscle_primary": "Quadríceps", "muscle_secondary": ["Glúteos"], "equipment": ["Banco"], "training_style": ["Hipertrofia", "Funcional"], "difficulty": "Intermediário", "type": "Composto"}, {"id": 51, "name": "Hack Squat", "name_en": "Hack Squat", "category": "Quadríceps", "muscle_primary": "Quadríceps", "muscle_secondary": ["Glúteos"], "equipment": ["Máquina", "Barra"], "training_style": ["Hipertrofia"], "difficulty": "Intermediário", "type": "Composto"}, {"id": 52, "name": "Agachamento Sumo", "name_en": "Sumo Squat", "category": "Quadríceps", "muscle_primary": "Adutores", "muscle_secondary": ["Quadríceps", "Glúteos"], "equipment": ["Halteres", "Barra"], "training_style": ["Hipertrofia"], "difficulty": "Iniciante", "type": "Composto"}, {"id": 53, "name": "Agachamento Livre (sem peso)", "name_en": "Bodyweight Squat", "category": "Quadríceps", "muscle_primary": "Quadríceps", "muscle_secondary": ["Glúteos"], "equipment": [], "training_style": ["Calistenia", "Funcional", "HIIT"], "difficulty": "Iniciante", "type": "Composto"}, {"id": 54, "name": "Agachamento no Pistol", "name_en": "Pistol Squat", "category": "Quadríceps", "muscle_primary": "Quadríceps", "muscle_secondary": ["Glúteos", "Core"], "equipment": [], "training_style": ["Calistenia"], "difficulty": "Avançado", "type": "Composto"}, {"id": 55, "name": "Cadeira Extensora", "name_en": "Leg Extension Machine", "category": "Quadríceps", "muscle_primary": "Quadríceps", "muscle_secondary": [], "equipment": ["Máquina"], "training_style": ["Isolamento", "Reabilitação"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 56, "name": "Wall Sit", "name_en": "Wall Sit", "category": "Quadríceps", "muscle_primary": "Quadríceps", "muscle_secondary": ["Glúteos"], "equipment": [], "training_style": ["Calistenia", "Resistência"], "difficulty": "Iniciante", "type": "Isométrico"}, {"id": 57, "name": "Levantamento Terra Romeno", "name_en": "Romanian Deadlift", "category": "Isquiotibiais", "muscle_primary": "Isquiotibiais", "muscle_secondary": ["Glúteos", "Eretores"], "equipment": ["Barra", "Halteres"], "training_style": ["Força", "Hipertrofia"], "difficulty": "Intermediário", "type": "Composto"}, {"id": 58, "name": "Flexão de Joelho (Mesa Flexora)", "name_en": "Leg Curl Machine", "category": "Isquiotibiais", "muscle_primary": "Isquiotibiais", "muscle_secondary": [], "equipment": ["Máquina"], "training_style": ["Isolamento"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 59, "name": "Nordic Hamstring Curl", "name_en": "Nordic Hamstring Curl", "category": "Isquiotibiais", "muscle_primary": "Isquiotibiais", "muscle_secondary": ["Glúteos"], "equipment": [], "training_style": ["Força", "Reabilitação"], "difficulty": "Avançado", "type": "Isolamento"}, {"id": 60, "name": "Good Morning", "name_en": "Good Morning", "category": "Isquiotibiais", "muscle_primary": "Isquiotibiais", "muscle_secondary": ["Eretores", "Glúteos"], "equipment": ["Barra"], "training_style": ["Força"], "difficulty": "Intermediário", "type": "Composto"}, {"id": 61, "name": "Levantamento Terra Stiff", "name_en": "Stiff-Leg Deadlift", "category": "Isquiotibiais", "muscle_primary": "Isquiotibiais", "muscle_secondary": ["Glúteos", "Eretores"], "equipment": ["Barra", "Halteres"], "training_style": ["Força", "Hipertrofia"], "difficulty": "Intermediário", "type": "Composto"}, {"id": 62, "name": "Swiss Ball Leg Curl", "name_en": "Swiss Ball Leg Curl", "category": "Isquiotibiais", "muscle_primary": "Isquiotibiais", "muscle_secondary": ["Glúteos", "Core"], "equipment": ["Bola Suíça"], "training_style": ["Funcional", "Reabilitação"], "difficulty": "Intermediário", "type": "Composto"}, {"id": 63, "name": "Hip Thrust", "name_en": "Hip Thrust", "category": "Glúteos", "muscle_primary": "Glúteo Máximo", "muscle_secondary": ["Isquiotibiais", "Core"], "equipment": ["Barra", "Banco"], "training_style": ["Hipertrofia", "Força"], "difficulty": "Iniciante", "type": "Composto"}, {"id": 64, "name": "Ponte de Glúteo", "name_en": "Glute Bridge", "category": "Glúteos", "muscle_primary": "Glúteo Máximo", "muscle_secondary": ["Isquiotibiais"], "equipment": [], "training_style": ["Calistenia", "Reabilitação"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 65, "name": "Kickback no Cabo", "name_en": "Cable Kickback", "category": "Glúteos", "muscle_primary": "Glúteo Máximo", "muscle_secondary": [], "equipment": ["Cabo/Polia"], "training_style": ["Isolamento"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 66, "name": "Donkey Kick", "name_en": "Donkey Kick", "category": "Glúteos", "muscle_primary": "Glúteo Máximo", "muscle_secondary": [], "equipment": [], "training_style": ["Calistenia", "Isolamento"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 67, "name": "Abdução com Faixa Elástica", "name_en": "Lateral Band Walk", "category": "Glúteos", "muscle_primary": "Glúteo Médio", "muscle_secondary": ["Glúteo Mínimo"], "equipment": ["Faixa Elástica"], "training_style": ["Funcional", "Reabilitação"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 68, "name": "Avanço Reverso", "name_en": "Reverse Lunge", "category": "Glúteos", "muscle_primary": "Glúteo Máximo", "muscle_secondary": ["Quadríceps"], "equipment": [], "training_style": ["Calistenia", "Funcional"], "difficulty": "Iniciante", "type": "Composto"}, {"id": 69, "name": "Step-Up", "name_en": "Step-Up", "category": "Glúteos", "muscle_primary": "Glúteo Máximo", "muscle_secondary": ["Quadríceps", "Isquiotibiais"], "equipment": ["Banco", "Caixote"], "training_style": ["Funcional", "Hipertrofia"], "difficulty": "Iniciante", "type": "Composto"}, {"id": 70, "name": "Abdução na Máquina", "name_en": "Hip Abduction Machine", "category": "Glúteos", "muscle_primary": "Glúteo Médio", "muscle_secondary": [], "equipment": ["Máquina"], "training_style": ["Isolamento"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 71, "name": "Elevação de Panturrilha em Pé", "name_en": "Standing Calf Raise", "category": "Panturrilha", "muscle_primary": "Gastrocnêmio", "muscle_secondary": ["Sóleo"], "equipment": ["Máquina", "Barra", "Halteres"], "training_style": ["Isolamento", "Hipertrofia"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 72, "name": "Elevação de Panturrilha Sentado", "name_en": "Seated Calf Raise", "category": "Panturrilha", "muscle_primary": "Sóleo", "muscle_secondary": ["Gastrocnêmio"], "equipment": ["Máquina"], "training_style": ["Isolamento"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 73, "name": "Elevação de Panturrilha (Parede)", "name_en": "Wall Calf Raise", "category": "Panturrilha", "muscle_primary": "Gastrocnêmio", "muscle_secondary": [], "equipment": [], "training_style": ["Calistenia"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 74, "name": "Pulo de Corda", "name_en": "Jump Rope", "category": "Panturrilha", "muscle_primary": "Gastrocnêmio", "muscle_secondary": ["Cardio"], "equipment": ["Corda"], "training_style": ["Cardio", "HIIT"], "difficulty": "Iniciante", "type": "Cardio"}, {"id": 75, "name": "Box Jump", "name_en": "Box Jump", "category": "Panturrilha", "muscle_primary": "Gastrocnêmio", "muscle_secondary": ["Quadríceps", "Glúteos"], "equipment": ["Caixote"], "training_style": ["Explosão", "HIIT", "Pliométrico"], "difficulty": "Intermediário", "type": "Pliométrico"}, {"id": 76, "name": "Prancha", "name_en": "Plank", "category": "Core", "muscle_primary": "Core (Transverso)", "muscle_secondary": ["Deltoide", "Glúteos"], "equipment": [], "training_style": ["Calistenia", "Funcional"], "difficulty": "Iniciante", "type": "Isométrico"}, {"id": 77, "name": "Prancha Lateral", "name_en": "Side Plank", "category": "Core", "muscle_primary": "Oblíquos", "muscle_secondary": ["Core", "Quadratus Lumborum"], "equipment": [], "training_style": ["Calistenia", "Funcional"], "difficulty": "Iniciante", "type": "Isométrico"}, {"id": 78, "name": "Abdominal Crunch", "name_en": "Crunch", "category": "Core", "muscle_primary": "Reto Abdominal", "muscle_secondary": [], "equipment": [], "training_style": ["Calistenia", "Isolamento"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 79, "name": "Elevação de Pernas", "name_en": "Leg Raise", "category": "Core", "muscle_primary": "Reto Abdominal Inferior", "muscle_secondary": ["Flexores do Quadril"], "equipment": [], "training_style": ["Calistenia"], "difficulty": "Intermediário", "type": "Isolamento"}, {"id": 80, "name": "Elevação de Joelhos na Barra", "name_en": "Hanging Knee Raise", "category": "Core", "muscle_primary": "Reto Abdominal", "muscle_secondary": ["Flexores do Quadril"], "equipment": ["Barra Fixa"], "training_style": ["Calistenia", "Hipertrofia"], "difficulty": "Intermediário", "type": "Isolamento"}, {"id": 81, "name": "Russian Twist", "name_en": "Russian Twist", "category": "Core", "muscle_primary": "Oblíquos", "muscle_secondary": ["Reto Abdominal"], "equipment": ["Peso Livre"], "training_style": ["Funcional", "Calistenia"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 82, "name": "Roda Abdominal", "name_en": "Ab Wheel Rollout", "category": "Core", "muscle_primary": "Reto Abdominal", "muscle_secondary": ["Core", "Dorsais"], "equipment": ["Roda Abdominal"], "training_style": ["Calistenia"], "difficulty": "Avançado", "type": "Composto"}, {"id": 83, "name": "Mountain Climber", "name_en": "Mountain Climber", "category": "Core", "muscle_primary": "Core", "muscle_secondary": ["Ombros", "Flexores do Quadril"], "equipment": [], "training_style": ["HIIT", "Funcional", "Cardio"], "difficulty": "Iniciante", "type": "Cardio"}, {"id": 84, "name": "Dead Bug", "name_en": "Dead Bug", "category": "Core", "muscle_primary": "Core (Transverso)", "muscle_secondary": ["Reto Abdominal"], "equipment": [], "training_style": ["Funcional", "Reabilitação"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 85, "name": "Hollow Body Hold", "name_en": "Hollow Body Hold", "category": "Core", "muscle_primary": "Reto Abdominal", "muscle_secondary": ["Core"], "equipment": [], "training_style": ["Calistenia", "Ginástica"], "difficulty": "Intermediário", "type": "Isométrico"}, {"id": 86, "name": "L-Sit", "name_en": "L-Sit", "category": "Core", "muscle_primary": "Core", "muscle_secondary": ["Tríceps", "Flexores do Quadril"], "equipment": ["Barras Paralelas", "Barra Fixa"], "training_style": ["Calistenia", "Ginástica"], "difficulty": "Avançado", "type": "Isométrico"}, {"id": 87, "name": "Dragon Flag", "name_en": "Dragon Flag", "category": "Core", "muscle_primary": "Reto Abdominal", "muscle_secondary": ["Core", "Dorsais"], "equipment": ["Banco"], "training_style": ["Calistenia"], "difficulty": "Avançado", "type": "Isolamento"}, {"id": 88, "name": "Oblíquo no Cabo", "name_en": "Cable Woodchop", "category": "Core", "muscle_primary": "Oblíquos", "muscle_secondary": ["Core", "Ombros"], "equipment": ["Cabo/Polia"], "training_style": ["Funcional"], "difficulty": "Iniciante", "type": "Funcional"}, {"id": 89, "name": "Vacuum Abdominal", "name_en": "Stomach Vacuum", "category": "Core", "muscle_primary": "Transverso Abdominal", "muscle_secondary": [], "equipment": [], "training_style": ["Funcional", "Reabilitação"], "difficulty": "Iniciante", "type": "Isométrico"}, {"id": 90, "name": "Burpee", "name_en": "Burpee", "category": "Cardio", "muscle_primary": "Corpo Inteiro", "muscle_secondary": ["Cardio"], "equipment": [], "training_style": ["HIIT", "Funcional", "Cardio"], "difficulty": "Intermediário", "type": "Cardio"}, {"id": 91, "name": "Jumping Jack", "name_en": "Jumping Jack", "category": "Cardio", "muscle_primary": "Corpo Inteiro", "muscle_secondary": ["Ombros", "Panturrilha"], "equipment": [], "training_style": ["Cardio", "HIIT", "Aquecimento"], "difficulty": "Iniciante", "type": "Cardio"}, {"id": 92, "name": "High Knees", "name_en": "High Knees", "category": "Cardio", "muscle_primary": "Flexores do Quadril", "muscle_secondary": ["Quadríceps", "Cardio"], "equipment": [], "training_style": ["HIIT", "Cardio"], "difficulty": "Iniciante", "type": "Cardio"}, {"id": 93, "name": "Corrida", "name_en": "Running", "category": "Cardio", "muscle_primary": "Corpo Inteiro", "muscle_secondary": ["Isquiotibiais", "Glúteos"], "equipment": [], "training_style": ["Cardio", "Resistência"], "difficulty": "Iniciante", "type": "Cardio"}, {"id": 94, "name": "Remo Ergométrico", "name_en": "Rowing Machine", "category": "Cardio", "muscle_primary": "Costas", "muscle_secondary": ["Bíceps", "Quadríceps", "Core"], "equipment": ["Remo Ergométrico"], "training_style": ["Cardio", "Funcional"], "difficulty": "Iniciante", "type": "Cardio"}, {"id": 95, "name": "Bike Ergométrica", "name_en": "Stationary Bike", "category": "Cardio", "muscle_primary": "Quadríceps", "muscle_secondary": ["Isquiotibiais", "Panturrilha"], "equipment": ["Bicicleta Ergométrica"], "training_style": ["Cardio", "Resistência"], "difficulty": "Iniciante", "type": "Cardio"}, {"id": 96, "name": "Battle Ropes", "name_en": "Battle Ropes", "category": "Cardio", "muscle_primary": "Ombros", "muscle_secondary": ["Core", "Braços", "Cardio"], "equipment": ["Cordas de Batalha"], "training_style": ["HIIT", "Funcional"], "difficulty": "Intermediário", "type": "Cardio"}, {"id": 97, "name": "Sprint", "name_en": "Sprint", "category": "Cardio", "muscle_primary": "Quadríceps", "muscle_secondary": ["Isquiotibiais", "Glúteos", "Panturrilha"], "equipment": [], "training_style": ["HIIT", "Pliométrico"], "difficulty": "Intermediário", "type": "Cardio"}, {"id": 98, "name": "Escada Rolante / StairMaster", "name_en": "Stair Climber", "category": "Cardio", "muscle_primary": "Glúteos", "muscle_secondary": ["Quadríceps", "Panturrilha"], "equipment": ["StairMaster"], "training_style": ["Cardio"], "difficulty": "Iniciante", "type": "Cardio"}, {"id": 99, "name": "Polichinelo Agachado", "name_en": "Squat Jump", "category": "Cardio", "muscle_primary": "Quadríceps", "muscle_secondary": ["Glúteos", "Cardio"], "equipment": [], "training_style": ["HIIT", "Pliométrico"], "difficulty": "Intermediário", "type": "Pliométrico"}, {"id": 100, "name": "Levantamento Terra Convencional", "name_en": "Conventional Deadlift", "category": "Corpo Inteiro", "muscle_primary": "Eretores da Espinha", "muscle_secondary": ["Glúteos", "Isquiotibiais", "Trapézio", "Quadríceps"], "equipment": ["Barra"], "training_style": ["Força", "Powerlifting"], "difficulty": "Avançado", "type": "Composto"}, {"id": 101, "name": "Clean and Press", "name_en": "Clean and Press", "category": "Corpo Inteiro", "muscle_primary": "Corpo Inteiro", "muscle_secondary": ["Ombros", "Quadríceps", "Core"], "equipment": ["Barra", "Halteres", "Kettlebell"], "training_style": ["Força", "Funcional", "Levantamento Olímpico"], "difficulty": "Avançado", "type": "Composto"}, {"id": 102, "name": "Turkish Get-Up", "name_en": "Turkish Get-Up", "category": "Corpo Inteiro", "muscle_primary": "Core", "muscle_secondary": ["Ombros", "Glúteos", "Quadríceps"], "equipment": ["Kettlebell", "Halteres"], "training_style": ["Funcional", "Mobilidade"], "difficulty": "Intermediário", "type": "Funcional"}, {"id": 103, "name": "Thruster", "name_en": "Thruster", "category": "Corpo Inteiro", "muscle_primary": "Quadríceps", "muscle_secondary": ["Ombros", "Glúteos", "Core"], "equipment": ["Barra", "Halteres", "Kettlebell"], "training_style": ["CrossFit", "HIIT", "Funcional"], "difficulty": "Intermediário", "type": "Composto"}, {"id": 104, "name": "Farmer's Walk", "name_en": "Farmer's Walk", "category": "Corpo Inteiro", "muscle_primary": "Trapézio", "muscle_secondary": ["Core", "Antebraço", "Quadríceps"], "equipment": ["Halteres", "Kettlebell", "Barra"], "training_style": ["Funcional", "Força"], "difficulty": "Iniciante", "type": "Funcional"}, {"id": 105, "name": "Bear Crawl", "name_en": "Bear Crawl", "category": "Corpo Inteiro", "muscle_primary": "Core", "muscle_secondary": ["Ombros", "Quadríceps"], "equipment": [], "training_style": ["Funcional", "Mobilidade"], "difficulty": "Iniciante", "type": "Funcional"}, {"id": 106, "name": "Swing com Kettlebell", "name_en": "Kettlebell Swing", "category": "Corpo Inteiro", "muscle_primary": "Glúteos", "muscle_secondary": ["Isquiotibiais", "Core", "Ombros"], "equipment": ["Kettlebell"], "training_style": ["Funcional", "HIIT", "Cardio"], "difficulty": "Iniciante", "type": "Funcional"}, {"id": 107, "name": "Snatch com Kettlebell", "name_en": "Kettlebell Snatch", "category": "Corpo Inteiro", "muscle_primary": "Corpo Inteiro", "muscle_secondary": ["Ombros", "Core", "Glúteos"], "equipment": ["Kettlebell"], "training_style": ["Funcional", "Levantamento Olímpico"], "difficulty": "Avançado", "type": "Composto"}, {"id": 108, "name": "Man Maker", "name_en": "Man Maker", "category": "Corpo Inteiro", "muscle_primary": "Corpo Inteiro", "muscle_secondary": ["Peito", "Costas", "Ombros", "Core"], "equipment": ["Halteres"], "training_style": ["CrossFit", "HIIT"], "difficulty": "Avançado", "type": "Composto"}, {"id": 109, "name": "Agachamento com Salto", "name_en": "Jump Squat", "category": "Corpo Inteiro", "muscle_primary": "Quadríceps", "muscle_secondary": ["Glúteos", "Panturrilha"], "equipment": [], "training_style": ["HIIT", "Pliométrico"], "difficulty": "Intermediário", "type": "Pliométrico"}, {"id": 110, "name": "Rosca de Punho", "name_en": "Wrist Curl", "category": "Antebraço", "muscle_primary": "Flexores do Antebraço", "muscle_secondary": [], "equipment": ["Barra", "Halteres"], "training_style": ["Isolamento"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 111, "name": "Extensão de Punho", "name_en": "Wrist Extension", "category": "Antebraço", "muscle_primary": "Extensores do Antebraço", "muscle_secondary": [], "equipment": ["Barra", "Halteres"], "training_style": ["Isolamento"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 112, "name": "Farmer's Hold", "name_en": "Farmer's Hold", "category": "Antebraço", "muscle_primary": "Antebraço", "muscle_secondary": ["Trapézio"], "equipment": ["Halteres", "Barra"], "training_style": ["Força", "Funcional"], "difficulty": "Iniciante", "type": "Isométrico"}, {"id": 113, "name": "Agachamento Profundo (mobilidade)", "name_en": "Deep Squat Hold", "category": "Mobilidade", "muscle_primary": "Tornozelo", "muscle_secondary": ["Quadril", "Torácica"], "equipment": [], "training_style": ["Mobilidade", "Reabilitação"], "difficulty": "Iniciante", "type": "Mobilidade"}, {"id": 114, "name": "Hip Flexor Stretch", "name_en": "Hip Flexor Stretch", "category": "Mobilidade", "muscle_primary": "Flexores do Quadril", "muscle_secondary": ["Glúteos"], "equipment": [], "training_style": ["Flexibilidade", "Mobilidade"], "difficulty": "Iniciante", "type": "Mobilidade"}, {"id": 115, "name": "World's Greatest Stretch", "name_en": "World's Greatest Stretch", "category": "Mobilidade", "muscle_primary": "Corpo Inteiro", "muscle_secondary": ["Quadril", "Torácica", "Isquiotibiais"], "equipment": [], "training_style": ["Mobilidade", "Aquecimento"], "difficulty": "Iniciante", "type": "Mobilidade"}, {"id": 116, "name": "Rotação Torácica", "name_en": "Thoracic Rotation", "category": "Mobilidade", "muscle_primary": "Coluna Torácica", "muscle_secondary": ["Oblíquos"], "equipment": [], "training_style": ["Mobilidade", "Reabilitação"], "difficulty": "Iniciante", "type": "Mobilidade"}, {"id": 117, "name": "Alongamento de Isquiotibial", "name_en": "Hamstring Stretch", "category": "Mobilidade", "muscle_primary": "Isquiotibiais", "muscle_secondary": [], "equipment": [], "training_style": ["Flexibilidade"], "difficulty": "Iniciante", "type": "Mobilidade"}, {"id": 118, "name": "Pigeon Pose", "name_en": "Pigeon Pose", "category": "Mobilidade", "muscle_primary": "Glúteo Médio", "muscle_secondary": ["Flexores do Quadril", "Piriforme"], "equipment": [], "training_style": ["Mobilidade", "Yoga"], "difficulty": "Iniciante", "type": "Mobilidade"}, {"id": 119, "name": "Cat-Cow", "name_en": "Cat-Cow", "category": "Mobilidade", "muscle_primary": "Coluna", "muscle_secondary": ["Core", "Pescoço"], "equipment": [], "training_style": ["Mobilidade", "Yoga", "Reabilitação"], "difficulty": "Iniciante", "type": "Mobilidade"}, {"id": 120, "name": "Foam Rolling", "name_en": "Foam Rolling", "category": "Mobilidade", "muscle_primary": "Variado", "muscle_secondary": [], "equipment": ["Rolo de Espuma"], "training_style": ["Recuperação", "Mobilidade"], "difficulty": "Iniciante", "type": "Recuperação"}, {"id": 121, "name": "Encolhimento de Ombros", "name_en": "Barbell Shrug", "category": "Trapézio", "muscle_primary": "Trapézio Superior", "muscle_secondary": ["Levantador da Escápula"], "equipment": ["Barra", "Halteres"], "training_style": ["Isolamento", "Hipertrofia"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 122, "name": "Encolhimento no Cabo", "name_en": "Cable Shrug", "category": "Trapézio", "muscle_primary": "Trapézio Superior", "muscle_secondary": [], "equipment": ["Cabo/Polia"], "training_style": ["Isolamento"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 123, "name": "Clamshell", "name_en": "Clamshell", "category": "Glúteos", "muscle_primary": "Glúteo Médio", "muscle_secondary": ["Glúteo Mínimo", "Piriforme"], "equipment": ["Faixa Elástica"], "training_style": ["Reabilitação", "Mobilidade"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 124, "name": "Fire Hydrant", "name_en": "Fire Hydrant", "category": "Glúteos", "muscle_primary": "Glúteo Médio", "muscle_secondary": [], "equipment": [], "training_style": ["Calistenia", "Reabilitação"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 125, "name": "Adução na Máquina", "name_en": "Hip Adduction Machine", "category": "Adutores", "muscle_primary": "Adutores", "muscle_secondary": [], "equipment": ["Máquina"], "training_style": ["Isolamento"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 126, "name": "Copenhagen Plank", "name_en": "Copenhagen Plank", "category": "Adutores", "muscle_primary": "Adutores", "muscle_secondary": ["Core", "Oblíquos"], "equipment": ["Banco"], "training_style": ["Funcional", "Força"], "difficulty": "Avançado", "type": "Isométrico"}, {"id": 127, "name": "Sumo Deadlift", "name_en": "Sumo Deadlift", "category": "Adutores", "muscle_primary": "Adutores", "muscle_secondary": ["Glúteos", "Isquiotibiais", "Quadríceps"], "equipment": ["Barra"], "training_style": ["Força", "Powerlifting"], "difficulty": "Intermediário", "type": "Composto"}, {"id": 128, "name": "Elevação de Pescoço", "name_en": "Neck Flexion", "category": "Pescoço", "muscle_primary": "Esternocleidomastoideo", "muscle_secondary": ["Trapézio Superior"], "equipment": ["Faixa", "Placa"], "training_style": ["Isolamento", "Reabilitação"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 129, "name": "Cachorro Olhando para Baixo", "name_en": "Downward Dog", "category": "Yoga", "muscle_primary": "Isquiotibiais", "muscle_secondary": ["Ombros", "Panturrilha", "Eretores"], "equipment": [], "training_style": ["Yoga", "Mobilidade", "Flexibilidade"], "difficulty": "Iniciante", "type": "Mobilidade"}, {"id": 130, "name": "Prancha Lateral com Rotação", "name_en": "Side Plank with Rotation", "category": "Core", "muscle_primary": "Oblíquos", "muscle_secondary": ["Core", "Ombros"], "equipment": [], "training_style": ["Funcional", "Pilates"], "difficulty": "Intermediário", "type": "Composto"}, {"id": 131, "name": "Ponte com Elevação de Perna", "name_en": "Single-Leg Glute Bridge", "category": "Glúteos", "muscle_primary": "Glúteo Máximo", "muscle_secondary": ["Isquiotibiais", "Core"], "equipment": [], "training_style": ["Calistenia", "Pilates"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 132, "name": "Roll-Up", "name_en": "Roll-Up", "category": "Core", "muscle_primary": "Reto Abdominal", "muscle_secondary": ["Flexores do Quadril", "Core"], "equipment": [], "training_style": ["Pilates"], "difficulty": "Iniciante", "type": "Isolamento"}, {"id": 133, "name": "Salto em Profundidade", "name_en": "Depth Jump", "category": "Corpo Inteiro", "muscle_primary": "Quadríceps", "muscle_secondary": ["Glúteos", "Panturrilha"], "equipment": ["Caixote"], "training_style": ["Pliométrico", "Esporte"], "difficulty": "Avançado", "type": "Pliométrico"}, {"id": 134, "name": "Salto Lateral", "name_en": "Lateral Bound", "category": "Corpo Inteiro", "muscle_primary": "Glúteo Médio", "muscle_secondary": ["Quadríceps", "Panturrilha"], "equipment": [], "training_style": ["Pliométrico", "Esporte", "HIIT"], "difficulty": "Intermediário", "type": "Pliométrico"}, {"id": 135, "name": "Medicine Ball Slam", "name_en": "Medicine Ball Slam", "category": "Corpo Inteiro", "muscle_primary": "Core", "muscle_secondary": ["Ombros", "Dorsais", "Quadríceps"], "equipment": ["Medicine Ball"], "training_style": ["HIIT", "Funcional", "Explosão"], "difficulty": "Iniciante", "type": "Funcional"}, {"id": 136, "name": "Lançamento de Medicine Ball", "name_en": "Medicine Ball Throw", "category": "Corpo Inteiro", "muscle_primary": "Peitoral", "muscle_secondary": ["Core", "Ombros"], "equipment": ["Medicine Ball"], "training_style": ["HIIT", "Funcional"], "difficulty": "Iniciante", "type": "Funcional"}, {"id": 137, "name": "Corrida Lateral", "name_en": "Lateral Shuffle", "category": "Cardio", "muscle_primary": "Glúteo Médio", "muscle_secondary": ["Quadríceps", "Panturrilha"], "equipment": [], "training_style": ["Esporte", "HIIT", "Agilidade"], "difficulty": "Iniciante", "type": "Cardio"}, {"id": 138, "name": "Corrida em Zigue-Zague", "name_en": "Agility Ladder", "category": "Cardio", "muscle_primary": "Quadríceps", "muscle_secondary": ["Panturrilha", "Core"], "equipment": ["Escada de Agilidade"], "training_style": ["Agilidade", "Esporte", "HIIT"], "difficulty": "Iniciante", "type": "Cardio"}, {"id": 139, "name": "Arremesso (Snatch)", "name_en": "Snatch", "category": "Corpo Inteiro", "muscle_primary": "Corpo Inteiro", "muscle_secondary": ["Ombros", "Quadríceps", "Core", "Dorsais"], "equipment": ["Barra"], "training_style": ["Levantamento Olímpico", "Força"], "difficulty": "Avançado", "type": "Composto"}, {"id": 140, "name": "Arranco (Clean & Jerk)", "name_en": "Clean & Jerk", "category": "Corpo Inteiro", "muscle_primary": "Corpo Inteiro", "muscle_secondary": ["Ombros", "Quadríceps", "Core", "Dorsais"], "equipment": ["Barra"], "training_style": ["Levantamento Olímpico", "Força"], "difficulty": "Avançado", "type": "Composto"}, {"id": 141, "name": "Power Clean", "name_en": "Power Clean", "category": "Corpo Inteiro", "muscle_primary": "Glúteos", "muscle_secondary": ["Dorsais", "Quadríceps", "Ombros"], "equipment": ["Barra"], "training_style": ["Levantamento Olímpico", "Força", "Esporte"], "difficulty": "Avançado", "type": "Composto"}, {"id": 142, "name": "Muscle-Up", "name_en": "Muscle-Up", "category": "Corpo Inteiro", "muscle_primary": "Dorsais", "muscle_secondary": ["Bíceps", "Tríceps", "Core"], "equipment": ["Barra Fixa", "Argolas"], "training_style": ["Calistenia", "Ginástica"], "difficulty": "Avançado", "type": "Composto"}, {"id": 143, "name": "Front Lever", "name_en": "Front Lever", "category": "Costas", "muscle_primary": "Latíssimo do Dorso", "muscle_secondary": ["Core", "Bíceps"], "equipment": ["Barra Fixa", "Argolas"], "training_style": ["Calistenia", "Ginástica"], "difficulty": "Avançado", "type": "Isométrico"}, {"id": 144, "name": "Back Lever", "name_en": "Back Lever", "category": "Costas", "muscle_primary": "Bíceps", "muscle_secondary": ["Peitoral", "Core"], "equipment": ["Barra Fixa", "Argolas"], "training_style": ["Calistenia", "Ginástica"], "difficulty": "Avançado", "type": "Isométrico"}, {"id": 145, "name": "Planche", "name_en": "Planche", "category": "Corpo Inteiro", "muscle_primary": "Ombros", "muscle_secondary": ["Core", "Peitoral", "Tríceps"], "equipment": ["Chão", "Paralelas"], "training_style": ["Calistenia", "Ginástica"], "difficulty": "Avançado", "type": "Isométrico"}, {"id": 146, "name": "Human Flag", "name_en": "Human Flag", "category": "Core", "muscle_primary": "Oblíquos", "muscle_secondary": ["Dorsais", "Ombros"], "equipment": ["Barra Vertical"], "training_style": ["Calistenia", "Ginástica"], "difficulty": "Avançado", "type": "Isométrico"}, {"id": 147, "name": "One-Arm Push-up", "name_en": "One-Arm Push-up", "category": "Peito", "muscle_primary": "Peitoral Maior", "muscle_secondary": ["Tríceps", "Core", "Deltoide"], "equipment": [], "training_style": ["Calistenia"], "difficulty": "Avançado", "type": "Composto"}, {"id": 148, "name": "One-Arm Pull-up", "name_en": "One-Arm Pull-up", "category": "Costas", "muscle_primary": "Latíssimo do Dorso", "muscle_secondary": ["Bíceps", "Core"], "equipment": ["Barra Fixa"], "training_style": ["Calistenia", "Ginástica"], "difficulty": "Avançado", "type": "Composto"}, {"id": 149, "name": "Pistol Squat", "name_en": "Pistol Squat", "category": "Quadríceps", "muscle_primary": "Quadríceps", "muscle_secondary": ["Glúteos", "Core", "Tornozelo"], "equipment": [], "training_style": ["Calistenia"], "difficulty": "Avançado", "type": "Composto"}, {"id": 150, "name": "Ring Dips", "name_en": "Ring Dips", "category": "Peito", "muscle_primary": "Peitoral Maior", "muscle_secondary": ["Tríceps", "Core"], "equipment": ["Argolas"], "training_style": ["Calistenia", "CrossFit"], "difficulty": "Avançado", "type": "Composto"}, {"id": 151, "name": "Tuck Planche", "name_en": "Tuck Planche", "category": "Corpo Inteiro", "muscle_primary": "Ombros", "muscle_secondary": ["Core", "Peitoral"], "equipment": [], "training_style": ["Calistenia", "Ginástica"], "difficulty": "Intermediário", "type": "Isométrico"}, {"id": 152, "name": "Jefferson Curl", "name_en": "Jefferson Curl", "category": "Costas", "muscle_primary": "Eretores da Espinha", "muscle_secondary": ["Isquiotibiais", "Core"], "equipment": ["Halteres", "Barra"], "training_style": ["Mobilidade", "Reabilitação"], "difficulty": "Intermediário", "type": "Mobilidade"}];
+
+// ── MUSCLE → SVG ID MAPPING ──
+const MUSCLE_MAP = {
+  // PEITO
+  "Peitoral Maior":      ["f-pec-l","f-pec-r"],
+  "Peitoral Superior":   ["f-pec-upper-l","f-pec-upper-r"],
+  "Peitoral Inferior":   ["f-pec-lower-l","f-pec-lower-r"],
+  "Peitoral":            ["f-pec-l","f-pec-r"],
+  "Peito":               ["f-pec-l","f-pec-r"],
+
+  // DELTOIDES
+  "Deltoide Anterior":   ["f-delt-ant-l","f-delt-ant-r"],
+  "Deltoide Lateral":    ["f-delt-lat-l","f-delt-lat-r"],
+  "Deltoide Posterior":  ["b-delt-post-l","b-delt-post-r"],
+  "Deltoide (3 porções)":["f-delt-ant-l","f-delt-ant-r","f-delt-lat-l","f-delt-lat-r","b-delt-post-l","b-delt-post-r"],
+  "Deltoide":            ["f-delt-ant-l","f-delt-ant-r","f-delt-lat-l","f-delt-lat-r"],
+  "Ombros":              ["f-delt-ant-l","f-delt-ant-r","f-delt-lat-l","f-delt-lat-r"],
+
+  // TRAPÉZIO
+  "Trapézio":            ["f-trap-l","f-trap-r","b-trap-mid"],
+  "Trapézio Superior":   ["f-trap-l","f-trap-r","b-trap-upper"],
+
+  // BÍCEPS / TRÍCEPS / BRAQUIAL
+  "Bíceps Braquial":           ["f-bicep-l","f-bicep-r"],
+  "Bíceps Braquial (cabeça longa)":["f-bicep-l","f-bicep-r"],
+  "Bíceps":                    ["f-bicep-l","f-bicep-r"],
+  "Tríceps Braquial":          ["b-tricep-l","b-tricep-r"],
+  "Tríceps (cabeça longa)":    ["b-tricep-l","b-tricep-r"],
+  "Tríceps":                   ["b-tricep-l","b-tricep-r"],
+  "Braquial":                  ["f-brachialis-l","f-brachialis-r"],
+  "Braquiorradial":             ["f-forearm-l","f-forearm-r"],
+  "Braços":                    ["f-bicep-l","f-bicep-r","b-tricep-l","b-tricep-r"],
+
+  // ANTEBRAÇO
+  "Antebraço":                  ["f-forearm-l","f-forearm-r","b-forearm-l","b-forearm-r"],
+  "Flexores do Antebraço":      ["f-forearm-l","f-forearm-r"],
+  "Extensores do Antebraço":    ["b-forearm-l","b-forearm-r"],
+
+  // COSTAS
+  "Latíssimo do Dorso":         ["b-lat-l","b-lat-r"],
+  "Dorsais":                    ["b-lat-l","b-lat-r"],
+  "Costas":                     ["b-lat-l","b-lat-r","b-trap-mid"],
+  "Romboides":                  ["b-rhomboid"],
+  "Eretores da Espinha":        ["b-erector-l","b-erector-r"],
+  "Eretores":                   ["b-erector-l","b-erector-r"],
+  "Coluna Torácica":            ["b-erector-l","b-erector-r","b-rhomboid"],
+  "Coluna":                     ["b-erector-l","b-erector-r"],
+  "Quadratus Lumborum":         ["b-ql-l","b-ql-r"],
+  "Levantador da Escápula":     ["f-trap-l","f-trap-r"],
+
+  // CORE / ABS
+  "Reto Abdominal":             ["f-abs"],
+  "Reto Abdominal Inferior":    ["f-abs-lower"],
+  "Oblíquos":                   ["f-oblique-l","f-oblique-r"],
+  "Transverso Abdominal":       ["f-transverse"],
+  "Core (Transverso)":          ["f-transverse","f-abs"],
+  "Core":                       ["f-abs","f-oblique-l","f-oblique-r","f-transverse"],
+
+  // QUADRIL / GLÚTEOS
+  "Flexores do Quadril":        ["f-hipflex-l","f-hipflex-r"],
+  "Glúteo Máximo":              ["b-glute-max-l","b-glute-max-r"],
+  "Glúteo Médio":               ["b-glute-med-l","b-glute-med-r"],
+  "Glúteo Mínimo":              ["b-glute-med-l","b-glute-med-r"],
+  "Glúteos":                    ["b-glute-max-l","b-glute-max-r","b-glute-med-l","b-glute-med-r"],
+  "Piriforme":                  ["b-glute-max-l","b-glute-max-r"],
+
+  // ADUTORES / ABDUTOR
+  "Adutores":                   ["f-adductor-l","f-adductor-r"],
+
+  // QUADRÍCEPS
+  "Quadríceps":                 ["f-quad-l","f-quad-r"],
+
+  // ISQUIOTIBIAIS
+  "Isquiotibiais":              ["b-hamstring-l","b-hamstring-r"],
+
+  // PANTURRILHA
+  "Gastrocnêmio":               ["b-calf-l","b-calf-r"],
+  "Panturrilha":                ["b-calf-l","b-calf-r"],
+  "Sóleo":                      ["b-soleus-l","b-soleus-r"],
+
+  // ESTERNOCLEIDOMASTOIDEO / PESCOÇO
+  "Esternocleidomastoideo":     ["f-neck"],
+  "Pescoço":                    ["f-neck"],
+
+  // TORNOZELO / TÍBIA
+  "Tornozelo":                  ["f-tibialis-l","f-tibialis-r"],
+
+  // FULL BODY / OUTROS
+  "Corpo Inteiro":              ["f-pec-l","f-pec-r","f-abs","f-quad-l","f-quad-r","b-lat-l","b-lat-r","b-glute-max-l","b-glute-max-r","b-hamstring-l","b-hamstring-r"],
+  "Variado":                    [],
+  "Cardio":                     [],
+  "Torácica":                   ["b-erector-l","b-erector-r","b-rhomboid"],
+  "Quadril":                    ["f-hipflex-l","f-hipflex-r","b-glute-med-l","b-glute-med-r"],
+};
+
+// Labels for tooltip
+const MUSCLE_LABELS = {
+  "f-pec-l":"Peitoral Esq.","f-pec-r":"Peitoral Dir.",
+  "f-pec-upper-l":"Peitoral Superior Esq.","f-pec-upper-r":"Peitoral Superior Dir.",
+  "f-pec-lower-l":"Peitoral Inferior Esq.","f-pec-lower-r":"Peitoral Inferior Dir.",
+  "f-delt-ant-l":"Deltoide Anterior Esq.","f-delt-ant-r":"Deltoide Anterior Dir.",
+  "f-delt-lat-l":"Deltoide Lateral Esq.","f-delt-lat-r":"Deltoide Lateral Dir.",
+  "f-trap-l":"Trapézio Esq.","f-trap-r":"Trapézio Dir.",
+  "f-bicep-l":"Bíceps Esq.","f-bicep-r":"Bíceps Dir.",
+  "f-brachialis-l":"Braquial Esq.","f-brachialis-r":"Braquial Dir.",
+  "f-forearm-l":"Antebraço Esq.","f-forearm-r":"Antebraço Dir.",
+  "f-abs":"Reto Abdominal","f-abs-lower":"Abs Inferior",
+  "f-oblique-l":"Oblíquo Esq.","f-oblique-r":"Oblíquo Dir.",
+  "f-transverse":"Transverso Abdominal",
+  "f-hipflex-l":"Flex. Quadril Esq.","f-hipflex-r":"Flex. Quadril Dir.",
+  "f-adductor-l":"Adutor Esq.","f-adductor-r":"Adutor Dir.",
+  "f-quad-l":"Quadríceps Esq.","f-quad-r":"Quadríceps Dir.",
+  "f-tibialis-l":"Tibial Ant. Esq.","f-tibialis-r":"Tibial Ant. Dir.",
+  "f-neck":"Esternocleidomastoideo","f-serratus-l":"Serratus Esq.","f-serratus-r":"Serratus Dir.",
+  "b-delt-post-l":"Deltoide Post. Esq.","b-delt-post-r":"Deltoide Post. Dir.",
+  "b-trap-upper":"Trapézio Superior","b-trap-mid":"Trapézio Médio",
+  "b-rhomboid":"Romboides",
+  "b-lat-l":"Latíssimo Esq.","b-lat-r":"Latíssimo Dir.",
+  "b-erector-l":"Eretor Esq.","b-erector-r":"Eretor Dir.",
+  "b-ql-l":"Q. Lumborum Esq.","b-ql-r":"Q. Lumborum Dir.",
+  "b-tricep-l":"Tríceps Esq.","b-tricep-r":"Tríceps Dir.",
+  "b-forearm-l":"Antebraço Post. Esq.","b-forearm-r":"Antebraço Post. Dir.",
+  "b-glute-max-l":"Glúteo Máx. Esq.","b-glute-max-r":"Glúteo Máx. Dir.",
+  "b-glute-med-l":"Glúteo Médio Esq.","b-glute-med-r":"Glúteo Médio Dir.",
+  "b-hamstring-l":"Isquiotibial Esq.","b-hamstring-r":"Isquiotibial Dir.",
+  "b-calf-l":"Panturrilha Esq.","b-calf-r":"Panturrilha Dir.",
+  "b-soleus-l":"Sóleo Esq.","b-soleus-r":"Sóleo Dir.",
+};
+
+// ── SVG TEMPLATES ──
+function frontSVG(){
+return `<svg class="mannequin-svg" viewBox="0 0 200 460" xmlns="http://www.w3.org/2000/svg">
+  <!-- BODY SILHOUETTE -->
+  <path class="body-outline" d="M100,8 Q124,8 124,30 Q124,50 112,56 Q128,60 148,72 Q170,82 172,98 Q174,118 168,130 Q162,142 150,148 L148,180 Q148,195 140,200 L142,225 Q148,228 150,240 L148,330 Q150,336 152,345 L155,420 Q155,432 148,432 L136,432 Q128,432 128,424 L126,360 Q120,340 118,330 L116,270 Q108,268 100,268 Q92,268 84,270 L82,330 Q80,340 74,360 L72,424 Q72,432 64,432 L52,432 Q45,432 45,420 L48,345 Q50,336 52,330 L50,240 Q52,228 58,225 L60,200 Q52,195 52,180 L50,148 Q38,142 32,130 Q26,118 28,98 Q30,82 52,72 Q72,60 88,56 Q76,50 76,30 Q76,8 100,8 Z"/>
+  <!-- HEAD -->
+  <ellipse class="head-shape" cx="100" cy="28" rx="20" ry="22"/>
+  <path class="hair-shape" d="M82,20 Q85,10 100,8 Q115,8 118,20 Q114,14 100,13 Q86,14 82,20 Z"/>
+
+  <!-- FRONT MUSCLES -->
+  <!-- NECK -->
+  <path class="muscle" id="f-neck" d="M91,54 L109,54 L107,68 L93,68 Z"/>
+  <!-- TRAP LEFT -->
+  <path class="muscle" id="f-trap-l" d="M93,62 Q80,66 54,76 Q50,78 52,82 Q68,74 88,70 L93,68 Z"/>
+  <!-- TRAP RIGHT -->
+  <path class="muscle" id="f-trap-r" d="M107,62 Q120,66 146,76 Q150,78 148,82 Q132,74 112,70 L107,68 Z"/>
+  <!-- DELT LAT LEFT -->
+  <ellipse class="muscle" id="f-delt-lat-l" cx="40" cy="96" rx="13" ry="15" transform="rotate(-8,40,96)"/>
+  <!-- DELT LAT RIGHT -->
+  <ellipse class="muscle" id="f-delt-lat-r" cx="160" cy="96" rx="13" ry="15" transform="rotate(8,160,96)"/>
+  <!-- DELT ANT LEFT -->
+  <ellipse class="muscle" id="f-delt-ant-l" cx="48" cy="92" rx="10" ry="13" transform="rotate(-5,48,92)"/>
+  <!-- DELT ANT RIGHT -->
+  <ellipse class="muscle" id="f-delt-ant-r" cx="152" cy="92" rx="10" ry="13" transform="rotate(5,152,92)"/>
+  <!-- PEC LEFT -->
+  <path class="muscle" id="f-pec-l" d="M92,80 Q72,84 52,98 Q46,108 48,128 Q52,140 66,142 Q84,144 92,136 L92,82 Z"/>
+  <!-- PEC UPPER LEFT (subregion) -->
+  <path class="muscle" id="f-pec-upper-l" d="M92,80 Q76,84 58,92 Q50,100 50,110 L92,108 Z" style="opacity:0;pointer-events:none"/>
+  <!-- PEC LOWER LEFT -->
+  <path class="muscle" id="f-pec-lower-l" d="M92,120 Q68,128 50,120 Q48,132 66,142 Q84,144 92,136 Z" style="opacity:0;pointer-events:none"/>
+  <!-- PEC RIGHT -->
+  <path class="muscle" id="f-pec-r" d="M108,80 Q128,84 148,98 Q154,108 152,128 Q148,140 134,142 Q116,144 108,136 L108,82 Z"/>
+  <!-- PEC UPPER RIGHT -->
+  <path class="muscle" id="f-pec-upper-r" d="M108,80 Q124,84 142,92 Q150,100 150,110 L108,108 Z" style="opacity:0;pointer-events:none"/>
+  <!-- PEC LOWER RIGHT -->
+  <path class="muscle" id="f-pec-lower-r" d="M108,120 Q132,128 150,120 Q152,132 134,142 Q116,144 108,136 Z" style="opacity:0;pointer-events:none"/>
+  <!-- SERRATUS LEFT -->
+  <path class="muscle" id="f-serratus-l" d="M68,130 Q62,140 64,155 Q66,162 72,162 Q74,150 76,138 Z"/>
+  <!-- SERRATUS RIGHT -->
+  <path class="muscle" id="f-serratus-r" d="M132,130 Q138,140 136,155 Q134,162 128,162 Q126,150 124,138 Z"/>
+  <!-- BICEP LEFT -->
+  <ellipse class="muscle" id="f-bicep-l" cx="36" cy="136" rx="11" ry="22"/>
+  <!-- BICEP RIGHT -->
+  <ellipse class="muscle" id="f-bicep-r" cx="164" cy="136" rx="11" ry="22"/>
+  <!-- BRACHIALIS LEFT -->
+  <ellipse class="muscle" id="f-brachialis-l" cx="27" cy="152" rx="6" ry="12"/>
+  <!-- BRACHIALIS RIGHT -->
+  <ellipse class="muscle" id="f-brachialis-r" cx="173" cy="152" rx="6" ry="12"/>
+  <!-- FOREARM LEFT -->
+  <path class="muscle" id="f-forearm-l" d="M30,172 Q22,176 22,196 Q22,216 30,222 Q38,224 42,218 Q44,200 40,178 Z"/>
+  <!-- FOREARM RIGHT -->
+  <path class="muscle" id="f-forearm-r" d="M170,172 Q178,176 178,196 Q178,216 170,222 Q162,224 158,218 Q156,200 160,178 Z"/>
+  <!-- RECTUS ABDOMINIS -->
+  <rect class="muscle" id="f-abs" x="88" y="144" width="24" height="50" rx="4"/>
+  <line x1="100" y1="144" x2="100" y2="194" stroke="var(--bg)" stroke-width="1.2"/>
+  <line x1="86" y1="158" x2="114" y2="158" stroke="var(--bg)" stroke-width="1"/>
+  <line x1="86" y1="172" x2="114" y2="172" stroke="var(--bg)" stroke-width="1"/>
+  <!-- ABS LOWER -->
+  <rect class="muscle" id="f-abs-lower" x="88" y="186" width="24" height="18" rx="3"/>
+  <!-- OBLIQUE LEFT -->
+  <path class="muscle" id="f-oblique-l" d="M74,146 Q68,155 66,170 Q68,180 76,182 Q84,182 88,172 L88,144 Z"/>
+  <!-- OBLIQUE RIGHT -->
+  <path class="muscle" id="f-oblique-r" d="M126,146 Q132,155 134,170 Q132,180 124,182 Q116,182 112,172 L112,144 Z"/>
+  <!-- TRANSVERSE -->
+  <path class="muscle" id="f-transverse" d="M82,194 Q82,208 100,210 Q118,208 118,194 Q112,198 100,198 Q88,198 82,194 Z"/>
+  <!-- HIP FLEXOR LEFT -->
+  <ellipse class="muscle" id="f-hipflex-l" cx="80" cy="218" rx="12" ry="9"/>
+  <!-- HIP FLEXOR RIGHT -->
+  <ellipse class="muscle" id="f-hipflex-r" cx="120" cy="218" rx="12" ry="9"/>
+  <!-- ADDUCTOR LEFT -->
+  <path class="muscle" id="f-adductor-l" d="M84,230 Q78,250 80,300 Q82,310 88,310 Q94,290 92,250 Q92,238 88,230 Z"/>
+  <!-- ADDUCTOR RIGHT -->
+  <path class="muscle" id="f-adductor-r" d="M116,230 Q122,250 120,300 Q118,310 112,310 Q106,290 108,250 Q108,238 112,230 Z"/>
+  <!-- QUAD LEFT (rectus femoris) -->
+  <path class="muscle" id="f-quad-l" d="M82,228 Q70,240 66,280 Q64,310 70,330 Q76,340 84,336 Q92,326 92,302 L92,248 Q90,234 84,228 Z"/>
+  <!-- QUAD RIGHT -->
+  <path class="muscle" id="f-quad-r" d="M118,228 Q130,240 134,280 Q136,310 130,330 Q124,340 116,336 Q108,326 108,302 L108,248 Q110,234 116,228 Z"/>
+  <!-- VASTUS MEDIALIS LEFT (teardrop) -->
+  <ellipse class="muscle" cx="78" cy="328" rx="8" ry="10" class="muscle" id="f-vmed-l"/>
+  <ellipse class="muscle" id="f-vmed-l" cx="78" cy="328" rx="8" ry="10"/>
+  <!-- VASTUS MEDIALIS RIGHT -->
+  <ellipse class="muscle" id="f-vmed-r" cx="122" cy="328" rx="8" ry="10"/>
+  <!-- TIBIALIS LEFT -->
+  <path class="muscle" id="f-tibialis-l" d="M72,348 Q66,360 68,400 Q70,412 76,412 Q80,408 80,390 Q80,366 76,350 Z"/>
+  <!-- TIBIALIS RIGHT -->
+  <path class="muscle" id="f-tibialis-r" d="M128,348 Q134,360 132,400 Q130,412 124,412 Q120,408 120,390 Q120,366 124,350 Z"/>
+</svg>`;
+}
+
+function backSVG(){
+return `<svg class="mannequin-svg" viewBox="0 0 200 460" xmlns="http://www.w3.org/2000/svg">
+  <!-- BODY SILHOUETTE (mirrored) -->
+  <path class="body-outline" d="M100,8 Q124,8 124,30 Q124,50 112,56 Q128,60 148,72 Q170,82 172,98 Q174,118 168,130 Q162,142 150,148 L148,180 Q148,195 140,200 L142,225 Q148,228 150,240 L148,330 Q150,336 152,345 L155,420 Q155,432 148,432 L136,432 Q128,432 128,424 L126,360 Q120,340 118,330 L116,270 Q108,268 100,268 Q92,268 84,270 L82,330 Q80,340 74,360 L72,424 Q72,432 64,432 L52,432 Q45,432 45,420 L48,345 Q50,336 52,330 L50,240 Q52,228 58,225 L60,200 Q52,195 52,180 L50,148 Q38,142 32,130 Q26,118 28,98 Q30,82 52,72 Q72,60 88,56 Q76,50 76,30 Q76,8 100,8 Z"/>
+  <!-- HEAD (back of head) -->
+  <ellipse class="head-shape" cx="100" cy="28" rx="20" ry="22"/>
+  <path class="hair-shape" d="M80,22 Q82,10 100,8 Q118,10 120,22 Q112,16 100,15 Q88,16 80,22 Z"/>
+
+  <!-- BACK MUSCLES -->
+  <!-- TRAP UPPER -->
+  <path class="muscle" id="b-trap-upper" d="M92,58 Q76,64 54,76 Q50,80 54,84 Q70,76 92,70 L108,70 Q130,76 146,84 Q150,80 146,76 Q124,64 108,58 Z"/>
+  <!-- TRAP MID -->
+  <path class="muscle" id="b-trap-mid" d="M92,70 Q76,76 58,86 Q56,92 60,100 Q70,88 92,84 L100,82 L108,84 Q130,88 140,100 Q144,92 142,86 Q124,76 108,70 Z"/>
+  <!-- DELT POST LEFT -->
+  <ellipse class="muscle" id="b-delt-post-l" cx="40" cy="96" rx="13" ry="15" transform="rotate(-8,40,96)"/>
+  <!-- DELT POST RIGHT -->
+  <ellipse class="muscle" id="b-delt-post-r" cx="160" cy="96" rx="13" ry="15" transform="rotate(8,160,96)"/>
+  <!-- RHOMBOID -->
+  <path class="muscle" id="b-rhomboid" d="M88,82 Q80,90 80,104 Q80,112 88,116 Q100,118 112,116 Q120,112 120,104 Q120,90 112,82 Q106,80 100,80 Q94,80 88,82 Z"/>
+  <!-- LAT LEFT -->
+  <path class="muscle" id="b-lat-l" d="M54,90 Q46,108 48,140 Q50,162 56,172 Q62,178 70,178 Q78,176 82,168 Q86,155 84,138 Q82,118 72,102 Q64,94 56,90 Z"/>
+  <!-- LAT RIGHT -->
+  <path class="muscle" id="b-lat-r" d="M146,90 Q154,108 152,140 Q150,162 144,172 Q138,178 130,178 Q122,176 118,168 Q114,155 116,138 Q118,118 128,102 Q136,94 144,90 Z"/>
+  <!-- TERES / INFRA LEFT -->
+  <ellipse class="muscle" cx="62" cy="112" rx="10" ry="13" class="muscle"/>
+  <!-- ERECTOR LEFT -->
+  <path class="muscle" id="b-erector-l" d="M92,120 Q88,134 86,156 Q86,176 88,188 Q92,196 96,198 L98,120 Z"/>
+  <!-- ERECTOR RIGHT -->
+  <path class="muscle" id="b-erector-r" d="M108,120 Q112,134 114,156 Q114,176 112,188 Q108,196 104,198 L102,120 Z"/>
+  <!-- QUADRATUS LUMBORUM LEFT -->
+  <path class="muscle" id="b-ql-l" d="M78,178 Q72,184 72,196 Q74,204 82,206 Q88,204 90,196 Q90,186 86,180 Z"/>
+  <!-- QUADRATUS LUMBORUM RIGHT -->
+  <path class="muscle" id="b-ql-r" d="M122,178 Q128,184 128,196 Q126,204 118,206 Q112,204 110,196 Q110,186 114,180 Z"/>
+  <!-- TRICEP LEFT (horseshoe) -->
+  <path class="muscle" id="b-tricep-l" d="M30,108 Q22,118 22,140 Q22,156 28,162 Q34,166 40,164 Q46,158 48,144 Q50,126 44,112 Q38,106 32,108 Z"/>
+  <!-- TRICEP RIGHT -->
+  <path class="muscle" id="b-tricep-r" d="M170,108 Q178,118 178,140 Q178,156 172,162 Q166,166 160,164 Q154,158 152,144 Q150,126 156,112 Q162,106 168,108 Z"/>
+  <!-- FOREARM BACK LEFT -->
+  <path class="muscle" id="b-forearm-l" d="M26,170 Q20,178 20,200 Q20,218 28,224 Q36,226 40,220 Q44,204 40,182 Q36,172 28,170 Z"/>
+  <!-- FOREARM BACK RIGHT -->
+  <path class="muscle" id="b-forearm-r" d="M174,170 Q180,178 180,200 Q180,218 172,224 Q164,226 160,220 Q156,204 160,182 Q164,172 172,170 Z"/>
+  <!-- GLUTE MED LEFT -->
+  <path class="muscle" id="b-glute-med-l" d="M60,208 Q52,218 52,232 Q54,242 64,244 Q74,242 80,232 Q82,220 76,210 Q68,206 62,208 Z"/>
+  <!-- GLUTE MED RIGHT -->
+  <path class="muscle" id="b-glute-med-r" d="M140,208 Q148,218 148,232 Q146,242 136,244 Q126,242 120,232 Q118,220 124,210 Q132,206 138,208 Z"/>
+  <!-- GLUTE MAX LEFT -->
+  <path class="muscle" id="b-glute-max-l" d="M58,228 Q50,244 52,270 Q54,288 62,296 Q72,300 82,294 Q92,282 92,262 Q90,242 84,232 Q76,224 66,226 Z"/>
+  <!-- GLUTE MAX RIGHT -->
+  <path class="muscle" id="b-glute-max-r" d="M142,228 Q150,244 148,270 Q146,288 138,296 Q128,300 118,294 Q108,282 108,262 Q110,242 116,232 Q124,224 134,226 Z"/>
+  <!-- HAMSTRING LEFT -->
+  <path class="muscle" id="b-hamstring-l" d="M62,298 Q54,312 54,340 Q54,358 62,368 Q70,374 78,370 Q84,360 84,340 Q84,314 76,300 Q70,294 64,296 Z"/>
+  <!-- HAMSTRING RIGHT -->
+  <path class="muscle" id="b-hamstring-r" d="M138,298 Q146,312 146,340 Q146,358 138,368 Q130,374 122,370 Q116,360 116,340 Q116,314 124,300 Q130,294 136,296 Z"/>
+  <!-- CALF LEFT -->
+  <path class="muscle" id="b-calf-l" d="M62,376 Q54,388 56,408 Q58,422 66,426 Q76,426 80,418 Q82,404 80,388 Q76,378 68,374 Z"/>
+  <!-- CALF RIGHT -->
+  <path class="muscle" id="b-calf-r" d="M138,376 Q146,388 144,408 Q142,422 134,426 Q124,426 120,418 Q118,404 120,388 Q124,378 132,374 Z"/>
+  <!-- SOLEUS LEFT -->
+  <path class="muscle" id="b-soleus-l" d="M58,410 Q54,420 56,432 Q60,440 68,440 Q76,438 78,428 Q80,418 76,412 Q68,408 60,410 Z"/>
+  <!-- SOLEUS RIGHT -->
+  <path class="muscle" id="b-soleus-r" d="M142,410 Q146,420 144,432 Q140,440 132,440 Q124,438 122,428 Q120,418 124,412 Q132,408 140,410 Z"/>
+</svg>`;
+}
+
+// ── STATE ──
+let selEx = null, activeCat = "all";
+
+// ── BUILD UI ──
+function buildCats(){
+  const cats = [...new Set(EXERCISES.map(e=>e.category))].sort();
+  const cf = document.getElementById("catFilter");
+  cats.forEach(c=>{
+    const b = document.createElement("button");
+    b.className = "cf-btn"; b.textContent = c;
+    b.onclick = () => setCat(b, c);
+    cf.appendChild(b);
+  });
+}
+
+function setCat(btn, cat){
+  document.querySelectorAll(".cf-btn").forEach(b=>b.classList.remove("on"));
+  btn.classList.add("on");
+  activeCat = cat;
+  renderList();
+}
+
+function renderList(){
+  const q = document.getElementById("exSearch").value.toLowerCase();
+  const list = document.getElementById("exList");
+  let items = EXERCISES.filter(e=>{
+    const mc = activeCat==="all" || e.category===activeCat;
+    const mq = !q || e.name.toLowerCase().includes(q) || e.name_en.toLowerCase().includes(q) || e.muscle_primary.toLowerCase().includes(q);
+    return mc && mq;
+  });
+  list.innerHTML = items.map(e=>{
+    const dc = e.difficulty==="Iniciante"?"di-i":e.difficulty==="Intermediário"?"di-m":"di-a";
+    return `<div class="ex-item${selEx&&selEx.id===e.id?" sel":""}" onclick="selectEx(${e.id})">
+      <div class="ex-n">${e.name}</div>
+      <span class="ex-c">${e.category}</span>
+      <span class="di ${dc}">${e.difficulty.substring(0,3)}</span>
+    </div>`;
+  }).join("");
+  if(!items.length) list.innerHTML=`<div style="padding:18px;text-align:center;color:var(--faint);font-size:12px">Nenhum resultado</div>`;
+}
+
+function selectEx(id){
+  selEx = EXERCISES.find(e=>e.id===id);
+  renderList();
+  renderMannequin();
+  renderExInfo();
+}
+
+function getMuscleIds(muscleName){
+  return MUSCLE_MAP[muscleName] || [];
+}
+
+function highlightMuscles(primaryMuscles, secondaryMuscles){
+  // Reset all
+  document.querySelectorAll(".muscle").forEach(el=>{
+    el.classList.remove("primary","secondary");
+  });
+  // Apply secondary first (lower priority)
+  secondaryMuscles.forEach(muscle=>{
+    getMuscleIds(muscle).forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.classList.add("secondary");
+    });
+  });
+  // Apply primary (higher priority, overrides secondary)
+  primaryMuscles.forEach(muscle=>{
+    getMuscleIds(muscle).forEach(id=>{
+      const el = document.getElementById(id);
+      if(el){ el.classList.remove("secondary"); el.classList.add("primary"); }
+    });
+  });
+}
+
+function renderMannequin(){
+  const wrap = document.getElementById("viewsWrap");
+  if(!selEx){
+    wrap.innerHTML=`<div class="no-sel"><svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" style="color:var(--faint);margin-bottom:16px"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg><h3>Nenhum exercício selecionado</h3><p style="font-size:12px">Escolha um exercício para ver os músculos</p></div>`;
+    return;
+  }
+  wrap.innerHTML = `
+    <div class="view-block">
+      <span class="view-label">Vista Frontal</span>
+      ${frontSVG()}
+    </div>
+    <div class="view-block">
+      <span class="view-label">Vista Posterior</span>
+      ${backSVG()}
+    </div>`;
+  document.getElementById("mpTitle").textContent = selEx.name;
+  document.getElementById("mpSubtitle").textContent = selEx.name_en;
+  // Highlight muscles
+  highlightMuscles([selEx.muscle_primary], selEx.muscle_secondary);
+  // Tooltip on hover
+  setupTooltips();
+}
+
+function setupTooltips(){
+  const tip = document.getElementById("tooltip");
+  document.querySelectorAll(".muscle").forEach(el=>{
+    const label = MUSCLE_LABELS[el.id] || el.id.replace(/[-_]/g," ");
+    el.addEventListener("mousemove", e=>{
+      if(!el.classList.contains("primary")&&!el.classList.contains("secondary")) return;
+      tip.style.display="block";
+      tip.style.left=(e.clientX+12)+"px";
+      tip.style.top=(e.clientY-28)+"px";
+      const isPrimary = el.classList.contains("primary");
+      tip.innerHTML=`<span style="color:${isPrimary?"var(--primary-muscle)":"var(--secondary-muscle)"}">● </span>${label} — ${isPrimary?"Primário":"Secundário"}`;
+    });
+    el.addEventListener("mouseleave", ()=>{ tip.style.display="none"; });
+  });
+}
+
+function renderExInfo(){
+  const div = document.getElementById("exInfo");
+  if(!selEx){ div.style.display="none"; return; }
+  div.style.display="block";
+  const secTags = selEx.muscle_secondary.slice(0,5).map(m=>`<span class="m-tag-s">${m}</span>`).join("");
+  div.innerHTML=`
+    <div class="info-name">${selEx.name}</div>
+    <div class="info-en">${selEx.name_en}</div>
+    <div class="muscle-tags">
+      <span class="m-tag-p">${selEx.muscle_primary}</span>
+      ${secTags}
+    </div>`;
+}
+
+// ── THEME ──
+(function(){
+  const btn=document.querySelector("[data-theme-toggle]");
+  const root=document.documentElement;
+  let d=root.getAttribute("data-theme")||"dark";
+  const icon=m=>m==="dark"
+    ?"<svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><circle cx='12' cy='12' r='5'/><path d='M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42'/></svg>"
+    :"<svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z'/></svg>";
+  btn.innerHTML=icon(d);
+  btn.addEventListener("click",()=>{d=d==="dark"?"light":"dark";root.setAttribute("data-theme",d);btn.innerHTML=icon(d);});
+})();
+
+// ── INIT ──
+document.getElementById("exSearch").addEventListener("input", renderList);
+buildCats();
+renderList();
+</script>
+</body>
+</html>
