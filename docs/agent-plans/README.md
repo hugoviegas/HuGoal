@@ -46,3 +46,7 @@ This folder turns the high-level roadmap in `docs/main_plan.md` and the original
 
 - Each phase brief should answer: which screens exist, how they behave, what data is stored, which error cases matter, what configuration questions need decisions, and how the phase is considered done.
 - Keep phase boundaries narrow so each agent can finish one slice without accidentally expanding scope.
+
+## Review Template
+
+- Use [phase-review-template.md](phase-review-template.md) at the end of every phase delivery.
