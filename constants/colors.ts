@@ -1,0 +1,43 @@
+export const lightColors = {
+  background: '#ffffff',
+  foreground: '#0a0a0a',
+  card: '#ffffff',
+  cardBorder: '#e5e7eb',
+  surface: '#f9fafb',
+  primary: '#7c3aed',
+  primaryForeground: '#ffffff',
+  secondary: '#f3f4f6',
+  secondaryForeground: '#374151',
+  muted: '#9ca3af',
+  mutedForeground: '#6b7280',
+  accent: '#10b981',
+  accentForeground: '#ffffff',
+  destructive: '#ef4444',
+  glassBg: 'rgba(255, 255, 255, 0.72)',
+  glassBorder: 'rgba(228, 228, 231, 0.72)',
+  tabBar: 'rgba(255, 255, 255, 0.85)',
+  tabBarBorder: 'rgba(0, 0, 0, 0.08)',
+};
+
+export const darkColors = {
+  background: '#0a0a0a',
+  foreground: '#fafafa',
+  card: '#171717',
+  cardBorder: '#262626',
+  surface: '#1a1a1a',
+  primary: '#8b5cf6',
+  primaryForeground: '#ffffff',
+  secondary: '#262626',
+  secondaryForeground: '#d1d5db',
+  muted: '#6b7280',
+  mutedForeground: '#9ca3af',
+  accent: '#34d399',
+  accentForeground: '#ffffff',
+  destructive: '#f87171',
+  glassBg: 'rgba(10, 10, 10, 0.72)',
+  glassBorder: 'rgba(39, 39, 42, 0.72)',
+  tabBar: 'rgba(10, 10, 10, 0.85)',
+  tabBarBorder: 'rgba(255, 255, 255, 0.08)',
+};
+
+export type ThemeColors = typeof lightColors;
