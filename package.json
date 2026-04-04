@@ -7,7 +7,10 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "version:bump": "node scripts/version-bump.js",
+    "version:bump:minor": "node scripts/version-bump.js minor",
+    "version:bump:major": "node scripts/version-bump.js major"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",

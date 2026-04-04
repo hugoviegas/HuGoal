@@ -2,16 +2,26 @@
 
 ## Suggested specialization
 
-Design system agent.
+Design system agent (can parallelize into 3 sub-agents: tokens → atomics → patterns).
 
 ## Objective
 
-Standardize the app UI so later feature screens can reuse the same layout, state, and motion patterns without drifting into inconsistent one-off styling.
+Standardize the app UI with centralized design tokens (typography 5 levels, colors extended, spacing 4px, elevation), refine 6 existing components, create 19 new components (atomics + layout patterns), implement token-based dark/light theming, and establish reusable layout patterns so feature screens avoid custom one-off styling.
+
+**Key Outcomes:**
+- ✅ 6 design token files (colors, spacing, typography, animation, elevation)
+- ✅ 6 components refined (Avatar, Button, Input, GlassCard, Modal, Toast)
+- ✅ 19 new components (9 atomics + 10 patterns/layout)
+- ✅ TextProvider Context for dynamic typography
+- ✅ Dark/light theme via token-based colors + theme.store
+- ✅ 3+ parallel agents (tokens → atomics → patterns)
 
 ## Current Starting Point
 
-- `Button`, `Input`, `GlassCard`, `Modal`, `Toast`, and `Avatar` already exist.
-- The custom tab bar and broader layout helpers still need to be completed.
+- **6 existing components:** Button, Input, GlassCard, Modal, Toast, Avatar (stubs/basic, need refinement)
+- **Missing:** Design tokens (colors, spacing, typography), TabBar (needs polish), layout patterns (Screen, SectionHeader, StatCard, EmptyState, ErrorState, etc)
+- **No TypeScript errors** on existing components
+- **Theme store exists** (theme.store.ts) — ready for token-based color switching
 
 ## Shared UI Inventory
 
