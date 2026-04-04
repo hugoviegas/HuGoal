@@ -1,0 +1,68 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Profiles ──────────────────────────────────────────────────────
+    // Users can only read/write their own profile document.
+    match /profiles/{userId} {
+      allow read:   if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if false; // Never allow profile deletion via client
+    }
+
+    // ── Workout Templates ─────────────────────────────────────────────
+    // Owner-only access; public templates readable by authenticated users.
+    match /workout_templates/{templateId} {
+      allow read:   if request.auth != null
+                       && (resource.data.owner_id == request.auth.uid
+                           || resource.data.is_public == true);
+      allow create: if request.auth != null
+                       && request.resource.data.owner_id == request.auth.uid;
+      allow update: if request.auth != null
+                       && resource.data.owner_id == request.auth.uid;
+      allow delete: if request.auth != null
+                       && resource.data.owner_id == request.auth.uid;
+    }
+
+    // ── Workout Sessions ──────────────────────────────────────────────
+    match /workout_sessions/{sessionId} {
+      allow read, write: if request.auth != null
+                            && resource.data.user_id == request.auth.uid;
+      allow create: if request.auth != null
+                       && request.resource.data.user_id == request.auth.uid;
+    }
+
+    // ── Nutrition Logs ────────────────────────────────────────────────
+    match /nutrition_logs/{logId} {
+      allow read, write: if request.auth != null
+                            && resource.data.user_id == request.auth.uid;
+      allow create: if request.auth != null
+                       && request.resource.data.user_id == request.auth.uid;
+    }
+
+    // ── Exercise Library ─────────────────────────────────────────────
+    // Read-only for all authenticated users; writes only via Admin SDK.
+    match /exercises/{exerciseId} {
+      allow read:  if request.auth != null;
+      allow write: if false;
+    }
+
+    // ── Community Posts ───────────────────────────────────────────────
+    match /community_posts/{postId} {
+      allow read:   if request.auth != null;
+      allow create: if request.auth != null
+                       && request.resource.data.author_id == request.auth.uid;
+      allow update: if request.auth != null
+                       && resource.data.author_id == request.auth.uid;
+      allow delete: if request.auth != null
+                       && resource.data.author_id == request.auth.uid;
+    }
+
+    // ── Default deny ──────────────────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
