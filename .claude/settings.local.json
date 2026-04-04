@@ -4,7 +4,12 @@
       "mcp__Claude_Preview__preview_start",
       "Bash(npx create-expo-app@latest . --template blank-typescript)",
       "Read(//c/Users/hugov/OneDrive/Documentos/GitHub/**)",
-      "Bash(npx create-expo-app@latest BetterU-temp --template blank-typescript)"
+      "Bash(npx create-expo-app@latest BetterU-temp --template blank-typescript)",
+      "Bash(npx expo:*)",
+      "Bash(npm install:*)",
+      "Bash(ls \"C:/Users/hugov/OneDrive/Documentos/GitHub/BetterU/app/\\(auth\\)\")",
+      "Bash(ls \"C:/Users/hugov/OneDrive/Documentos/GitHub/BetterU/app/\\(tabs\\)\")",
+      "Bash(ls \"C:/Users/hugov/OneDrive/Documentos/GitHub/BetterU/app/\\(auth\\)/onboarding\")"
     ]
   }
 }
