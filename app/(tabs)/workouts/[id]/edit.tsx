@@ -117,7 +117,8 @@ const EXERCISE_LIBRARY: (Exercise & {
     video_youtube_ids: [],
     aliases: ["conventional deadlift"],
     has_weight: true,
-    short_description: "Posterior chain builder for power and total-body strength.",
+    short_description:
+      "Posterior chain builder for power and total-body strength.",
   },
   {
     id: "dumbbell-row",
@@ -131,7 +132,8 @@ const EXERCISE_LIBRARY: (Exercise & {
     video_youtube_ids: [],
     aliases: ["one arm row"],
     has_weight: true,
-    short_description: "Unilateral pulling pattern for back and scapular control.",
+    short_description:
+      "Unilateral pulling pattern for back and scapular control.",
   },
   {
     id: "bench-press",
@@ -145,7 +147,8 @@ const EXERCISE_LIBRARY: (Exercise & {
     video_youtube_ids: [],
     aliases: ["barbell bench"],
     has_weight: true,
-    short_description: "Pressing benchmark for upper body strength progression.",
+    short_description:
+      "Pressing benchmark for upper body strength progression.",
   },
   {
     id: "plank",
@@ -425,7 +428,9 @@ export default function EditWorkoutScreen() {
           ? {
               ...round,
               exercises: round.exercises.map((exercise) =>
-                exercise.id === exerciseId ? { ...exercise, ...patch } : exercise,
+                exercise.id === exerciseId
+                  ? { ...exercise, ...patch }
+                  : exercise,
               ),
             }
           : round,
@@ -511,7 +516,10 @@ export default function EditWorkoutScreen() {
         difficulty: draft.difficulty,
         is_ai_generated: false,
         exercises: flatExercises,
-        estimated_duration_minutes: Math.max(10, Math.ceil(estimatedDuration / 60)),
+        estimated_duration_minutes: Math.max(
+          10,
+          Math.ceil(estimatedDuration / 60),
+        ),
         tags: [...draft.tags, `${draft.rounds.length} rounds`],
       });
 
@@ -540,7 +548,9 @@ export default function EditWorkoutScreen() {
           isDark ? "bg-dark-bg" : "bg-light-bg",
         )}
       >
-        <Text className="text-sm text-gray-600 dark:text-gray-400">Loading workout...</Text>
+        <Text className="text-sm text-gray-600 dark:text-gray-400">
+          Loading workout...
+        </Text>
       </View>
     );
   }
@@ -550,6 +560,7 @@ export default function EditWorkoutScreen() {
       <View className={cn("flex-1", isDark ? "bg-dark-bg" : "bg-light-bg")}>
         <ScrollView
           className="flex-1 p-4"
+          showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 16 }}
         >
           <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
@@ -560,7 +571,9 @@ export default function EditWorkoutScreen() {
             label="Workout Name"
             placeholder="e.g., Summer Shred"
             value={draft.name}
-            onChangeText={(text) => setDraft((prev) => ({ ...prev, name: text }))}
+            onChangeText={(text) =>
+              setDraft((prev) => ({ ...prev, name: text }))
+            }
             containerClassName="mb-4"
           />
 
@@ -660,12 +673,19 @@ export default function EditWorkoutScreen() {
                 Difficulty
               </Text>
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3">
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              showsVerticalScrollIndicator={false}
+              className="mb-3"
+            >
               <View className="flex-row gap-2">
                 {DIFFICULTY_FILTERS.map((filter) => (
                   <Badge
                     key={filter}
-                    variant={difficultyFilter === filter ? "primary" : "secondary"}
+                    variant={
+                      difficultyFilter === filter ? "primary" : "secondary"
+                    }
                     size="sm"
                     onPress={() => setDifficultyFilter(filter)}
                   >
@@ -683,12 +703,18 @@ export default function EditWorkoutScreen() {
                 Equipment
               </Text>
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              showsVerticalScrollIndicator={false}
+            >
               <View className="flex-row gap-2">
                 {EQUIPMENT_FILTERS.map((filter) => (
                   <Badge
                     key={filter}
-                    variant={equipmentFilter === filter ? "primary" : "secondary"}
+                    variant={
+                      equipmentFilter === filter ? "primary" : "secondary"
+                    }
                     size="sm"
                     onPress={() => setEquipmentFilter(filter)}
                   >
@@ -701,7 +727,11 @@ export default function EditWorkoutScreen() {
             </ScrollView>
           </View>
 
-          <ScrollView className="flex-1 px-4 pt-3" contentContainerStyle={{ paddingBottom: 16 }}>
+          <ScrollView
+            className="flex-1 px-4 pt-3"
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 16 }}
+          >
             {Object.entries(groupedExercises).length === 0 ? (
               <View className="py-12 items-center">
                 <Text className="text-base font-semibold text-gray-900 dark:text-gray-100">
@@ -725,8 +755,12 @@ export default function EditWorkoutScreen() {
                         variant="list"
                         showImage
                         imageUrl={GENERIC_EXERCISE_IMAGE}
-                        onAddPress={() => handleAddExercise(pickerRoundId, exercise)}
-                        onPress={() => handleAddExercise(pickerRoundId, exercise)}
+                        onAddPress={() =>
+                          handleAddExercise(pickerRoundId, exercise)
+                        }
+                        onPress={() =>
+                          handleAddExercise(pickerRoundId, exercise)
+                        }
                       />
                       <Text className="text-xs text-gray-600 dark:text-gray-400 mt-1 px-1">
                         {exercise.short_description}
@@ -749,7 +783,11 @@ export default function EditWorkoutScreen() {
 
     return (
       <View className={cn("flex-1", isDark ? "bg-dark-bg" : "bg-light-bg")}>
-        <ScrollView className="flex-1 p-4" contentContainerStyle={{ paddingBottom: 16 }}>
+        <ScrollView
+          className="flex-1 p-4"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 16 }}
+        >
           <View className="flex-row justify-between items-center mb-4">
             <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               Build Rounds
@@ -787,7 +825,9 @@ export default function EditWorkoutScreen() {
                   >
                     <ArrowUp
                       size={14}
-                      color={roundIndex === 0 ? colors.cardBorder : colors.foreground}
+                      color={
+                        roundIndex === 0 ? colors.cardBorder : colors.foreground
+                      }
                     />
                   </Pressable>
                   <Pressable
@@ -811,7 +851,9 @@ export default function EditWorkoutScreen() {
                   >
                     <X
                       size={14}
-                      color={draft.rounds.length <= 1 ? colors.cardBorder : "#ef4444"}
+                      color={
+                        draft.rounds.length <= 1 ? colors.cardBorder : "#ef4444"
+                      }
                     />
                   </Pressable>
                 </View>
@@ -838,23 +880,34 @@ export default function EditWorkoutScreen() {
                           {exerciseIndex + 1}. {exercise.name}
                         </Text>
                         <Text className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 capitalize">
-                          {exercise.muscleGroups.slice(0, 2).join(", ")} • {exercise.equipment}
+                          {exercise.muscleGroups.slice(0, 2).join(", ")} •{" "}
+                          {exercise.equipment}
                         </Text>
                       </View>
                       <View className="flex-row gap-1">
                         <Pressable
-                          onPress={() => handleMoveExercise(round.id, exerciseIndex, -1)}
+                          onPress={() =>
+                            handleMoveExercise(round.id, exerciseIndex, -1)
+                          }
                           disabled={exerciseIndex === 0}
                           className="h-8 w-8 items-center justify-center rounded-md bg-light-surface dark:bg-dark-surface"
                         >
                           <ArrowUp
                             size={13}
-                            color={exerciseIndex === 0 ? colors.cardBorder : colors.foreground}
+                            color={
+                              exerciseIndex === 0
+                                ? colors.cardBorder
+                                : colors.foreground
+                            }
                           />
                         </Pressable>
                         <Pressable
-                          onPress={() => handleMoveExercise(round.id, exerciseIndex, 1)}
-                          disabled={exerciseIndex === round.exercises.length - 1}
+                          onPress={() =>
+                            handleMoveExercise(round.id, exerciseIndex, 1)
+                          }
+                          disabled={
+                            exerciseIndex === round.exercises.length - 1
+                          }
                           className="h-8 w-8 items-center justify-center rounded-md bg-light-surface dark:bg-dark-surface"
                         >
                           <ArrowDown
@@ -867,7 +920,9 @@ export default function EditWorkoutScreen() {
                           />
                         </Pressable>
                         <Pressable
-                          onPress={() => handleRemoveExercise(round.id, exercise.id)}
+                          onPress={() =>
+                            handleRemoveExercise(round.id, exercise.id)
+                          }
                           className="h-8 w-8 items-center justify-center rounded-md bg-red-100 dark:bg-red-900/20"
                         >
                           <X size={13} color="#ef4444" />
@@ -973,7 +1028,9 @@ export default function EditWorkoutScreen() {
                   }
                 />
                 <Pressable
-                  onPress={() => updateRound(round.id, { restAfterSeconds: null })}
+                  onPress={() =>
+                    updateRound(round.id, { restAfterSeconds: null })
+                  }
                   className="self-start mt-2"
                 >
                   <Text className="text-xs font-semibold text-gray-600 dark:text-gray-400">
@@ -997,9 +1054,15 @@ export default function EditWorkoutScreen() {
             </Text>
           </Pressable>
 
-          <View className={cn("p-3 rounded-lg", isDark ? "bg-dark-surface" : "bg-light-surface")}>
+          <View
+            className={cn(
+              "p-3 rounded-lg",
+              isDark ? "bg-dark-surface" : "bg-light-surface",
+            )}
+          >
             <Text className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
-              Estimated Duration: {Math.max(1, Math.ceil(estimatedDuration / 60))} min
+              Estimated Duration:{" "}
+              {Math.max(1, Math.ceil(estimatedDuration / 60))} min
             </Text>
             <Text className="text-xs text-gray-600 dark:text-gray-400">
               Includes sets, rests between sets and rest between rounds.
@@ -1007,8 +1070,13 @@ export default function EditWorkoutScreen() {
           </View>
         </ScrollView>
 
-        <Modal visible={showSaveDraftConfirm} onClose={() => setShowSaveDraftConfirm(false)}>
-          <Text className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Save changes?</Text>
+        <Modal
+          visible={showSaveDraftConfirm}
+          onClose={() => setShowSaveDraftConfirm(false)}
+        >
+          <Text className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            Save changes?
+          </Text>
           <Text className="text-sm text-gray-600 dark:text-gray-400">
             Do you want to save this workout before exiting?
           </Text>
@@ -1054,7 +1122,11 @@ export default function EditWorkoutScreen() {
 
   return (
     <View className={cn("flex-1", isDark ? "bg-dark-bg" : "bg-light-bg")}>
-      <ScrollView className="flex-1 p-4" contentContainerStyle={{ paddingBottom: 16 }}>
+      <ScrollView
+        className="flex-1 p-4"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 16 }}
+      >
         <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
           {draft.name}
         </Text>
@@ -1112,8 +1184,12 @@ export default function EditWorkoutScreen() {
             </Text>
 
             {round.exercises.map((exercise, exerciseIndex) => (
-              <Text key={exercise.id} className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                {exerciseIndex + 1}) {exercise.name} • {exercise.sets} x {exercise.reps}
+              <Text
+                key={exercise.id}
+                className="text-sm text-gray-600 dark:text-gray-400 mb-1"
+              >
+                {exerciseIndex + 1}) {exercise.name} • {exercise.sets} x{" "}
+                {exercise.reps}
                 {exercise.hasWeight ? ` • ${exercise.weightKg ?? 0}kg` : ""}
               </Text>
             ))}

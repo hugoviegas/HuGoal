@@ -612,6 +612,7 @@ export default function CreateWorkoutScreen() {
       <View className={cn("flex-1", isDark ? "bg-dark-bg" : "bg-light-bg")}>
         <ScrollView
           className="flex-1 p-4"
+          showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: tabBarClearance + 16 }}
         >
           <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
@@ -698,6 +699,7 @@ export default function CreateWorkoutScreen() {
       <View className={cn("flex-1", isDark ? "bg-dark-bg" : "bg-light-bg")}>
         <ScrollView
           className="flex-1 p-4"
+          showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: tabBarClearance + 16 }}
         >
           <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
@@ -785,7 +787,9 @@ export default function CreateWorkoutScreen() {
             showActions
             onBack={() => setStep("workflow")}
             onContinue={
-              workflowType === "ai" ? handleGenerateAI : handleContinueToExercises
+              workflowType === "ai"
+                ? handleGenerateAI
+                : handleContinueToExercises
             }
             continueLabel={
               workflowType === "ai"
@@ -851,6 +855,7 @@ export default function CreateWorkoutScreen() {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
+              showsVerticalScrollIndicator={false}
               className="mb-3"
             >
               <View className="flex-row gap-2">
@@ -877,7 +882,11 @@ export default function CreateWorkoutScreen() {
                 Equipment
               </Text>
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              showsVerticalScrollIndicator={false}
+            >
               <View className="flex-row gap-2">
                 {EQUIPMENT_FILTERS.map((filter) => (
                   <Badge
@@ -899,6 +908,7 @@ export default function CreateWorkoutScreen() {
 
           <ScrollView
             className="flex-1 px-4 pt-3"
+            showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: scrollPaddingBottom + 24 }}
           >
             {Object.entries(groupedExercises).length === 0 ? (
@@ -954,6 +964,7 @@ export default function CreateWorkoutScreen() {
       <View className={cn("flex-1", isDark ? "bg-dark-bg" : "bg-light-bg")}>
         <ScrollView
           className="flex-1 p-4"
+          showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: scrollPaddingBottom }}
         >
           <View className="flex-row justify-between items-center mb-4">
@@ -1294,6 +1305,7 @@ export default function CreateWorkoutScreen() {
     <View className={cn("flex-1", isDark ? "bg-dark-bg" : "bg-light-bg")}>
       <ScrollView
         className="flex-1 p-4"
+        showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: scrollPaddingBottom }}
       >
         <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">

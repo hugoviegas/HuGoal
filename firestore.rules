@@ -55,10 +55,22 @@ service cloud.firestore {
 
     // ── Workout Sessions ──────────────────────────────────────────────
     match /workout_sessions/{sessionId} {
-      allow read, write: if request.auth != null
-                            && resource.data.user_id == request.auth.uid;
+      allow read: if request.auth != null
+                     && (
+                          resource == null
+                          || resource.data.user_id == request.auth.uid
+                        );
       allow create: if request.auth != null
                        && request.resource.data.user_id == request.auth.uid;
+      allow update: if request.auth != null
+                       && resource != null
+                       && resource.data.user_id == request.auth.uid
+                       && request.resource.data.user_id == request.auth.uid;
+      allow delete: if request.auth != null
+                       && (
+                            resource == null
+                            || resource.data.user_id == request.auth.uid
+                          );
     }
 
     // ── Nutrition Logs ────────────────────────────────────────────────

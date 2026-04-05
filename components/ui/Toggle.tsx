@@ -76,8 +76,23 @@ export function Toggle({
     >
       <View className="absolute inset-0 rounded-full" style={{ borderColor: palette, borderWidth: checked ? 0 : 1 }} />
       <Animated.View
-        style={{ transform: [{ translateX }] }}
-        className={cn(sizeMap[size].thumb, "absolute left-0.5 top-0.5 rounded-full bg-white shadow-sm")}
+        style={[
+          { transform: [{ translateX }] },
+          {
+            position: 'absolute',
+            left: 2,
+            top: 2,
+            borderRadius: 9999,
+            backgroundColor: '#ffffff',
+            width: sizeMap[size].width,
+            height: sizeMap[size].height,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.15,
+            shadowRadius: 3,
+            elevation: 3,
+          },
+        ]}
       />
       {checked ? (
         <View className="absolute inset-0 rounded-full opacity-20" style={{ backgroundColor: colors.background }} />

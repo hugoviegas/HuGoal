@@ -63,8 +63,7 @@ export function FloatingActionMenu({ options = [] }: FloatingActionMenuProps) {
 
   return (
     <View
-      pointerEvents="box-none"
-      style={[styles.wrapper, { bottom: insets.bottom + 96 }]}
+      style={[styles.wrapper, { bottom: insets.bottom + 96, pointerEvents: 'box-none' }]}
     >
       {/* Options stacked above the FAB */}
       {options.map((opt, i) => {
@@ -80,8 +79,7 @@ export function FloatingActionMenu({ options = [] }: FloatingActionMenuProps) {
         return (
           <Animated.View
             key={`${opt.label}-${i}`}
-            pointerEvents={open ? "auto" : "none"}
-            style={[styles.option, { transform: [{ translateY }], opacity }]}
+            style={[styles.option, { transform: [{ translateY }], opacity, pointerEvents: open ? 'auto' : 'none' }]}
           >
             <Pressable
               onPress={() => handleOptionPress(opt.onPress)}

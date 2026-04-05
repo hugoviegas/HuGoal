@@ -88,7 +88,9 @@ export function Tabs({
       variant === "button" && "rounded-md",
       variant === "line" && "rounded-none border-b-2",
       variant === "default" &&
-        (isActive ? "bg-white dark:bg-gray-900 shadow-sm" : "bg-transparent"),
+        (isActive
+          ? "bg-white dark:bg-gray-900"
+          : "bg-transparent"),
       variant === "button" &&
         (isActive ? "bg-gray-100 dark:bg-gray-800" : "bg-transparent"),
       variant === "line" &&

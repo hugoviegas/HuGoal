@@ -159,6 +159,7 @@ export default function SignupScreen() {
           paddingHorizontal: 24,
         }}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         <Pressable
           onPress={() => router.back()}

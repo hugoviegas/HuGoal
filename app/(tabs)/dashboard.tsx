@@ -19,6 +19,7 @@ export default function DashboardScreen() {
         paddingHorizontal: 16,
         gap: 16,
       }}
+      showsVerticalScrollIndicator={false}
     >
       <View style={{ marginBottom: 8 }}>
         <Text style={{ fontSize: 13, color: colors.mutedForeground }}>
@@ -29,7 +30,14 @@ export default function DashboardScreen() {
         >
           {profile?.name ?? "Athlete"}
         </Text>
-        <View style={{ marginTop: 4, flexDirection: "row", alignItems: "center", gap: 6 }}>
+        <View
+          style={{
+            marginTop: 4,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
           <Hand size={16} color={colors.primary} />
           <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
             Keep your momentum today

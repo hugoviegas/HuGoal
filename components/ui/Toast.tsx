@@ -119,8 +119,11 @@ export function ToastContainer() {
         className="w-full max-w-[520px]"
       >
         <View
-          className={cn('rounded-2xl border px-4 py-3 shadow-lg')}
           style={{
+            borderRadius: 16,
+            borderWidth: 1,
+            paddingHorizontal: 16,
+            paddingVertical: 12,
             backgroundColor: colors.card,
             borderColor: typeStyles[toast.type].border,
             shadowColor: colors.foreground,
@@ -128,6 +131,8 @@ export function ToastContainer() {
             shadowRadius: 12,
             shadowOffset: { width: 0, height: 6 },
             elevation: 10,
+          }}
+        >
           }}
         >
           <View className="flex-row items-start justify-between gap-3">
@@ -191,11 +196,10 @@ export function ToastContainer() {
   const bottomToasts = toasts.filter((toast) => toast.position.startsWith('bottom'));
 
   return (
-    <View pointerEvents="box-none" className="absolute inset-0 z-50">
+    <View style={{ pointerEvents: 'box-none' }} className="absolute inset-0 z-50">
       {topToasts.length > 0 ? (
         <View
-          pointerEvents="box-none"
-          style={{ top: insets.top + 12, left: 16, right: 16, alignItems: 'center' }}
+          style={{ top: insets.top + 12, left: 16, right: 16, alignItems: 'center', pointerEvents: 'box-none' }}
           className="absolute gap-3"
         >
           {topToasts.map((toast) => (
@@ -211,8 +215,7 @@ export function ToastContainer() {
 
       {bottomToasts.length > 0 ? (
         <View
-          pointerEvents="box-none"
-          style={{ bottom: insets.bottom + 12, left: 16, right: 16, alignItems: 'center' }}
+          style={{ bottom: insets.bottom + 12, left: 16, right: 16, alignItems: 'center', pointerEvents: 'box-none' }}
           className="absolute gap-3"
         >
           {bottomToasts.map((toast) => (

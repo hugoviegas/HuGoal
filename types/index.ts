@@ -266,3 +266,43 @@ export interface MuscleRegion {
   side: MuscleSide;
   svg_path: string;
 }
+
+// ─── Nutrition Extended ────────────────────────────────────────
+export interface DailyNutritionGoal {
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+}
+
+export interface NutritionDaySummary {
+  date: string; // YYYY-MM-DD
+  totalCalories: number;
+  totalProtein: number;
+  totalCarbs: number;
+  totalFat: number;
+  mealsCount: number;
+  waterMl: number;
+}
+
+export interface WaterLog {
+  id: string;
+  user_id: string;
+  date: string; // YYYY-MM-DD
+  amount_ml: number;
+  logged_at: string;
+}
+
+export interface MealTemplate {
+  id: string;
+  user_id: string;
+  name: string;
+  items: NutritionItem[];
+  total: {
+    calories: number;
+    protein_g: number;
+    carbs_g: number;
+    fat_g: number;
+  };
+  created_at: string;
+}

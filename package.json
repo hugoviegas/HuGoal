@@ -8,6 +8,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "check:scrollbars": "node ./scripts/check-scrollbars.js",
     "version:bump": "node scripts/version-bump.js",
     "version:bump:minor": "node scripts/version-bump.js minor",
     "version:bump:major": "node scripts/version-bump.js major"

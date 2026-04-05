@@ -1,8 +1,10 @@
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
+  setDoc,
   query,
   runTransaction,
   where,
@@ -51,8 +53,48 @@ export interface WorkoutTemplateInput {
   tags?: string[];
 }
 
+export interface CompletedExerciseSetRecord {
+  stepId: string;
+  exerciseId: string;
+  setNumber: number;
+  repsCompleted: number;
+  weightKg?: number;
+  completedAt: string;
+}
+
+export interface PausedWorkoutSessionRecord {
+  id: string;
+  user_id: string;
+  template_id: string;
+  status: "paused";
+  current_step_index: number;
+  reps_done: string;
+  weight_done: string;
+  rest_remaining_seconds: number;
+  timed_remaining_seconds: number;
+  completed_sets: CompletedExerciseSetRecord[];
+  started_at: string;
+  paused_at: string;
+  expires_at: string;
+  updated_at: string;
+}
+
+export interface SavePausedWorkoutSessionInput {
+  currentStepIndex: number;
+  repsDone: string;
+  weightDone: string;
+  restRemainingSeconds: number;
+  timedRemainingSeconds: number;
+  completedSets: CompletedExerciseSetRecord[];
+  startedAt?: string;
+}
+
 function workoutsCollection() {
   return collection(db, "workout_templates");
+}
+
+function workoutSessionDocId(uid: string, templateId: string): string {
+  return `${uid}_${templateId}_active`;
 }
 
 export async function listWorkoutTemplates(
@@ -131,4 +173,66 @@ export async function updateWorkoutTemplate(
 
     transaction.set(reference, writePatch, { merge: true });
   });
+}
+
+export async function getPausedWorkoutSession(
+  uid: string,
+  templateId: string,
+): Promise<PausedWorkoutSessionRecord | null> {
+  const reference = doc(db, "workout_sessions", workoutSessionDocId(uid, templateId));
+  const snapshot = await getDoc(reference);
+  if (!snapshot.exists()) {
+    return null;
+  }
+
+  const session = snapshot.data() as PausedWorkoutSessionRecord;
+
+  const hasExpired =
+    session.status !== "paused" ||
+    !session.expires_at ||
+    new Date(session.expires_at).getTime() <= Date.now();
+
+  if (hasExpired) {
+    await deleteDoc(reference);
+    return null;
+  }
+
+  return session;
+}
+
+export async function savePausedWorkoutSession(
+  uid: string,
+  templateId: string,
+  input: SavePausedWorkoutSessionInput,
+): Promise<PausedWorkoutSessionRecord> {
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const expiresAtIso = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
+  const sessionId = workoutSessionDocId(uid, templateId);
+  const payload: PausedWorkoutSessionRecord = {
+    id: sessionId,
+    user_id: uid,
+    template_id: templateId,
+    status: "paused",
+    current_step_index: input.currentStepIndex,
+    reps_done: input.repsDone,
+    weight_done: input.weightDone,
+    rest_remaining_seconds: input.restRemainingSeconds,
+    timed_remaining_seconds: input.timedRemainingSeconds,
+    completed_sets: input.completedSets,
+    started_at: input.startedAt ?? nowIso,
+    paused_at: nowIso,
+    expires_at: expiresAtIso,
+    updated_at: nowIso,
+  };
+
+  await setDoc(doc(db, "workout_sessions", sessionId), payload, { merge: true });
+  return payload;
+}
+
+export async function clearPausedWorkoutSession(
+  uid: string,
+  templateId: string,
+): Promise<void> {
+  await deleteDoc(doc(db, "workout_sessions", workoutSessionDocId(uid, templateId)));
 }

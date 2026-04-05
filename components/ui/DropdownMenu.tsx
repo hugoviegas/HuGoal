@@ -101,10 +101,17 @@ export function DropdownMenu({
           >
             <Pressable onPress={(e) => e.stopPropagation()}>
               <View
-                className={cn(
-                  "rounded-2xl overflow-hidden shadow-xl w-56",
-                  isDark ? "bg-gray-900" : "bg-white",
-                )}
+                style={{
+                  borderRadius: 16,
+                  overflow: 'hidden',
+                  width: 224,
+                  backgroundColor: isDark ? '#111111' : '#ffffff',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 10 },
+                  shadowOpacity: isDark ? 0.3 : 0.12,
+                  shadowRadius: 24,
+                  elevation: 8,
+                }}
               >
                 {items.map((item, idx) => (
                   <Pressable

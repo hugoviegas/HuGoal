@@ -350,6 +350,7 @@ export function CalendarLume({
                 <ScrollView
                   style={{ maxHeight: 320 }}
                   contentContainerStyle={{ paddingBottom: 8 }}
+                  showsVerticalScrollIndicator={false}
                 >
                   <View className="flex-row flex-wrap">
                     {years.map((yearDate) => {

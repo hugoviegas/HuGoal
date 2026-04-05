@@ -12,11 +12,17 @@ import {
 } from "lucide-react-native";
 import { useThemeStore } from "@/stores/theme.store";
 import { useToastStore } from "@/stores/toast.store";
+import { useAuthStore } from "@/stores/auth.store";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { DropdownMenu } from "@/components/ui/DropdownMenu";
 import { cn } from "@/lib/utils";
-import { getWorkoutTemplate } from "@/lib/firestore/workouts";
+import {
+  clearPausedWorkoutSession,
+  getPausedWorkoutSession,
+  getWorkoutTemplate,
+  type PausedWorkoutSessionRecord,
+} from "@/lib/firestore/workouts";
 
 // Mock data - replace with Firestore fetch
 const MOCK_WORKOUT_DETAIL = {
@@ -73,6 +79,7 @@ function normalizeWorkoutDetail(record: typeof MOCK_WORKOUT_DETAIL) {
 export default function WorkoutDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const user = useAuthStore((s) => s.user);
   const insets = useSafeAreaInsets();
   const { isDark, colors } = useThemeStore();
   const { show: showToast } = useToastStore();
@@ -81,6 +88,9 @@ export default function WorkoutDetailScreen() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [workout, setWorkout] = useState(MOCK_WORKOUT_DETAIL);
   const [isDemo, setIsDemo] = useState(true);
+  const [pausedSession, setPausedSession] =
+    useState<PausedWorkoutSessionRecord | null>(null);
+  const [loadingPausedSession, setLoadingPausedSession] = useState(true);
   const diffConfig =
     DIFFICULTY_CONFIG[workout.difficulty as keyof typeof DIFFICULTY_CONFIG];
 
@@ -110,7 +120,49 @@ export default function WorkoutDetailScreen() {
     };
   }, [id]);
 
-  const handleStartWorkout = () => {
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      if (!user?.uid || !id) {
+        if (mounted) {
+          setPausedSession(null);
+          setLoadingPausedSession(false);
+        }
+        return;
+      }
+
+      try {
+        const session = await getPausedWorkoutSession(user.uid, String(id));
+        if (!mounted) return;
+        setPausedSession(session);
+      } catch {
+        if (!mounted) return;
+        setPausedSession(null);
+      } finally {
+        if (!mounted) return;
+        setLoadingPausedSession(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [id, user?.uid]);
+
+  const handleStartWorkout = async () => {
+    try {
+      if (user?.uid && id) {
+        await clearPausedWorkoutSession(user.uid, String(id));
+        setPausedSession(null);
+      }
+      router.push(`/workouts/${id}/run`);
+    } catch {
+      showToast("Could not start workout right now.", "error");
+    }
+  };
+
+  const handleContinueLastSession = () => {
     router.push(`/workouts/${id}/run`);
   };
 
@@ -164,10 +216,19 @@ export default function WorkoutDetailScreen() {
   });
 
   const totalSets = workout.exercises.reduce((sum, ex) => sum + ex.sets, 0);
+  const hasPausedSession = !!pausedSession;
+  const pausedAtText = pausedSession?.paused_at
+    ? new Date(pausedSession.paused_at).toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
 
   return (
     <View className={cn("flex-1", isDark ? "bg-dark-bg" : "bg-light-bg")}>
-      <ScrollView className="flex-1 p-4">
+      <ScrollView className="flex-1 p-4" showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View className="flex-row justify-between items-start mb-4">
           <View className="flex-1">
@@ -401,20 +462,92 @@ export default function WorkoutDetailScreen() {
       {/* Action Buttons */}
       <View
         className={cn(
-          "p-4 border-t gap-2",
+          "p-4 border-t gap-3",
           isDark
             ? "bg-dark-surface border-dark-border"
             : "bg-light-surface border-light-border",
         )}
         style={{ paddingBottom: tabBarClearance }}
       >
-        <Button onPress={handleStartWorkout} size="lg" className="w-full">
-          <View className="flex-row items-center justify-center gap-2">
-            <Play size={16} color="#ffffff" />
-            <Text className="text-white font-semibold">Start Workout</Text>
+        <View className="flex-row items-center justify-between">
+          <Text className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+            Session Actions
+          </Text>
+          <Text className="text-xs text-gray-600 dark:text-gray-400">
+            Quick start and resume
+          </Text>
+        </View>
+
+        {loadingPausedSession ? null : hasPausedSession ? (
+          <View
+            className={cn(
+              "rounded-xl border p-3",
+              isDark
+                ? "bg-dark-bg border-dark-border"
+                : "bg-light-bg border-light-border",
+            )}
+          >
+            <Text className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              Last session paused
+            </Text>
+            {pausedAtText ? (
+              <Text className="text-xs mt-1 text-gray-600 dark:text-gray-400">
+                Paused at {pausedAtText}. Available for 24h.
+              </Text>
+            ) : null}
           </View>
-        </Button>
+        ) : null}
+
+        {hasPausedSession ? (
+          <>
+            <Button
+              onPress={handleContinueLastSession}
+              size="lg"
+              className="w-full"
+            >
+              <View className="flex-row items-center justify-center gap-2">
+                <Play size={16} color="#ffffff" />
+                <Text className="text-white font-semibold">
+                  Continue Last Session
+                </Text>
+              </View>
+            </Button>
+
+            <Button
+              onPress={() => {
+                void handleStartWorkout();
+              }}
+              variant="secondary"
+              size="lg"
+              className="w-full"
+            >
+              Start New Workout
+            </Button>
+          </>
+        ) : (
+          <Button
+            onPress={() => {
+              void handleStartWorkout();
+            }}
+            size="lg"
+            className="w-full"
+          >
+            <View className="flex-row items-center justify-center gap-2">
+              <Play size={16} color="#ffffff" />
+              <Text className="text-white font-semibold">Start Workout</Text>
+            </View>
+          </Button>
+        )}
+
         <View className="flex-row gap-2">
+          <Button
+            onPress={handleEdit}
+            variant="secondary"
+            size="md"
+            className="flex-1"
+          >
+            Edit Workout
+          </Button>
           <Button
             onPress={handleDuplicate}
             variant="secondary"
@@ -423,14 +556,9 @@ export default function WorkoutDetailScreen() {
           >
             Duplicate
           </Button>
-          <Button
-            onPress={handleEdit}
-            variant="secondary"
-            size="md"
-            className="flex-1"
-          >
-            Edit
-          </Button>
+        </View>
+
+        <View className="flex-row gap-2">
           <Button
             onPress={handleShare}
             variant="secondary"

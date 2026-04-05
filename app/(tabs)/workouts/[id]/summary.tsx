@@ -128,7 +128,7 @@ export default function WorkoutSummaryScreen() {
 
   return (
     <View className={cn("flex-1", isDark ? "bg-dark-bg" : "bg-light-bg")}>
-      <ScrollView className="flex-1 p-4">
+      <ScrollView className="flex-1 p-4" showsVerticalScrollIndicator={false}>
         {/* Celebration Header */}
         <View className="items-center py-6">
           <Text className="text-3xl font-bold text-gray-900 dark:text-gray-100 text-center">

@@ -92,6 +92,7 @@ export default function SettingsScreen() {
         paddingTop: insets.top + 16,
         paddingBottom: insets.bottom + 32,
       }}
+      showsVerticalScrollIndicator={false}
     >
       {/* Header */}
       <View

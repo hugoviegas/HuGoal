@@ -140,7 +140,7 @@ export default function WorkoutHistoryScreen() {
   if (activeTab === "sessions") {
     return (
       <View className={cn("flex-1", isDark ? "bg-dark-bg" : "bg-light-bg")}>
-        <ScrollView className="flex-1 p-4">
+        <ScrollView className="flex-1 p-4" showsVerticalScrollIndicator={false}>
           <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
             Workout History
           </Text>
@@ -243,7 +243,7 @@ export default function WorkoutHistoryScreen() {
   // Stats Tab
   return (
     <View className={cn("flex-1", isDark ? "bg-dark-bg" : "bg-light-bg")}>
-      <ScrollView className="flex-1 p-4">
+      <ScrollView className="flex-1 p-4" showsVerticalScrollIndicator={false}>
         <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
           Stats & Insights
         </Text>

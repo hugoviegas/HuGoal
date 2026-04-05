@@ -22,7 +22,20 @@ export function Modal({ children, onClose, ...props }: ModalProps) {
           className="absolute inset-0"
         />
         <Pressable onPress={(e) => e.stopPropagation()}>
-          <View className="mx-6 w-full max-w-sm rounded-2xl bg-light-card dark:bg-dark-card p-6 shadow-xl">
+          <View
+            style={{
+              marginHorizontal: 24,
+              maxWidth: 384,
+              borderRadius: 16,
+              backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
+              padding: 24,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 10 },
+              shadowOpacity: isDark ? 0.35 : 0.15,
+              shadowRadius: 24,
+              elevation: 8,
+            }}
+          >
             {children}
           </View>
         </Pressable>
