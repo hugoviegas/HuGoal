@@ -8,6 +8,7 @@ node_modules/
 dist/
 web-build/
 expo-env.d.ts
+test_extract_betteru/
 
 # Native
 .kotlin/

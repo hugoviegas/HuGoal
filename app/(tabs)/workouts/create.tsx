@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { ExerciseCard } from "@/components/workouts/ExerciseCard";
 import { ProgressFormIndicator } from "@/components/ui/ProgressFormIndicator";
+import { Modal } from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
 import { createWorkoutTemplate } from "@/lib/firestore/workouts";
 import { useHideMainTabBar } from "@/hooks/useHideMainTabBar";
@@ -227,6 +228,7 @@ export default function CreateWorkoutScreen() {
   const { show: showToast } = useToastStore();
   useHideMainTabBar();
   const tabBarClearance = insets.bottom + 16;
+  const scrollPaddingBottom = 16;
 
   const [step, setStep] = useState<CreateStep>("workflow");
   const [workflowType, setWorkflowType] = useState<WorkflowType>("manual");
@@ -236,6 +238,7 @@ export default function CreateWorkoutScreen() {
   const [aiPrompt, setAiPrompt] = useState("");
   const [pickerRoundId, setPickerRoundId] = useState<string | null>(null);
   const [exerciseSearch, setExerciseSearch] = useState("");
+  const [showSaveDraftConfirm, setShowSaveDraftConfirm] = useState(false);
   const [equipmentFilter, setEquipmentFilter] = useState<"all" | EquipmentType>(
     "all",
   );
@@ -422,6 +425,8 @@ export default function CreateWorkoutScreen() {
       `Added ${exercise.name} to ${draft.rounds.find((r) => r.id === roundId)?.name ?? "round"}`,
       "success",
     );
+    // Clear search so the picker doesn't keep the last typed query selected
+    setExerciseSearch("");
   };
 
   const handleAddRound = () => {
@@ -669,21 +674,19 @@ export default function CreateWorkoutScreen() {
           </Pressable>
         </ScrollView>
 
-        <View style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}>
-          <View
-            className="p-4 border-t border-light-border dark:border-dark-border"
-            style={{ paddingBottom: tabBarClearance }}
-          >
-            <ProgressFormIndicator
-              current={1}
-              total={4}
-              labels={STEP_LABELS}
-              showActions
-              hideBackOnFirstStep={false}
-              onBack={() => router.back()}
-              onContinue={handleContinueFromWorkflow}
-            />
-          </View>
+        <View
+          className="p-4 border-t border-light-border dark:border-dark-border"
+          style={{ paddingBottom: tabBarClearance }}
+        >
+          <ProgressFormIndicator
+            current={1}
+            total={4}
+            labels={STEP_LABELS}
+            showActions
+            hideBackOnFirstStep={false}
+            onBack={() => router.back()}
+            onContinue={handleContinueFromWorkflow}
+          />
         </View>
       </View>
     );
@@ -771,37 +774,31 @@ export default function CreateWorkoutScreen() {
           )}
         </ScrollView>
 
-        <View style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}>
-          <View
-            className="p-4 border-t border-light-border dark:border-dark-border"
-            style={{ paddingBottom: tabBarClearance }}
-          >
-            <ProgressFormIndicator
-              current={2}
-              total={4}
-              labels={STEP_LABELS}
-              showActions
-              onBack={() => setStep("workflow")}
-              onContinue={
-                workflowType === "ai"
-                  ? handleGenerateAI
-                  : handleContinueToExercises
-              }
-              continueLabel={
-                workflowType === "ai"
-                  ? isLoadingAI
-                    ? "Generating..."
-                    : "Generate Workout"
-                  : "Continue"
-              }
-              disableBack={isLoadingAI}
-              disableContinue={
-                workflowType === "ai"
-                  ? isLoadingAI || !draft.name.trim()
-                  : false
-              }
-            />
-          </View>
+        <View
+          className="p-4 border-t border-light-border dark:border-dark-border"
+          style={{ paddingBottom: tabBarClearance }}
+        >
+          <ProgressFormIndicator
+            current={2}
+            total={4}
+            labels={STEP_LABELS}
+            showActions
+            onBack={() => setStep("workflow")}
+            onContinue={
+              workflowType === "ai" ? handleGenerateAI : handleContinueToExercises
+            }
+            continueLabel={
+              workflowType === "ai"
+                ? isLoadingAI
+                  ? "Generating..."
+                  : "Generate Workout"
+                : "Continue"
+            }
+            disableBack={isLoadingAI}
+            disableContinue={
+              workflowType === "ai" ? isLoadingAI || !draft.name.trim() : false
+            }
+          />
         </View>
       </View>
     );
@@ -902,7 +899,7 @@ export default function CreateWorkoutScreen() {
 
           <ScrollView
             className="flex-1 px-4 pt-3"
-            contentContainerStyle={{ paddingBottom: tabBarClearance + 24 }}
+            contentContainerStyle={{ paddingBottom: scrollPaddingBottom + 24 }}
           >
             {Object.entries(groupedExercises).length === 0 ? (
               <View className="py-12 items-center">
@@ -957,13 +954,18 @@ export default function CreateWorkoutScreen() {
       <View className={cn("flex-1", isDark ? "bg-dark-bg" : "bg-light-bg")}>
         <ScrollView
           className="flex-1 p-4"
-          contentContainerStyle={{ paddingBottom: tabBarClearance + 16 }}
+          contentContainerStyle={{ paddingBottom: scrollPaddingBottom }}
         >
           <View className="flex-row justify-between items-center mb-4">
             <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               Build Rounds
             </Text>
-            <Badge variant="secondary">{totalSelectedExercises} selected</Badge>
+            <Pressable
+              onPress={() => setShowSaveDraftConfirm(true)}
+              className="h-9 w-9 rounded-full items-center justify-center bg-light-surface dark:bg-dark-surface"
+            >
+              <X size={18} color={colors.muted} />
+            </Pressable>
           </View>
 
           {draft.rounds.map((round, roundIndex) => (
@@ -1236,22 +1238,52 @@ export default function CreateWorkoutScreen() {
           </View>
         </ScrollView>
 
-        <View style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}>
-          <View
-            className="p-4 border-t border-light-border dark:border-dark-border"
-            style={{ paddingBottom: tabBarClearance }}
-          >
-            <ProgressFormIndicator
-              current={3}
-              total={4}
-              labels={STEP_LABELS}
-              showActions
-              onBack={() => setStep("details")}
-              onContinue={() => setStep("preview")}
-              continueLabel="Review Workout"
-              disableContinue={totalSelectedExercises === 0}
-            />
+        {/* Save draft confirm modal */}
+        <Modal
+          visible={showSaveDraftConfirm}
+          onClose={() => setShowSaveDraftConfirm(false)}
+        >
+          <Text className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            Save draft?
+          </Text>
+          <Text className="text-sm text-gray-600 dark:text-gray-400">
+            Do you want to save this workout as a draft before exiting?
+          </Text>
+          <View className="flex-row justify-end gap-2 mt-4">
+            <Button
+              onPress={() => {
+                setShowSaveDraftConfirm(false);
+                void handleSaveDraft();
+              }}
+            >
+              Save Draft
+            </Button>
+            <Button
+              variant="secondary"
+              onPress={() => {
+                setShowSaveDraftConfirm(false);
+                router.back();
+              }}
+            >
+              Discard
+            </Button>
           </View>
+        </Modal>
+
+        <View
+          className="p-4 border-t border-light-border dark:border-dark-border"
+          style={{ paddingBottom: tabBarClearance }}
+        >
+          <ProgressFormIndicator
+            current={3}
+            total={4}
+            labels={STEP_LABELS}
+            showActions
+            onBack={() => setStep("details")}
+            onContinue={() => setStep("preview")}
+            continueLabel="Review Workout"
+            disableContinue={totalSelectedExercises === 0}
+          />
         </View>
       </View>
     );
@@ -1262,7 +1294,7 @@ export default function CreateWorkoutScreen() {
     <View className={cn("flex-1", isDark ? "bg-dark-bg" : "bg-light-bg")}>
       <ScrollView
         className="flex-1 p-4"
-        contentContainerStyle={{ paddingBottom: tabBarClearance + 16 }}
+        contentContainerStyle={{ paddingBottom: scrollPaddingBottom }}
       >
         <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
           {draft.name}
@@ -1340,21 +1372,19 @@ export default function CreateWorkoutScreen() {
         ))}
       </ScrollView>
 
-      <View style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}>
-        <View
-          className="p-4 border-t border-light-border dark:border-dark-border"
-          style={{ paddingBottom: tabBarClearance }}
-        >
-          <ProgressFormIndicator
-            current={4}
-            total={4}
-            labels={STEP_LABELS}
-            showActions
-            onBack={() => setStep("exercises")}
-            onContinue={handleSaveDraft}
-            finishLabel="Save Workout"
-          />
-        </View>
+      <View
+        className="p-4 border-t border-light-border dark:border-dark-border"
+        style={{ paddingBottom: tabBarClearance }}
+      >
+        <ProgressFormIndicator
+          current={4}
+          total={4}
+          labels={STEP_LABELS}
+          showActions
+          onBack={() => setStep("exercises")}
+          onContinue={handleSaveDraft}
+          finishLabel="Save Workout"
+        />
       </View>
     </View>
   );
