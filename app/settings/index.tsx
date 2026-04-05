@@ -1,8 +1,9 @@
-import { View, Text, ScrollView, Pressable, Switch } from "react-native";
+import { View, Text, ScrollView, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useThemeStore } from "@/stores/theme.store";
 import { useAuthStore } from "@/stores/auth.store";
+import { Toggle } from "@/components/ui/Toggle";
 import {
   ArrowLeft,
   Moon,
@@ -137,11 +138,10 @@ export default function SettingsScreen() {
           }
           label="Dark Mode"
           right={
-            <Switch
-              value={isDark}
-              onValueChange={(v) => setMode(v ? "dark" : "light")}
-              trackColor={{ true: colors.primary, false: colors.muted }}
-              thumbColor="#fff"
+            <Toggle
+              checked={isDark}
+              onCheckedChange={(checked) => setMode(checked ? "dark" : "light")}
+              variant="default"
             />
           }
         />

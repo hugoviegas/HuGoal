@@ -1,6 +1,7 @@
 import { doc, runTransaction, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { onboardingSchema, profileEditSchema } from "@/lib/validation/schemas";
+import { calculateAgeFromBirthDate } from "@/lib/profile-dates";
 import type { UserProfile } from "@/types";
 
 function wait(ms: number) {
@@ -40,6 +41,12 @@ export async function saveProfileToFirestore(
   const cleanProfile = stripUndefined(profile as Record<string, unknown>);
   const cleanParsed = stripUndefined(parsed.data as Record<string, unknown>);
 
+  const birthDate =
+    typeof profile.birth_date === "string" && profile.birth_date.trim()
+      ? profile.birth_date.trim()
+      : undefined;
+  const computedAge = birthDate ? calculateAgeFromBirthDate(birthDate) : null;
+
   const username = (profile.username ?? "").trim();
 
   for (let attempt = 1; attempt <= retries; attempt += 1) {
@@ -68,6 +75,8 @@ export async function saveProfileToFirestore(
           {
             ...cleanProfile, // keep non-schema fields (email, xp, streak, etc.)
             ...cleanParsed, // validated+transformed schema fields
+            ...(birthDate ? { birth_date: birthDate } : {}),
+            ...(computedAge !== null ? { age: computedAge } : {}),
             id: uid,
             updated_at: serverTimestamp(),
           },
@@ -102,6 +111,11 @@ export async function updateProfileInFirestore(
   }
 
   const cleanParsed = stripUndefined(parsed.data as Record<string, unknown>);
+  const birthDate =
+    typeof profilePatch.birth_date === "string" && profilePatch.birth_date.trim()
+      ? profilePatch.birth_date.trim()
+      : undefined;
+  const computedAge = birthDate ? calculateAgeFromBirthDate(birthDate) : null;
 
   for (let attempt = 1; attempt <= retries; attempt += 1) {
     try {
@@ -111,6 +125,8 @@ export async function updateProfileInFirestore(
           profileRef,
           {
             ...cleanParsed,
+            ...(birthDate ? { birth_date: birthDate } : {}),
+            ...(computedAge !== null ? { age: computedAge } : {}),
             updated_at: serverTimestamp(),
           },
           { merge: true },

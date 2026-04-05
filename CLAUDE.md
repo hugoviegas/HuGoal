@@ -142,3 +142,9 @@ Sem isso, a fase deve permanecer como "em revisao".
 
 Sempre priorizar estabilidade, reuso, e entrega incremental segura.
 Melhor evoluir com consistencia do que acelerar com retrabalho e regressao.
+
+## 10) Regra de Iconografia (Obrigatoria)
+
+- Nao usar emoji no sistema (UI, labels, placeholders, toasts, titulos, botoes).
+- Sempre usar icones SVG via biblioteca nativa (preferencia: `lucide-react-native`).
+- Se nao houver icone pronto, criar componente SVG dedicado em vez de fallback com emoji.

@@ -1,19 +1,22 @@
-import { useEffect } from "react";
-import { View, ScrollView } from "react-native";
+import { useEffect, useMemo } from "react";
+import { View, ScrollView, Text } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Mars, Venus, VenusAndMars } from "lucide-react-native";
 import { FormStepper } from "@/components/ui/FormStepper";
 import { Input } from "@/components/ui/Input";
 import { Avatar } from "@/components/ui/Avatar";
 import { UsernameAvailability } from "@/components/ui/UsernameAvailability";
 import { OptionPicker } from "@/components/ui/OptionPicker";
+import { CalendarLume } from "@/components/ui/CalendarLume";
 import { useThemeStore } from "@/stores/theme.store";
 import { useAuthStore } from "@/stores/auth.store";
 import { useOnboardingDraft } from "@/hooks/useOnboardingDraft";
 import { useUsernameCheck } from "@/hooks/useUsernameCheck";
 import { onboardingPersonalSchema } from "@/lib/validation/schemas";
+import { calculateAgeFromBirthDate } from "@/lib/profile-dates";
 import type { z } from "zod";
 
 const STEPS = [
@@ -28,9 +31,21 @@ const STEPS = [
 ];
 
 const SEX_OPTIONS = [
-  { value: "male" as const, label: "Male", icon: "♂️" },
-  { value: "female" as const, label: "Female", icon: "♀️" },
-  { value: "other" as const, label: "Other", icon: "⚧️" },
+  {
+    value: "male" as const,
+    label: "Male",
+    icon: <Mars size={22} color="#9099B8" strokeWidth={2} />,
+  },
+  {
+    value: "female" as const,
+    label: "Female",
+    icon: <Venus size={22} color="#9099B8" strokeWidth={2} />,
+  },
+  {
+    value: "other" as const,
+    label: "Other",
+    icon: <VenusAndMars size={22} color="#9099B8" strokeWidth={2} />,
+  },
 ];
 
 type PersonalForm = z.infer<typeof onboardingPersonalSchema>;
@@ -54,7 +69,7 @@ export default function OnboardingPersonalScreen() {
       name: "",
       username: "",
       sex: "other",
-      age: undefined,
+      birth_date: undefined,
       height_cm: undefined,
       weight_kg: undefined,
       avatar_url: undefined,
@@ -63,7 +78,12 @@ export default function OnboardingPersonalScreen() {
 
   const username = watch("username") ?? "";
   const name = watch("name") ?? "";
+  const birthDate = watch("birth_date") ?? "";
   const usernameCheck = useUsernameCheck(username);
+  const computedAge = useMemo(
+    () => calculateAgeFromBirthDate(birthDate),
+    [birthDate],
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -74,7 +94,7 @@ export default function OnboardingPersonalScreen() {
           name: draft.name ?? "",
           username: draft.username ?? "",
           sex: draft.sex ?? "other",
-          age: draft.age,
+          birth_date: draft.birth_date,
           height_cm: draft.height_cm,
           weight_kg: draft.weight_kg,
           avatar_url: draft.avatar_url,
@@ -169,18 +189,57 @@ export default function OnboardingPersonalScreen() {
 
           <Controller
             control={control}
-            name="age"
+            name="birth_date"
             render={({ field: { onChange, value } }) => (
-              <Input
-                label="Age (optional)"
-                keyboardType="numeric"
-                placeholder="25"
-                value={value ? String(value) : ""}
-                onChangeText={(v) => onChange(v ? Number(v) : undefined)}
-                error={errors.age?.message}
+              <CalendarLume
+                label="Birth date"
+                value={value ?? null}
+                onChange={onChange}
+                maxDate={
+                  new Date(
+                    new Date().getFullYear() - 18,
+                    new Date().getMonth(),
+                    new Date().getDate(),
+                  )
+                }
+                minDate={new Date(new Date().getFullYear() - 100, 0, 1)}
+                helperText="You must be at least 18 years old. Age is calculated automatically."
+                error={errors.birth_date?.message}
               />
             )}
           />
+
+          {computedAge !== null ? (
+            <View
+              style={{
+                backgroundColor: colors.surface,
+                borderRadius: 16,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+              }}
+            >
+              <Text
+                style={{
+                  color: colors.mutedForeground,
+                  fontSize: 12,
+                  textTransform: "uppercase",
+                  letterSpacing: 0.6,
+                }}
+              >
+                Calculated age
+              </Text>
+              <Text
+                style={{
+                  color: colors.foreground,
+                  fontSize: 18,
+                  fontWeight: "800",
+                  marginTop: 4,
+                }}
+              >
+                {computedAge} years old
+              </Text>
+            </View>
+          ) : null}
 
           <Controller
             control={control}

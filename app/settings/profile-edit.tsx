@@ -1,5 +1,12 @@
-import { useState, useEffect } from "react";
-import { View, Text, ScrollView, Pressable, KeyboardAvoidingView, Platform } from "react-native";
+import { useState, useEffect, useMemo } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  Pressable,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Controller, useForm } from "react-hook-form";
@@ -7,6 +14,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
+import { CalendarLume } from "@/components/ui/CalendarLume";
 import { OptionPicker } from "@/components/ui/OptionPicker";
 import { DietaryPreferencePicker } from "@/components/ui/DietaryPreferencePicker";
 import { useThemeStore } from "@/stores/theme.store";
@@ -14,40 +22,71 @@ import { useAuthStore } from "@/stores/auth.store";
 import { useToastStore } from "@/stores/toast.store";
 import { profileEditSchema } from "@/lib/validation/schemas";
 import { updateProfileInFirestore } from "@/lib/firestore/profile";
+import {
+  calculateAgeFromBirthDate,
+  formatBirthDate,
+} from "@/lib/profile-dates";
 import type { z } from "zod";
+import {
+  ArrowLeft,
+  Flame,
+  Dumbbell,
+  Scale,
+  Shuffle,
+  Sprout,
+  Zap,
+  Trophy,
+  PersonStanding,
+  Home,
+  Mars,
+  Venus,
+  VenusAndMars,
+} from "lucide-react-native";
 
 // Use z.input so RHF form values match what the user types (before defaults/transforms)
 type ProfileEditFormValues = z.input<typeof profileEditSchema>;
 
 const SEX_OPTIONS = [
-  { value: "male" as const, label: "Male", icon: "♂️" },
-  { value: "female" as const, label: "Female", icon: "♀️" },
-  { value: "other" as const, label: "Other", icon: "⚧️" },
+  {
+    value: "male" as const,
+    label: "Male",
+    icon: <Mars size={18} color="#0ea5b0" />,
+  },
+  {
+    value: "female" as const,
+    label: "Female",
+    icon: <Venus size={18} color="#0ea5b0" />,
+  },
+  {
+    value: "other" as const,
+    label: "Other",
+    icon: <VenusAndMars size={18} color="#0ea5b0" />,
+  },
 ];
 
 const GOAL_OPTIONS = [
   {
     value: "lose_fat" as const,
     label: "Lose Fat",
-    icon: "🔥",
+    icon: <Flame size={18} color="#0ea5b0" />,
     description: "Burn excess body fat",
   },
   {
     value: "gain_muscle" as const,
     label: "Build Muscle",
-    icon: "💪",
+    icon: <Dumbbell size={18} color="#0ea5b0" />,
     description: "Increase size & strength",
   },
   {
     value: "maintain" as const,
     label: "Maintain",
-    icon: "⚖️",
+    icon: <Scale size={18} color="#0ea5b0" />,
     description: "Keep current physique",
   },
   {
     value: "recomp" as const,
     label: "Recomposition",
-    icon: "🔄",
+    icon: <Shuffle size={18} color="#0ea5b0" />,
     description: "Lose fat, gain muscle",
   },
 ];
@@ -56,19 +95,19 @@ const LEVEL_OPTIONS = [
   {
     value: "beginner" as const,
     label: "Beginner",
-    icon: "🌱",
+    icon: <Sprout size={18} color="#0ea5b0" />,
     description: "New to training",
   },
   {
     value: "intermediate" as const,
     label: "Intermediate",
-    icon: "⚡",
+    icon: <Zap size={18} color="#0ea5b0" />,
     description: "1–3 years",
   },
   {
     value: "advanced" as const,
     label: "Advanced",
-    icon: "🏆",
+    icon: <Trophy size={18} color="#0ea5b0" />,
     description: "3+ years",
   },
 ];
@@ -77,22 +116,27 @@ const EQUIPMENT_OPTIONS = [
   {
     value: "none" as const,
     label: "No Equipment",
-    icon: "🏃",
+    icon: <PersonStanding size={18} color="#0ea5b0" />,
     description: "Bodyweight only",
   },
   {
     value: "home" as const,
     label: "Home Gym",
-    icon: "🏠",
+    icon: <Home size={18} color="#0ea5b0" />,
     description: "Basic equipment",
   },
   {
     value: "gym" as const,
     label: "Full Gym",
-    icon: "🏋️",
+    icon: <Dumbbell size={18} color="#0ea5b0" />,
     description: "All equipment",
   },
 ];
+
+function clampAdultDate() {
+  const now = new Date();
+  return new Date(now.getFullYear() - 18, now.getMonth(), now.getDate());
+}
 
 export default function ProfileEditScreen() {
   const router = useRouter();
@@ -115,7 +159,7 @@ export default function ProfileEditScreen() {
     defaultValues: {
       name: "",
       avatar_url: undefined,
-      bio: undefined,
+      birth_date: undefined,
       age: undefined,
       sex: undefined,
       height_cm: undefined,
@@ -137,7 +181,7 @@ export default function ProfileEditScreen() {
       name: profile.name ?? "",
       avatar_url: profile.avatar_url,
       bio: profile.bio,
-      age: profile.age,
+      birth_date: profile.birth_date,
       sex: profile.sex,
       height_cm: profile.height_cm,
       weight_kg: profile.weight_kg,
@@ -153,6 +197,11 @@ export default function ProfileEditScreen() {
   }, [profile, reset]);
 
   const name = watch("name") ?? profile?.name ?? "";
+  const birthDate = watch("birth_date") ?? profile?.birth_date ?? "";
+  const computedAge = useMemo(
+    () => calculateAgeFromBirthDate(birthDate),
+    [birthDate],
+  );
 
   const onSubmit = handleSubmit(async (data) => {
     if (!user) return;
@@ -205,15 +254,7 @@ export default function ProfileEditScreen() {
             })}
             hitSlop={8}
           >
-            <Text
-              style={{
-                color: colors.primary,
-                fontSize: 16,
-                fontWeight: "600",
-              }}
-            >
-              ← Back
-            </Text>
+            <ArrowLeft size={20} color={colors.primary} />
           </Pressable>
           <Text
             style={{
@@ -293,18 +334,63 @@ export default function ProfileEditScreen() {
         {/* Age */}
         <Controller
           control={control}
-          name="age"
+          name="birth_date"
           render={({ field: { value, onChange } }) => (
-            <Input
-              label="Age (optional)"
-              keyboardType="numeric"
-              placeholder="25"
-              value={value ? String(value) : ""}
-              onChangeText={(v) => onChange(v ? Number(v) : undefined)}
-              error={errors.age?.message}
+            <CalendarLume
+              label="Birth date"
+              value={value ?? null}
+              onChange={onChange}
+              allowClear
+              minDate={new Date(1920, 0, 1)}
+              maxDate={clampAdultDate()}
+              helperText="You must be at least 18 years old. Age is calculated automatically."
+              error={errors.birth_date?.message}
             />
           )}
         />
+
+        {computedAge !== null ? (
+          <View
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: 16,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+            }}
+          >
+            <Text
+              style={{
+                color: colors.mutedForeground,
+                fontSize: 12,
+                textTransform: "uppercase",
+                letterSpacing: 0.6,
+              }}
+            >
+              Calculated age
+            </Text>
+            <Text
+              style={{
+                color: colors.foreground,
+                fontSize: 18,
+                fontWeight: "800",
+                marginTop: 4,
+              }}
+            >
+              {computedAge} years old
+            </Text>
+            {formatBirthDate(birthDate) ? (
+              <Text
+                style={{
+                  color: colors.mutedForeground,
+                  fontSize: 13,
+                  marginTop: 2,
+                }}
+              >
+                Born on {formatBirthDate(birthDate)}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
 
         {/* Height */}
         <Controller

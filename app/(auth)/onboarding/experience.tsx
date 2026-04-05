@@ -2,6 +2,14 @@ import { useEffect } from "react";
 import { View, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  Sprout,
+  Zap,
+  Trophy,
+  PersonStanding,
+  Home,
+  Dumbbell,
+} from "lucide-react-native";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormStepper } from "@/components/ui/FormStepper";
@@ -28,19 +36,19 @@ const LEVEL_OPTIONS = [
   {
     value: "beginner" as const,
     label: "Beginner",
-    icon: "🌱",
+    icon: <Sprout size={18} color="#0ea5b0" />,
     description: "New to training",
   },
   {
     value: "intermediate" as const,
     label: "Intermediate",
-    icon: "⚡",
+    icon: <Zap size={18} color="#0ea5b0" />,
     description: "1–3 years",
   },
   {
     value: "advanced" as const,
     label: "Advanced",
-    icon: "🏆",
+    icon: <Trophy size={18} color="#0ea5b0" />,
     description: "3+ years",
   },
 ];
@@ -49,19 +57,19 @@ const EQUIPMENT_OPTIONS = [
   {
     value: "none" as const,
     label: "No Equipment",
-    icon: "🏃",
+    icon: <PersonStanding size={18} color="#0ea5b0" />,
     description: "Bodyweight only",
   },
   {
     value: "home" as const,
     label: "Home Gym",
-    icon: "🏠",
+    icon: <Home size={18} color="#0ea5b0" />,
     description: "Basic equipment",
   },
   {
     value: "gym" as const,
     label: "Full Gym",
-    icon: "🏋️",
+    icon: <Dumbbell size={18} color="#0ea5b0" />,
     description: "All equipment",
   },
 ];

@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { View, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Flame, Scale, Sparkles, Dumbbell } from "lucide-react-native";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormStepper } from "@/components/ui/FormStepper";
@@ -28,25 +29,25 @@ const GOAL_OPTIONS = [
   {
     value: "lose_fat" as const,
     label: "Lose Fat",
-    icon: "🔥",
+    icon: <Flame size={18} color="#0ea5b0" />,
     description: "Burn excess body fat",
   },
   {
     value: "gain_muscle" as const,
     label: "Build Muscle",
-    icon: "💪",
+    icon: <Dumbbell size={18} color="#0ea5b0" />,
     description: "Increase size & strength",
   },
   {
     value: "maintain" as const,
     label: "Maintain",
-    icon: "⚖️",
+    icon: <Scale size={18} color="#0ea5b0" />,
     description: "Keep current physique",
   },
   {
     value: "recomp" as const,
     label: "Recomposition",
-    icon: "🔄",
+    icon: <Sparkles size={18} color="#0ea5b0" />,
     description: "Lose fat, gain muscle",
   },
 ];

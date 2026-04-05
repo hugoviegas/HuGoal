@@ -5,6 +5,7 @@ export interface OnboardingDraftData {
   name?: string;
   username?: string;
   avatar_url?: string;
+  birth_date?: string;
   age?: number;
   sex?: "male" | "female" | "other";
   height_cm?: number;

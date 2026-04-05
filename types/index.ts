@@ -12,6 +12,7 @@ export interface UserProfile {
   username: string;
   avatar_url?: string;
   bio?: string;
+  birth_date?: string;
   age?: number;
   height_cm?: number;
   weight_kg?: number;

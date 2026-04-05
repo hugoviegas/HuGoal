@@ -1,6 +1,7 @@
 import "@/global.css";
 import "@/lib/i18n";
 import { useEffect } from "react";
+import { View } from "react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -27,19 +28,21 @@ export default function RootLayout() {
     >
       <SafeAreaProvider>
         <StatusBar style={isDark ? "light" : "dark"} />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: colors.background },
-            animation: "slide_from_right",
-          }}
-        >
-          <Stack.Screen name="index" />
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(tabs)" options={{ animation: "fade" }} />
-          <Stack.Screen name="settings" />
-        </Stack>
-        <ToastContainer />
+        <View className={isDark ? "dark flex-1" : "flex-1"} style={{ flex: 1 }}>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: colors.background },
+              animation: "slide_from_right",
+            }}
+          >
+            <Stack.Screen name="index" />
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(tabs)" options={{ animation: "fade" }} />
+            <Stack.Screen name="settings" />
+          </Stack>
+          <ToastContainer />
+        </View>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isReservedUsername } from "@/lib/username";
+import { isAtLeastAge, isValidBirthDate } from "@/lib/profile-dates";
 
 const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
 
@@ -25,6 +26,23 @@ const optionalString280 = z
   .transform((val) => (val === "" ? undefined : val))
   .pipe(z.string().max(280).optional());
 
+const birthDateSchema = z
+  .string()
+  .refine((value) => isValidBirthDate(value), "Select a valid birth date")
+  .refine(
+    (value) => isAtLeastAge(value, 18),
+    "You must be at least 18 years old",
+  );
+
+const optionalBirthDateSchema = z
+  .string()
+  .optional()
+  .refine((value) => !value || isValidBirthDate(value), "Invalid birth date")
+  .refine(
+    (value) => !value || isAtLeastAge(value, 18),
+    "You must be at least 18 years old",
+  );
+
 export const usernameSchema = z
   .string()
   .min(3, "Username must be at least 3 characters")
@@ -37,6 +55,7 @@ export const onboardingPersonalSchema = z.object({
   username: usernameSchema,
   sex: z.enum(["male", "female", "other"]),
   avatar_url: optionalUrl,
+  birth_date: birthDateSchema,
   age: z.number().int().min(13).max(100).optional(),
   height_cm: z.number().int().min(120).max(250).optional(),
   weight_kg: z.number().min(30).max(300).optional(),
@@ -73,6 +92,7 @@ export const profileEditSchema = z.object({
   name: z.string().min(2, "Name is required"),
   avatar_url: optionalUrl,
   bio: optionalString280,
+  birth_date: optionalBirthDateSchema,
   age: z.number().int().min(13).max(100).optional(),
   sex: z.enum(["male", "female", "other"]).optional(),
   height_cm: z.number().int().min(120).max(250).optional(),

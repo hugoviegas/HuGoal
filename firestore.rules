@@ -41,17 +41,16 @@ service cloud.firestore {
     }
 
     // ── Workout Templates ─────────────────────────────────────────────
-    // Owner-only access; public templates readable by authenticated users.
+    // User-owned templates.
     match /workout_templates/{templateId} {
       allow read:   if request.auth != null
-                       && (resource.data.owner_id == request.auth.uid
-                           || resource.data.is_public == true);
+                       && resource.data.user_id == request.auth.uid;
       allow create: if request.auth != null
-                       && request.resource.data.owner_id == request.auth.uid;
+                       && request.resource.data.user_id == request.auth.uid;
       allow update: if request.auth != null
-                       && resource.data.owner_id == request.auth.uid;
+                       && resource.data.user_id == request.auth.uid;
       allow delete: if request.auth != null
-                       && resource.data.owner_id == request.auth.uid;
+                       && resource.data.user_id == request.auth.uid;
     }
 
     // ── Workout Sessions ──────────────────────────────────────────────

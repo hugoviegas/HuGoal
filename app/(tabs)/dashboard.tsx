@@ -1,5 +1,6 @@
 import { View, Text, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Flame, Hand, Zap } from "lucide-react-native";
 import { useThemeStore } from "@/stores/theme.store";
 import { useAuthStore } from "@/stores/auth.store";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -26,8 +27,14 @@ export default function DashboardScreen() {
         <Text
           style={{ fontSize: 26, fontWeight: "800", color: colors.foreground }}
         >
-          {profile?.name ?? "Athlete"} 👋
+          {profile?.name ?? "Athlete"}
         </Text>
+        <View style={{ marginTop: 4, flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <Hand size={16} color={colors.primary} />
+          <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+            Keep your momentum today
+          </Text>
+        </View>
       </View>
 
       {/* Streak + XP */}
@@ -45,8 +52,9 @@ export default function DashboardScreen() {
               marginTop: 2,
             }}
           >
-            Day Streak 🔥
+            Day Streak
           </Text>
+          <Flame size={14} color={colors.primary} />
         </View>
         <View style={{ width: 1, backgroundColor: colors.cardBorder }} />
         <View style={{ flex: 1, alignItems: "center" }}>
@@ -62,8 +70,9 @@ export default function DashboardScreen() {
               marginTop: 2,
             }}
           >
-            XP Total ⚡
+            XP Total
           </Text>
+          <Zap size={14} color={colors.accent} />
         </View>
       </GlassCard>
 

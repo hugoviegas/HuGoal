@@ -5,7 +5,7 @@ export interface OptionItem<T extends string = string> {
   value: T;
   label: string;
   description?: string;
-  icon?: string; // emoji
+  icon?: React.ReactNode;
 }
 
 interface OptionPickerProps<T extends string = string> {
@@ -75,11 +75,7 @@ export function OptionPicker<T extends string = string>({
                 opacity: pressed ? 0.75 : 1,
               })}
             >
-              {option.icon ? (
-                <Text style={{ fontSize: columns === 3 ? 24 : 30 }}>
-                  {option.icon}
-                </Text>
-              ) : null}
+              {option.icon ? option.icon : null}
               <Text
                 style={{
                   color: isSelected ? colors.primary : colors.foreground,

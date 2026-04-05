@@ -1,7 +1,9 @@
-import { View, Pressable, Text } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { View, Pressable, Text, Animated } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 import { useThemeStore } from "@/stores/theme.store";
+import { useNavigationStore } from "@/stores/navigation.store";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import {
   LayoutDashboard,
@@ -31,9 +33,28 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const colors = useThemeStore((s) => s.colors);
   const isDark = useThemeStore((s) => s.isDark);
+  const navbarVisible = useNavigationStore((s) => s.navbarVisible);
+  const slideAnim = useRef(new Animated.Value(navbarVisible ? 0 : 110)).current;
+  const opacityAnim = useRef(new Animated.Value(navbarVisible ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: navbarVisible ? 0 : 110,
+        duration: 260,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: navbarVisible ? 1 : 0,
+        duration: 220,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [navbarVisible, opacityAnim, slideAnim]);
 
   return (
-    <View
+    <Animated.View
+      pointerEvents={navbarVisible ? "auto" : "none"}
       style={{
         position: "absolute",
         bottom: insets.bottom + 12,
@@ -46,6 +67,8 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         shadowOpacity: isDark ? 0.4 : 0.12,
         shadowRadius: 12,
         elevation: 8,
+        transform: [{ translateY: slideAnim }],
+        opacity: opacityAnim,
       }}
     >
       <BlurView
@@ -64,9 +87,10 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           const { options } = descriptors[route.key];
           const isFocused = state.index === index;
           const routeName = route.name.toLowerCase();
+          const routeBase = routeName.split("/")[0];
           const color = isFocused ? colors.primary : colors.muted;
-          const label = TAB_LABELS[routeName] ?? route.name;
-          const icon = TAB_ICONS[routeName]?.(color);
+          const label = TAB_LABELS[routeBase] ?? routeBase;
+          const icon = TAB_ICONS[routeBase]?.(color);
 
           const onPress = () => {
             const event = navigation.emit({
@@ -112,6 +136,6 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           );
         })}
       </BlurView>
-    </View>
+    </Animated.View>
   );
 }

@@ -95,7 +95,7 @@ export default function OnboardingDietScreen() {
         name: draft.name ?? "",
         username: draft.username ?? "",
         sex: draft.sex,
-        age: draft.age,
+        birth_date: draft.birth_date,
         height_cm: draft.height_cm,
         weight_kg: draft.weight_kg,
         goal: draft.goal,
@@ -122,7 +122,7 @@ export default function OnboardingDietScreen() {
         // non-critical; the store will pick up the profile on next navigation
       }
 
-      showToast("Profile setup complete! 🎉", "success");
+      showToast("Profile setup complete!", "success");
       router.replace("/(tabs)/dashboard");
     } catch (error: unknown) {
       const msg =
