@@ -1,14 +1,15 @@
 // ─── User Profile ───────────────────────────────────────────────
-export type Goal = 'lose_fat' | 'gain_muscle' | 'maintain' | 'recomp';
-export type FitnessLevel = 'beginner' | 'intermediate' | 'advanced';
-export type Equipment = 'home' | 'gym' | 'none';
-export type Sex = 'male' | 'female' | 'other';
-export type AIProvider = 'gemini' | 'claude' | 'openai';
+export type Goal = "lose_fat" | "gain_muscle" | "maintain" | "recomp";
+export type FitnessLevel = "beginner" | "intermediate" | "advanced";
+export type Equipment = "home" | "gym" | "none";
+export type Sex = "male" | "female" | "other";
+export type AIProvider = "gemini" | "claude" | "openai";
 
 export interface UserProfile {
   id: string;
   email: string;
   name: string;
+  username: string;
   avatar_url?: string;
   bio?: string;
   age?: number;
@@ -18,6 +19,8 @@ export interface UserProfile {
   goal?: Goal;
   level?: FitnessLevel;
   equipment?: Equipment;
+  available_days_per_week?: number;
+  injuries?: string;
   allergies: string[];
   dietary_restrictions: string[];
   preferred_cuisines: string[];
@@ -26,21 +29,23 @@ export interface UserProfile {
   streak_longest: number;
   last_activity_date?: string;
   preferred_ai_provider?: AIProvider;
+  username_changed_at?: string;
   onboarding_complete: boolean;
   created_at: string;
+  updated_at?: string;
 }
 
 // ─── Exercises ──────────────────────────────────────────────────
-export type Difficulty = 'beginner' | 'intermediate' | 'advanced';
+export type Difficulty = "beginner" | "intermediate" | "advanced";
 export type EquipmentType =
-  | 'none'
-  | 'barbell'
-  | 'dumbbell'
-  | 'machine'
-  | 'cable'
-  | 'bodyweight'
-  | 'band'
-  | 'kettlebell';
+  | "none"
+  | "barbell"
+  | "dumbbell"
+  | "machine"
+  | "cable"
+  | "bodyweight"
+  | "band"
+  | "kettlebell";
 
 export interface Exercise {
   id: string;
@@ -113,14 +118,14 @@ export interface WorkoutSession {
 
 // ─── Nutrition ──────────────────────────────────────────────────
 export type MealType =
-  | 'breakfast'
-  | 'lunch'
-  | 'dinner'
-  | 'snack'
-  | 'pre_workout'
-  | 'post_workout';
+  | "breakfast"
+  | "lunch"
+  | "dinner"
+  | "snack"
+  | "pre_workout"
+  | "post_workout";
 
-export type FoodSource = 'manual' | 'ocr' | 'ai_photo' | 'ai_generated';
+export type FoodSource = "manual" | "ocr" | "ai_photo" | "ai_generated";
 
 export interface NutritionItem {
   food_name: string;
@@ -184,8 +189,12 @@ export interface DietPlan {
 }
 
 // ─── Community ──────────────────────────────────────────────────
-export type PostVisibility = 'public' | 'followers';
-export type ChallengeType = 'weight_loss' | 'gym_frequency' | 'volume' | 'custom';
+export type PostVisibility = "public" | "followers";
+export type ChallengeType =
+  | "weight_loss"
+  | "gym_frequency"
+  | "volume"
+  | "custom";
 
 export interface CommunityPost {
   id: string;
@@ -246,7 +255,7 @@ export interface Achievement {
 }
 
 // ─── Muscle Regions ─────────────────────────────────────────────
-export type MuscleSide = 'front' | 'back';
+export type MuscleSide = "front" | "back";
 
 export interface MuscleRegion {
   id: string;

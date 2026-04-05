@@ -1,0 +1,31 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidAvatarUpload() {
+      return request.resource != null
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // Avatars path used by the app:
+    // avatars/{uid}/{timestamp}.jpg
+    match /avatars/{userId}/{fileName} {
+      allow read: if true;
+      allow create, update: if isOwner(userId) && isValidAvatarUpload();
+      allow delete: if isOwner(userId);
+    }
+
+    // Default deny for everything else.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -7,9 +7,37 @@ service cloud.firestore {
     // Users can only read/write their own profile document.
     match /profiles/{userId} {
       allow read:   if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null && request.auth.uid == userId;
-      allow update: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null
+                       && request.auth.uid == userId
+                       && request.resource.data.email is string
+                       && request.resource.data.name is string
+                       && request.resource.data.onboarding_complete is bool;
+      allow update: if request.auth != null
+                       && request.auth.uid == userId
+                       && request.resource.data.email is string
+                       && request.resource.data.name is string
+                       && request.resource.data.onboarding_complete is bool
+                       && (
+                            request.resource.data.onboarding_complete == false
+                            || (
+                                 request.resource.data.username is string
+                                 && request.resource.data.username.size() >= 3
+                                 && request.resource.data.username.size() <= 20
+                                 && request.resource.data.sex is string
+                                 && request.resource.data.goal is string
+                                 && request.resource.data.level is string
+                                 && request.resource.data.equipment is string
+                               )
+                          );
       allow delete: if false; // Never allow profile deletion via client
+    }
+
+    // ── Usernames (reverse lookup) ─────────────────────────────────
+    match /usernames/{username} {
+      allow read: if true;
+      allow create: if request.auth != null
+                       && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
     }
 
     // ── Workout Templates ─────────────────────────────────────────────

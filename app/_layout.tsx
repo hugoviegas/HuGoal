@@ -1,14 +1,14 @@
-import '@/global.css';
-import '@/lib/i18n';
-import { useEffect } from 'react';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { useAuthStore } from '@/stores/auth.store';
-import { useThemeStore } from '@/stores/theme.store';
-import { ToastContainer } from '@/components/ui/Toast';
-import { bootstrapApp } from '@/lib/bootstrap';
+import "@/global.css";
+import "@/lib/i18n";
+import { useEffect } from "react";
+import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { useAuthStore } from "@/stores/auth.store";
+import { useThemeStore } from "@/stores/theme.store";
+import { ToastContainer } from "@/components/ui/Toast";
+import { bootstrapApp } from "@/lib/bootstrap";
 
 export default function RootLayout() {
   const initialize = useAuthStore((s) => s.initialize);
@@ -22,19 +22,21 @@ export default function RootLayout() {
   }, [initialize]);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
+    <GestureHandlerRootView
+      style={{ flex: 1, backgroundColor: colors.background }}
+    >
       <SafeAreaProvider>
-        <StatusBar style={isDark ? 'light' : 'dark'} />
+        <StatusBar style={isDark ? "light" : "dark"} />
         <Stack
           screenOptions={{
             headerShown: false,
             contentStyle: { backgroundColor: colors.background },
-            animation: 'slide_from_right',
+            animation: "slide_from_right",
           }}
         >
           <Stack.Screen name="index" />
           <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+          <Stack.Screen name="(tabs)" options={{ animation: "fade" }} />
           <Stack.Screen name="settings" />
         </Stack>
         <ToastContainer />

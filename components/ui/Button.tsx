@@ -12,7 +12,7 @@ interface ButtonProps extends PressableProps {
 
 const variantStyles = {
   primary: 'bg-primary-600 active:bg-primary-700',
-  secondary: 'bg-dark-card dark:bg-dark-card active:opacity-80',
+  secondary: 'bg-light-surface dark:bg-dark-surface active:opacity-80',
   outline: 'border border-light-border dark:border-dark-border active:opacity-80',
   ghost: 'active:opacity-60',
   destructive: 'bg-red-500 active:bg-red-600',
@@ -20,7 +20,7 @@ const variantStyles = {
 
 const variantTextStyles = {
   primary: 'text-white font-semibold',
-  secondary: 'text-gray-200 dark:text-gray-200',
+  secondary: 'text-gray-800 dark:text-gray-200',
   outline: 'text-gray-900 dark:text-gray-100',
   ghost: 'text-primary-600 dark:text-primary-400',
   destructive: 'text-white font-semibold',
@@ -63,7 +63,7 @@ export function Button({
       {isLoading ? (
         <ActivityIndicator
           size="small"
-          color={variant === 'primary' || variant === 'destructive' ? '#fff' : '#8b5cf6'}
+          color={variant === 'primary' || variant === 'destructive' ? '#fff' : '#0ea5b0'}
         />
       ) : typeof children === 'string' ? (
         <Text className={cn(variantTextStyles[variant], sizeTextStyles[size], textClassName)}>

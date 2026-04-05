@@ -1,11 +1,12 @@
-import { View, Text, Pressable } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { useThemeStore } from '@/stores/theme.store';
-import { useAuthStore } from '@/stores/auth.store';
-import { Avatar } from '@/components/ui/Avatar';
-import { GlassCard } from '@/components/ui/GlassCard';
-import { Settings } from 'lucide-react-native';
+import { View, Text, Pressable } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import { useThemeStore } from "@/stores/theme.store";
+import { useAuthStore } from "@/stores/auth.store";
+import { Avatar } from "@/components/ui/Avatar";
+import { GlassCard } from "@/components/ui/GlassCard";
+import { Settings } from "lucide-react-native";
+import { Button } from "@/components/ui/Button";
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -24,10 +25,21 @@ export default function ProfileScreen() {
       }}
     >
       {/* Header row */}
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <Text style={{ fontSize: 22, fontWeight: '800', color: colors.foreground }}>Profile</Text>
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 24,
+        }}
+      >
+        <Text
+          style={{ fontSize: 22, fontWeight: "800", color: colors.foreground }}
+        >
+          Profile
+        </Text>
         <Pressable
-          onPress={() => router.push('/settings')}
+          onPress={() => router.push("/settings")}
           style={{ padding: 8 }}
           hitSlop={8}
         >
@@ -36,40 +48,70 @@ export default function ProfileScreen() {
       </View>
 
       {/* Profile card */}
-      <GlassCard style={{ alignItems: 'center', paddingVertical: 24 }}>
+      <GlassCard style={{ alignItems: "center", paddingVertical: 24 }}>
         <View style={{ marginBottom: 12 }}>
-          <Avatar
-            uri={undefined}
-            name={profile?.name}
-            size="xl"
-          />
+          <Avatar source={profile?.avatar_url} name={profile?.name} size="xl" />
         </View>
-        <Text style={{ fontSize: 20, fontWeight: '800', color: colors.foreground }}>
-          {profile?.name ?? '—'}
+        <Text
+          style={{ fontSize: 20, fontWeight: "800", color: colors.foreground }}
+        >
+          {profile?.name ?? "—"}
         </Text>
-        <Text style={{ fontSize: 14, color: colors.mutedForeground, marginTop: 4 }}>
-          {profile?.email ?? '—'}
+        <Text
+          style={{ fontSize: 13, color: colors.mutedForeground, marginTop: 3 }}
+        >
+          @{profile?.username ?? "username"}
         </Text>
-        <View style={{ flexDirection: 'row', gap: 32, marginTop: 16 }}>
-          <View style={{ alignItems: 'center' }}>
-            <Text style={{ fontSize: 20, fontWeight: '800', color: colors.primary }}>
+        <Text
+          style={{ fontSize: 14, color: colors.mutedForeground, marginTop: 4 }}
+        >
+          {profile?.email ?? "—"}
+        </Text>
+        <View style={{ flexDirection: "row", gap: 32, marginTop: 16 }}>
+          <View style={{ alignItems: "center" }}>
+            <Text
+              style={{ fontSize: 20, fontWeight: "800", color: colors.primary }}
+            >
               {profile?.xp ?? 0}
             </Text>
-            <Text style={{ fontSize: 11, color: colors.mutedForeground }}>XP</Text>
+            <Text style={{ fontSize: 11, color: colors.mutedForeground }}>
+              XP
+            </Text>
           </View>
-          <View style={{ alignItems: 'center' }}>
-            <Text style={{ fontSize: 20, fontWeight: '800', color: colors.accent }}>
+          <View style={{ alignItems: "center" }}>
+            <Text
+              style={{ fontSize: 20, fontWeight: "800", color: colors.accent }}
+            >
               {profile?.streak_current ?? 0}
             </Text>
-            <Text style={{ fontSize: 11, color: colors.mutedForeground }}>Streak</Text>
+            <Text style={{ fontSize: 11, color: colors.mutedForeground }}>
+              Streak
+            </Text>
           </View>
-          <View style={{ alignItems: 'center' }}>
-            <Text style={{ fontSize: 20, fontWeight: '800', color: colors.foreground }}>
+          <View style={{ alignItems: "center" }}>
+            <Text
+              style={{
+                fontSize: 20,
+                fontWeight: "800",
+                color: colors.foreground,
+              }}
+            >
               {profile?.streak_longest ?? 0}
             </Text>
-            <Text style={{ fontSize: 11, color: colors.mutedForeground }}>Best</Text>
+            <Text style={{ fontSize: 11, color: colors.mutedForeground }}>
+              Best
+            </Text>
           </View>
         </View>
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-4"
+          onPress={() => router.push("/settings/profile-edit")}
+        >
+          Edit Profile
+        </Button>
       </GlassCard>
     </View>
   );

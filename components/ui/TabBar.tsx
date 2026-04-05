@@ -1,15 +1,15 @@
-import { View, Pressable, Text, Platform } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BlurView } from 'expo-blur';
-import { useThemeStore } from '@/stores/theme.store';
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { View, Pressable, Text } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BlurView } from "expo-blur";
+import { useThemeStore } from "@/stores/theme.store";
+import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import {
   LayoutDashboard,
   Dumbbell,
   Utensils,
   Users,
   UserCircle,
-} from 'lucide-react-native';
+} from "lucide-react-native";
 
 const TAB_ICONS: Record<string, (color: string) => React.ReactNode> = {
   dashboard: (color) => <LayoutDashboard size={22} color={color} />,
@@ -20,11 +20,11 @@ const TAB_ICONS: Record<string, (color: string) => React.ReactNode> = {
 };
 
 const TAB_LABELS: Record<string, string> = {
-  dashboard: 'Home',
-  workouts: 'Workouts',
-  nutrition: 'Nutrition',
-  community: 'Community',
-  profile: 'Profile',
+  dashboard: "Home",
+  workouts: "Workouts",
+  nutrition: "Nutrition",
+  community: "Community",
+  profile: "Profile",
 };
 
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
@@ -35,13 +35,13 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   return (
     <View
       style={{
-        position: 'absolute',
+        position: "absolute",
         bottom: insets.bottom + 12,
         left: 16,
         right: 16,
         borderRadius: 24,
-        overflow: 'hidden',
-        shadowColor: '#000',
+        overflow: "hidden",
+        shadowColor: "#000",
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: isDark ? 0.4 : 0.12,
         shadowRadius: 12,
@@ -50,9 +50,9 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     >
       <BlurView
         intensity={80}
-        tint={isDark ? 'dark' : 'light'}
+        tint={isDark ? "dark" : "light"}
         style={{
-          flexDirection: 'row',
+          flexDirection: "row",
           paddingVertical: 10,
           paddingHorizontal: 4,
           borderWidth: 1,
@@ -70,7 +70,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
           const onPress = () => {
             const event = navigation.emit({
-              type: 'tabPress',
+              type: "tabPress",
               target: route.key,
               canPreventDefault: true,
             });
@@ -80,7 +80,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           };
 
           const onLongPress = () => {
-            navigation.emit({ type: 'tabLongPress', target: route.key });
+            navigation.emit({ type: "tabLongPress", target: route.key });
           };
 
           return (
@@ -91,13 +91,18 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               accessibilityLabel={options.tabBarAccessibilityLabel}
               onPress={onPress}
               onLongPress={onLongPress}
-              style={{ flex: 1, alignItems: 'center', paddingVertical: 4, gap: 3 }}
+              style={{
+                flex: 1,
+                alignItems: "center",
+                paddingVertical: 4,
+                gap: 3,
+              }}
             >
               {icon}
               <Text
                 style={{
                   fontSize: 10,
-                  fontWeight: isFocused ? '600' : '400',
+                  fontWeight: isFocused ? "600" : "400",
                   color,
                 }}
               >

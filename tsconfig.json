@@ -3,7 +3,6 @@
   "compilerOptions": {
     "strict": true,
     "moduleResolution": "bundler",
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./*"]
     }
@@ -25,10 +24,5 @@
     "nativewind-env.d.ts",
     "global.css"
   ],
-  "exclude": [
-    "node_modules",
-    "betteru",
-    "pixel-agents",
-    ".expo"
-  ]
+  "exclude": ["node_modules", "betteru", "pixel-agents", ".expo"]
 }

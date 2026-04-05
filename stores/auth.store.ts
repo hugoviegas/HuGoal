@@ -1,8 +1,9 @@
-import { create } from 'zustand';
-import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
-import { getDocument, updateDocument } from '@/lib/firestore';
-import type { UserProfile } from '@/types';
+import { create } from "zustand";
+import { onAuthStateChanged, signOut, type User } from "firebase/auth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { auth } from "@/lib/firebase";
+import { getDocument, updateDocument } from "@/lib/firestore";
+import type { UserProfile } from "@/types";
 
 interface AuthState {
   user: User | null;
@@ -34,10 +35,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   fetchProfile: async (uid) => {
     try {
       set({ profileError: null });
-      const profile = await getDocument<UserProfile>('profiles', uid);
+      const profile = await getDocument<UserProfile>("profiles", uid);
       set({ profile });
     } catch (e: any) {
-      set({ profileError: e?.message ?? 'Failed to load profile' });
+      set({ profileError: e?.message ?? "Failed to load profile" });
     }
   },
 
@@ -49,20 +50,36 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setOnboardingCompleted: async (value) => {
     const { user } = get();
     if (!user) return;
-    await updateDocument('profiles', user.uid, { onboarding_complete: value });
+    await updateDocument("profiles", user.uid, { onboarding_complete: value });
     set((state) => ({
-      profile: state.profile ? { ...state.profile, onboarding_complete: value } : state.profile,
+      profile: state.profile
+        ? { ...state.profile, onboarding_complete: value }
+        : state.profile,
     }));
   },
 
   logout: async () => {
+    const uid = get().user?.uid;
     await signOut(auth);
-    set({ user: null, profile: null, isAuthenticated: false, profileError: null });
+    if (uid) {
+      await AsyncStorage.removeItem(`onboarding_draft:${uid}`);
+    }
+    set({
+      user: null,
+      profile: null,
+      isAuthenticated: false,
+      profileError: null,
+    });
   },
 
   initialize: () => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      set({ user, isAuthenticated: !!user, isLoading: false, isInitializing: false });
+      set({
+        user,
+        isAuthenticated: !!user,
+        isLoading: false,
+        isInitializing: false,
+      });
       if (user) {
         await get().fetchProfile(user.uid);
       } else {
