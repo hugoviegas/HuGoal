@@ -1,0 +1,50 @@
+# Dependencies and build artifacts
+node_modules/
+npm-debug.log
+yarn-error.log
+.pnpm-store/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# IDE and system files
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
+*~
+.env.local
+
+# Build and cache
+.expo/
+.expo-shared/
+dist/
+build/
+.cache/
+coverage/
+
+# OS
+Thumbs.db
+*.keystore
+*.p12
+*.log
+
+# Development/private
+.claude/
+.env
+.env.*.local
+
+# Subprojects (não fazem parte da build do app)
+pixel-agents/
+
+# User workspace files
+.vscode/settings.json
+.vscode/launch.json
+
+# Temporary files
+*.tmp
+*.bak
+**/node_modules/**/.bin/**
