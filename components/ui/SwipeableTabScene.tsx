@@ -8,8 +8,11 @@ import {
   GestureDetector,
 } from "react-native-gesture-handler";
 import Animated, {
+  cancelAnimation,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
+  withSpring,
   withTiming,
 } from "react-native-reanimated";
 
@@ -33,12 +36,41 @@ export function SwipeableTabScene({ tabIndex, children }: SwipeableTabSceneProps
   const { progress } = useTabSwipeContext();
   const translateX = useSharedValue(0);
   const isNavigatingRef = useRef(false);
+  const isNavigating = useSharedValue(false);
+  const gestureActive = useSharedValue(false);
+
+  const navigateToTab = (nextIndex: number) => {
+    if (nextIndex === tabIndex || isNavigatingRef.current) {
+      isNavigating.value = false;
+      return;
+    }
+
+    isNavigatingRef.current = true;
+    router.navigate(TAB_ROUTES[nextIndex]);
+  };
 
   useEffect(() => {
     isNavigatingRef.current = false;
+    isNavigating.value = false;
+    gestureActive.value = false;
+    cancelAnimation(translateX);
+    cancelAnimation(progress);
     translateX.value = 0;
-    progress.value = tabIndex;
-  }, [progress, tabIndex, translateX]);
+    progress.value = withTiming(tabIndex, { duration: 160 });
+  }, [gestureActive, isNavigating, progress, tabIndex, translateX]);
+
+  useEffect(() => {
+    const leftRoute = TAB_ROUTES[tabIndex - 1];
+    const rightRoute = TAB_ROUTES[tabIndex + 1];
+
+    if (leftRoute) {
+      router.prefetch(leftRoute);
+    }
+
+    if (rightRoute) {
+      router.prefetch(rightRoute);
+    }
+  }, [router, tabIndex]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],
@@ -48,21 +80,18 @@ export function SwipeableTabScene({ tabIndex, children }: SwipeableTabSceneProps
     return <>{children}</>;
   }
 
-  const goToTab = (nextIndex: number) => {
-    if (nextIndex === tabIndex) {
-      return;
-    }
-
-    router.navigate(TAB_ROUTES[nextIndex]);
-  };
-
   const gesture = Gesture.Pan()
-    .runOnJS(true)
-    .activeOffsetX([-20, 20])
-    .failOffsetY([-10, 10])
+    .enabled(isFocused)
+    .activeOffsetX([-12, 12])
+    .failOffsetY([-12, 12])
     .minDistance(10)
+    .onBegin(() => {
+      gestureActive.value = true;
+      cancelAnimation(translateX);
+      cancelAnimation(progress);
+    })
     .onUpdate((event) => {
-      if (width <= 0 || isNavigatingRef.current) {
+      if (width <= 0 || !Number.isFinite(width) || isNavigating.value) {
         return;
       }
 
@@ -75,11 +104,17 @@ export function SwipeableTabScene({ tabIndex, children }: SwipeableTabSceneProps
       }
 
       const dragX = clamp(event.translationX, -width, width);
+      if (!Number.isFinite(dragX)) {
+        return;
+      }
+
       translateX.value = dragX;
       progress.value = clamp(tabIndex - dragX / width, 0, TAB_ROUTES.length - 1);
     })
     .onEnd((event) => {
-      if (width <= 0 || isNavigatingRef.current) {
+      gestureActive.value = false;
+
+      if (width <= 0 || !Number.isFinite(width) || isNavigating.value) {
         translateX.value = 0;
         progress.value = tabIndex;
         return;
@@ -106,17 +141,21 @@ export function SwipeableTabScene({ tabIndex, children }: SwipeableTabSceneProps
       }
 
       nextIndex = clamp(nextIndex, 0, TAB_ROUTES.length - 1);
-      // Always snap the current scene back; navigation happens on JS safely.
-      translateX.value = withTiming(0, { duration: 180 });
-      progress.value = withTiming(nextIndex, { duration: 180 });
+      translateX.value = withSpring(0, {
+        stiffness: 280,
+        damping: 28,
+        mass: 0.8,
+      });
+      progress.value = withTiming(nextIndex, { duration: 170 });
 
       if (nextIndex !== tabIndex) {
-        isNavigatingRef.current = true;
-        goToTab(nextIndex);
+        isNavigating.value = true;
+        runOnJS(navigateToTab)(nextIndex);
       }
     })
     .onFinalize(() => {
-      if (!isNavigatingRef.current) {
+      gestureActive.value = false;
+      if (!isNavigating.value) {
         translateX.value = withTiming(0, { duration: 150 });
         progress.value = withTiming(tabIndex, { duration: 150 });
       }

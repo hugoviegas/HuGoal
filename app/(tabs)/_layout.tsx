@@ -8,7 +8,12 @@ export default function TabsLayout() {
       <Tabs
         backBehavior="history"
         tabBar={(props) => <ModernMobileMenu {...props} />}
-        screenOptions={{ headerShown: false }}
+        screenOptions={{
+          headerShown: false,
+          lazy: false,
+          freezeOnBlur: false,
+          detachInactiveScreens: false,
+        }}
       >
         <Tabs.Screen name="dashboard" />
         <Tabs.Screen name="workouts" options={{ href: "/workouts" }} />
