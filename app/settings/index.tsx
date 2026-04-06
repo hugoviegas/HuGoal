@@ -1,8 +1,10 @@
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Updates from "expo-updates";
 import { useThemeStore } from "@/stores/theme.store";
 import { useAuthStore } from "@/stores/auth.store";
+import { useToastStore } from "@/stores/toast.store";
 import { Toggle } from "@/components/ui/Toggle";
 import {
   ArrowLeft,
@@ -13,7 +15,9 @@ import {
   LogOut,
   ChevronRight,
   User,
+  RefreshCw,
 } from "lucide-react-native";
+import { useState } from "react";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -22,10 +26,38 @@ export default function SettingsScreen() {
   const isDark = useThemeStore((s) => s.isDark);
   const setMode = useThemeStore((s) => s.setMode);
   const logout = useAuthStore((s) => s.logout);
+  const showToast = useToastStore((s) => s.show);
+  const [checkingForUpdate, setCheckingForUpdate] = useState(false);
 
   const handleLogout = async () => {
     await logout();
     router.replace("/(auth)/logout-feedback");
+  };
+
+  const handleCheckForUpdates = async () => {
+    if (checkingForUpdate) return;
+
+    if (__DEV__) {
+      showToast("OTA updates funcionam apenas em build de preview/producao.", "info");
+      return;
+    }
+
+    setCheckingForUpdate(true);
+    try {
+      const result = await Updates.checkForUpdateAsync();
+      if (!result.isAvailable) {
+        showToast("Seu app ja esta atualizado.", "success");
+        return;
+      }
+
+      await Updates.fetchUpdateAsync();
+      showToast("Atualizacao baixada. Reiniciando app...", "success");
+      await Updates.reloadAsync();
+    } catch {
+      showToast("Falha ao verificar atualizacoes. Tente novamente.", "error");
+    } finally {
+      setCheckingForUpdate(false);
+    }
   };
 
   const Row = ({
@@ -33,20 +65,24 @@ export default function SettingsScreen() {
     label,
     onPress,
     right,
+    disabled,
   }: {
     icon: React.ReactNode;
     label: string;
     onPress?: () => void;
     right?: React.ReactNode;
+    disabled?: boolean;
   }) => (
     <Pressable
       onPress={onPress}
+      disabled={disabled}
       style={{
         flexDirection: "row",
         alignItems: "center",
         paddingVertical: 14,
         paddingHorizontal: 16,
         gap: 12,
+        opacity: disabled ? 0.6 : 1,
       }}
     >
       <View
@@ -166,6 +202,33 @@ export default function SettingsScreen() {
           onPress={() => {
             /* Phase 10 */
           }}
+        />
+      </View>
+
+      {/* Updates */}
+      <SectionHeader title="App Updates" />
+      <View
+        style={{
+          backgroundColor: colors.card,
+          borderRadius: 16,
+          marginHorizontal: 16,
+          overflow: "hidden",
+          borderWidth: 1,
+          borderColor: colors.cardBorder,
+        }}
+      >
+        <Row
+          icon={<RefreshCw size={18} color={colors.primary} />}
+          label={checkingForUpdate ? "Checking for updates..." : "Check for updates"}
+          onPress={handleCheckForUpdates}
+          disabled={checkingForUpdate}
+          right={
+            checkingForUpdate ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <ChevronRight size={18} color={colors.muted} />
+            )
+          }
         />
       </View>
 

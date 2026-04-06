@@ -1,0 +1,109 @@
+name: Build Android APK and Publish
+
+on:
+  push:
+    branches:
+      - "**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-publish-apk:
+    runs-on: ubuntu-latest
+    env:
+      EXPO_TOKEN: ${{ secrets['EXPO_TOKEN'] }}
+      EXPO_PUBLIC_FIREBASE_API_KEY: ${{ secrets['EXPO_PUBLIC_FIREBASE_API_KEY'] }}
+      EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets['EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN'] }}
+      EXPO_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets['EXPO_PUBLIC_FIREBASE_PROJECT_ID'] }}
+      EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets['EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET'] }}
+      EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets['EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID'] }}
+      EXPO_PUBLIC_FIREBASE_APP_ID: ${{ secrets['EXPO_PUBLIC_FIREBASE_APP_ID'] }}
+      EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID: ${{ secrets['EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID'] }}
+      GEMINI_API_KEY: ${{ secrets['GEMINI_API_KEY'] }}
+      FIREBASE_ADMIN_SDK_KEY: ${{ secrets['FIREBASE_ADMIN_SDK_KEY'] }}
+      ADMIN_BOOTSTRAP_KEY: ${{ secrets['ADMIN_BOOTSTRAP_KEY'] }}
+      API_KEY_21ST: ${{ secrets['API_KEY_21ST'] }}
+      EXPO_NO_DEPENDENCY_VALIDATION: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          expo-version: latest
+          token: ${{ secrets['EXPO_TOKEN'] }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build preview APK on EAS
+        id: build
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BUILD_JSON="$(npx eas build --platform android --profile preview --non-interactive --wait --json)"
+          printf '%s\n' "${BUILD_JSON}" > build.json
+
+          APK_URL="$(node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync('build.json','utf8')); const b=Array.isArray(d)?d[0]:d; console.log((b?.artifacts?.buildUrl || b?.artifacts?.applicationArchiveUrl || '').trim());")"
+
+          if [ -z "${APK_URL}" ]; then
+            echo "Nao foi possivel obter a URL do APK em build.json"
+            cat build.json
+            exit 1
+          fi
+
+          APK_FILE="betteru-preview-${GITHUB_SHA::7}.apk"
+          curl -fsSL "${APK_URL}" -o "${APK_FILE}"
+
+          echo "apk_file=${APK_FILE}" >> "$GITHUB_OUTPUT"
+          echo "apk_url=${APK_URL}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload APK as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: betteru-preview-apk-${{ github.run_id }}
+          path: |
+            ${{ steps.build.outputs.apk_file }}
+            build.json
+
+      - name: Publish APK in GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets['GITHUB_TOKEN'] }}
+        run: |
+          set -euo pipefail
+
+          RELEASE_TAG="preview-apk-latest"
+          RELEASE_URL="https://github.com/${GITHUB_REPOSITORY}/releases/tag/${RELEASE_TAG}"
+
+          if ! gh release view "${RELEASE_TAG}" > /dev/null 2>&1; then
+            gh release create "${RELEASE_TAG}" --title "BetterU Preview APK (Latest)" --notes "Release automatica com o APK preview mais recente." --prerelease
+          fi
+
+          gh release upload "${RELEASE_TAG}" "${{ steps.build.outputs.apk_file }}" build.json --clobber
+          gh release edit "${RELEASE_TAG}" --notes "APK preview mais recente.\n\n- Commit: ${GITHUB_SHA}\n- Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\n- Download: ${RELEASE_URL}"
+
+      - name: Summary
+        shell: bash
+        run: |
+          {
+            echo "### Android APK publicado"
+            echo "- Arquivo: ${{ steps.build.outputs.apk_file }}"
+            echo "- Release: https://github.com/${GITHUB_REPOSITORY}/releases/tag/preview-apk-latest"
+            echo "- Artifact do run: aba Artifacts deste workflow"
+          } >> "$GITHUB_STEP_SUMMARY"

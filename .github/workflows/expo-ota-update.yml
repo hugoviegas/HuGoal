@@ -1,0 +1,130 @@
+name: Expo OTA Update
+
+on:
+  push:
+    branches:
+      - "**"
+  workflow_dispatch:
+    inputs:
+      eas_branch:
+        description: "EAS branch (preview|production)"
+        required: false
+        default: ""
+      platform:
+        description: "Platform (all|android|ios)"
+        required: false
+        default: "all"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ota-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish-ota:
+    runs-on: ubuntu-latest
+    env:
+      EXPO_TOKEN: ${{ secrets['EXPO_TOKEN'] }}
+      EXPO_PUBLIC_FIREBASE_API_KEY: ${{ secrets['EXPO_PUBLIC_FIREBASE_API_KEY'] }}
+      EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets['EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN'] }}
+      EXPO_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets['EXPO_PUBLIC_FIREBASE_PROJECT_ID'] }}
+      EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets['EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET'] }}
+      EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets['EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID'] }}
+      EXPO_PUBLIC_FIREBASE_APP_ID: ${{ secrets['EXPO_PUBLIC_FIREBASE_APP_ID'] }}
+      EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID: ${{ secrets['EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID'] }}
+      GEMINI_API_KEY: ${{ secrets['GEMINI_API_KEY'] }}
+      FIREBASE_ADMIN_SDK_KEY: ${{ secrets['FIREBASE_ADMIN_SDK_KEY'] }}
+      ADMIN_BOOTSTRAP_KEY: ${{ secrets['ADMIN_BOOTSTRAP_KEY'] }}
+      API_KEY_21ST: ${{ secrets['API_KEY_21ST'] }}
+      EXPO_NO_DEPENDENCY_VALIDATION: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          expo-version: latest
+          token: ${{ secrets['EXPO_TOKEN'] }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Resolve OTA target
+        id: target
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.eas_branch }}" ]; then
+            EAS_BRANCH="${{ github.event.inputs.eas_branch }}"
+          elif [ "${GITHUB_REF_NAME}" = "main" ] || [ "${GITHUB_REF_NAME}" = "feat/expo-mobile-setup" ]; then
+            EAS_BRANCH="production"
+          else
+            EAS_BRANCH="preview"
+          fi
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.platform }}" ]; then
+            EAS_PLATFORM="${{ github.event.inputs.platform }}"
+          else
+            EAS_PLATFORM="all"
+          fi
+
+          echo "eas_branch=${EAS_BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "eas_platform=${EAS_PLATFORM}" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure channel is linked to branch
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          CHANNEL="${{ steps.target.outputs.eas_branch }}"
+
+          if npx eas channel:view "${CHANNEL}" --non-interactive > /dev/null 2>&1; then
+            npx eas channel:edit "${CHANNEL}" --branch "${CHANNEL}" --non-interactive
+          else
+            npx eas channel:create "${CHANNEL}" --branch "${CHANNEL}" --non-interactive
+          fi
+
+      - name: Publish OTA update
+        id: publish
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          MESSAGE="CI OTA ${GITHUB_REF_NAME} ${GITHUB_SHA::7}"
+          UPDATE_JSON="$(npx eas update --branch "${{ steps.target.outputs.eas_branch }}" --platform "${{ steps.target.outputs.eas_platform }}" --message "${MESSAGE}" --non-interactive --json)"
+
+          printf '%s\n' "${UPDATE_JSON}" > update.json
+
+          GROUP_ID="$(echo "${UPDATE_JSON}" | jq -r 'if type=="array" then (.[0].group // .[0].updateGroup // "n/a") else (.group // .updateGroup // "n/a") end')"
+          PLATFORMS="$(echo "${UPDATE_JSON}" | jq -r 'if type=="array" then ([.[].platform] | join(",")) else (.platform // "unknown") end')"
+
+          echo "group_id=${GROUP_ID}" >> "$GITHUB_OUTPUT"
+          echo "platforms=${PLATFORMS}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload OTA metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: expo-ota-metadata-${{ github.run_id }}
+          path: update.json
+
+      - name: Summary
+        shell: bash
+        run: |
+          {
+            echo "### Expo OTA published"
+            echo "- Git branch: ${GITHUB_REF_NAME}"
+            echo "- EAS branch: ${{ steps.target.outputs.eas_branch }}"
+            echo "- Platforms: ${{ steps.publish.outputs.platforms }}"
+            echo "- Update group: ${{ steps.publish.outputs.group_id }}"
+          } >> "$GITHUB_STEP_SUMMARY"
