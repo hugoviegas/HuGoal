@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  TextInput,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -19,7 +20,7 @@ import { useToastStore } from "@/stores/toast.store";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { ArrowLeft } from "lucide-react-native";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -35,6 +36,7 @@ export default function LoginScreen() {
   const colors = useThemeStore((s) => s.colors);
   const showToast = useToastStore((s) => s.show);
   const [loading, setLoading] = useState(false);
+  const passwordInputRef = useRef<TextInput>(null);
 
   const {
     control,
@@ -44,6 +46,8 @@ export default function LoginScreen() {
     resolver: zodResolver(schema),
     defaultValues: { email: "", password: "" },
   });
+
+  const handleLoginSubmit = handleSubmit(onSubmit);
 
   const onSubmit = async (data: LoginForm) => {
     setLoading(true);
@@ -122,7 +126,12 @@ export default function LoginScreen() {
                 placeholder="you@example.com"
                 keyboardType="email-address"
                 autoCapitalize="none"
+                autoCorrect={false}
                 autoComplete="email"
+                textContentType="emailAddress"
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => passwordInputRef.current?.focus()}
                 onBlur={onBlur}
                 onChangeText={onChange}
                 value={value}
@@ -139,6 +148,13 @@ export default function LoginScreen() {
                 label={t("auth.password")}
                 placeholder="••••••••"
                 secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="password"
+                textContentType="password"
+                returnKeyType="done"
+                onSubmitEditing={handleLoginSubmit}
+                ref={passwordInputRef}
                 onBlur={onBlur}
                 onChangeText={onChange}
                 value={value}
@@ -151,7 +167,7 @@ export default function LoginScreen() {
             variant="primary"
             size="lg"
             isLoading={loading}
-            onPress={handleSubmit(onSubmit)}
+            onPress={handleLoginSubmit}
             className="mt-2"
           >
             {t("auth.login")}
