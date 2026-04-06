@@ -2,6 +2,9 @@
   "expo": {
     "name": "HuGoal",
     "slug": "hugoal",
+    "cli": {
+      "appVersionSource": "app.json"
+    },
     "scheme": "hugoal",
     "version": "1.0.10",
     "orientation": "portrait",
