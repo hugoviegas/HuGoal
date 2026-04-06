@@ -49,35 +49,27 @@ export function FoodRow({
           {item.food_name}
         </Text>
         {item.brand ? (
-          <Text style={[typography.caption, { color: colors.mutedForeground }]}>
+          <Text
+            style={[typography.caption, { color: colors.mutedForeground }]}
+          >
             {item.brand}
           </Text>
         ) : null}
         {showMacros ? (
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-            <Text
-              style={[typography.caption, { color: colors.mutedForeground }]}
-            >
+            <Text style={[typography.caption, { color: colors.mutedForeground }]}>
               {item.serving_size_g}g
             </Text>
-            <Text
-              style={[typography.caption, { color: colors.mutedForeground }]}
-            >
+            <Text style={[typography.caption, { color: colors.mutedForeground }]}>
               {item.calories} kcal
             </Text>
-            <Text
-              style={[typography.caption, { color: colors.mutedForeground }]}
-            >
+            <Text style={[typography.caption, { color: colors.mutedForeground }]}>
               P {item.protein_g}g
             </Text>
-            <Text
-              style={[typography.caption, { color: colors.mutedForeground }]}
-            >
+            <Text style={[typography.caption, { color: colors.mutedForeground }]}>
               C {item.carbs_g}g
             </Text>
-            <Text
-              style={[typography.caption, { color: colors.mutedForeground }]}
-            >
+            <Text style={[typography.caption, { color: colors.mutedForeground }]}>
               F {item.fat_g}g
             </Text>
           </View>
@@ -103,13 +95,7 @@ export function FoodRow({
         <Pressable
           onPress={onDelete}
           hitSlop={8}
-          style={{
-            padding: 4,
-            minWidth: 44,
-            minHeight: 44,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
+          style={{ padding: 4, minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" }}
           accessibilityLabel="Delete food item"
         >
           <Trash2 size={16} color={colors.destructive} strokeWidth={2} />

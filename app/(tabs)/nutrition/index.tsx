@@ -3,7 +3,13 @@ import { View, Text, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { format } from "date-fns";
-import { BookOpen, History, PencilLine, Sparkles } from "lucide-react-native";
+import {
+  BookOpen,
+  Bug,
+  History,
+  PencilLine,
+  Sparkles,
+} from "lucide-react-native";
 
 import { useAuthStore } from "@/stores/auth.store";
 import { useThemeStore } from "@/stores/theme.store";
@@ -13,7 +19,6 @@ import { useNutritionStore } from "@/stores/nutrition.store";
 import { MacroSummary } from "@/components/nutrition/MacroSummary";
 import { WaterTracker } from "@/components/nutrition/WaterTracker";
 import { MealSection } from "@/components/nutrition/MealSection";
-import { AddFoodModal } from "@/components/nutrition/AddFoodModal";
 import { NutritionDisclaimer } from "@/components/nutrition/NutritionDisclaimer";
 import { FloatingActionMenu } from "@/components/ui/FloatingActionMenu";
 import { Spinner } from "@/components/ui/Spinner";
@@ -21,12 +26,10 @@ import { Button } from "@/components/ui/Button";
 
 import {
   listNutritionLogs,
-  createNutritionLog,
   deleteNutritionLog,
   updateNutritionLog,
   listWaterLogs,
   addWaterLog,
-  upsertFoodLibraryItemFromNutritionItem,
 } from "@/lib/firestore/nutrition";
 import { calculateDailyGoal } from "@/lib/macro-calculator";
 import { spacing } from "@/constants/spacing";
@@ -56,15 +59,12 @@ export default function NutritionScreen() {
   const waterMl = useNutritionStore((s) => s.waterMl);
   const isLoading = useNutritionStore((s) => s.isLoading);
   const setTodayLogs = useNutritionStore((s) => s.setTodayLogs);
-  const addLog = useNutritionStore((s) => s.addLog);
   const setDailyGoal = useNutritionStore((s) => s.setDailyGoal);
   const setWater = useNutritionStore((s) => s.setWater);
   const addWater = useNutritionStore((s) => s.addWater);
   const setLoading = useNutritionStore((s) => s.setLoading);
 
   const [error, setError] = useState<string | null>(null);
-  const [activeMealType, setActiveMealType] = useState<MealType>("breakfast");
-  const [addModalVisible, setAddModalVisible] = useState(false);
 
   const today = format(new Date(), "yyyy-MM-dd");
 
@@ -107,21 +107,6 @@ export default function NutritionScreen() {
   useEffect(() => {
     loadData();
   }, [loadData]);
-
-  const handleAddItem = async (item: NutritionItem) => {
-    if (!user?.uid) return;
-    try {
-      const log = await createNutritionLog(user.uid, {
-        meal_type: activeMealType,
-        items: [item],
-      });
-      await upsertFoodLibraryItemFromNutritionItem(user.uid, item);
-      addLog(log);
-      showToast("Food added", "success");
-    } catch {
-      showToast("Failed to add food", "error");
-    }
-  };
 
   const handleDeleteItem = async (mealType: MealType, globalIndex: number) => {
     const logsForMeal = todayLogs.filter((l) => l.meal_type === mealType);
@@ -251,10 +236,12 @@ export default function NutritionScreen() {
               mealType={mealType}
               items={items}
               defaultExpanded={mealType === "breakfast" || items.length > 0}
-              onAddItem={() => {
-                setActiveMealType(mealType);
-                setAddModalVisible(true);
-              }}
+              onAddItem={() =>
+                router.push({
+                  pathname: "/nutrition/log",
+                  params: { mealType },
+                })
+              }
               onDeleteItem={(index) => handleDeleteItem(mealType, index)}
             />
           );
@@ -275,6 +262,11 @@ export default function NutritionScreen() {
             icon: <Sparkles size={18} color="#fff" />,
           },
           {
+            label: "AI Debug",
+            onPress: () => router.push("/nutrition/ai-debug"),
+            icon: <Bug size={18} color="#fff" />,
+          },
+          {
             label: "History",
             onPress: () => router.push("/nutrition/history"),
             icon: <History size={18} color="#fff" />,
@@ -285,14 +277,6 @@ export default function NutritionScreen() {
             icon: <BookOpen size={18} color="#fff" />,
           },
         ]}
-      />
-
-      {/* Add food modal */}
-      <AddFoodModal
-        visible={addModalVisible}
-        onClose={() => setAddModalVisible(false)}
-        onSave={handleAddItem}
-        userId={user?.uid}
       />
     </View>
   );

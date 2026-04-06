@@ -9,9 +9,7 @@ import {
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ArrowLeft, Plus, Search, Trash2 } from "lucide-react-native";
-import { Modal } from "@/components/ui/Modal";
-import { Input } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
+import { useFocusEffect } from "@react-navigation/native";
 import { Spinner } from "@/components/ui/Spinner";
 
 import { useAuthStore } from "@/stores/auth.store";
@@ -20,153 +18,12 @@ import { useToastStore } from "@/stores/toast.store";
 
 import {
   listFoodLibrary,
-  createFoodLibraryItem,
   deleteFoodLibraryItem,
 } from "@/lib/firestore/nutrition";
 import { spacing } from "@/constants/spacing";
 import { typography } from "@/constants/typography";
 import { radius } from "@/constants/radius";
 import type { FoodLibraryItem } from "@/types";
-
-function AddFoodLibraryModal({
-  visible,
-  onClose,
-  onSave,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  onSave: (item: Omit<FoodLibraryItem, "id" | "user_id" | "created_at">) => void;
-}) {
-  const colors = useThemeStore((s) => s.colors);
-  const [name, setName] = useState("");
-  const [brand, setBrand] = useState("");
-  const [serving, setServing] = useState("100");
-  const [calories, setCalories] = useState("");
-  const [protein, setProtein] = useState("");
-  const [carbs, setCarbs] = useState("");
-  const [fat, setFat] = useState("");
-
-  const reset = () => {
-    setName("");
-    setBrand("");
-    setServing("100");
-    setCalories("");
-    setProtein("");
-    setCarbs("");
-    setFat("");
-  };
-
-  const handleSave = () => {
-    if (!name.trim()) return;
-    onSave({
-      name: name.trim(),
-      brand: brand.trim() || undefined,
-      serving_size_g: Number(serving) || 100,
-      calories: Number(calories) || 0,
-      protein_g: Number(protein) || 0,
-      carbs_g: Number(carbs) || 0,
-      fat_g: Number(fat) || 0,
-    });
-    reset();
-    onClose();
-  };
-
-  return (
-    <Modal visible={visible} onClose={onClose}>
-      <Text
-        style={[
-          typography.h3,
-          { color: colors.foreground, marginBottom: spacing.md },
-        ]}
-      >
-        Add to My Foods
-      </Text>
-      <View style={{ gap: spacing.sm }}>
-        <Input
-          label="Food name"
-          placeholder="e.g. Chicken breast"
-          value={name}
-          onChangeText={setName}
-        />
-        <Input
-          label="Brand (optional)"
-          placeholder="e.g. Tyson"
-          value={brand}
-          onChangeText={setBrand}
-        />
-        <Input
-          label="Serving size (g)"
-          keyboardType="numeric"
-          placeholder="100"
-          value={serving}
-          onChangeText={setServing}
-        />
-        <View style={{ flexDirection: "row", gap: spacing.xs }}>
-          <View style={{ flex: 1 }}>
-            <Input
-              label="Calories"
-              keyboardType="numeric"
-              placeholder="0"
-              value={calories}
-              onChangeText={setCalories}
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Input
-              label="Protein (g)"
-              keyboardType="numeric"
-              placeholder="0"
-              value={protein}
-              onChangeText={setProtein}
-            />
-          </View>
-        </View>
-        <View style={{ flexDirection: "row", gap: spacing.xs }}>
-          <View style={{ flex: 1 }}>
-            <Input
-              label="Carbs (g)"
-              keyboardType="numeric"
-              placeholder="0"
-              value={carbs}
-              onChangeText={setCarbs}
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Input
-              label="Fat (g)"
-              keyboardType="numeric"
-              placeholder="0"
-              value={fat}
-              onChangeText={setFat}
-            />
-          </View>
-        </View>
-      </View>
-      <View
-        style={{
-          flexDirection: "row",
-          gap: spacing.xs,
-          marginTop: spacing.lg,
-        }}
-      >
-        <View style={{ flex: 1 }}>
-          <Button variant="outline" size="md" onPress={onClose}>
-            Cancel
-          </Button>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Button
-            size="md"
-            onPress={handleSave}
-            disabled={!name.trim()}
-          >
-            Save
-          </Button>
-        </View>
-      </View>
-    </Modal>
-  );
-}
 
 function LibraryItemCard({
   item,
@@ -239,7 +96,6 @@ export default function LibraryScreen() {
   const [foods, setFoods] = useState<FoodLibraryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
-  const [addModalVisible, setAddModalVisible] = useState(false);
 
   const loadLibrary = useCallback(async () => {
     if (!user?.uid) return;
@@ -257,18 +113,11 @@ export default function LibraryScreen() {
     loadLibrary();
   }, [loadLibrary]);
 
-  const handleAdd = async (
-    item: Omit<FoodLibraryItem, "id" | "user_id" | "created_at">,
-  ) => {
-    if (!user?.uid) return;
-    try {
-      const created = await createFoodLibraryItem(user.uid, item);
-      setFoods((prev) => [created, ...prev]);
-      showToast("Food saved to library", "success");
-    } catch {
-      showToast("Failed to save food", "error");
-    }
-  };
+  useFocusEffect(
+    useCallback(() => {
+      loadLibrary();
+    }, [loadLibrary]),
+  );
 
   const handleDelete = async (itemId: string) => {
     try {
@@ -321,7 +170,9 @@ export default function LibraryScreen() {
           My Foods
         </Text>
         <Pressable
-          onPress={() => setAddModalVisible(true)}
+          onPress={() =>
+            router.push({ pathname: "/nutrition/add-food", params: { mode: "library" } })
+          }
           style={{
             width: 36,
             height: 36,
@@ -408,12 +259,6 @@ export default function LibraryScreen() {
           }
         />
       )}
-
-      <AddFoodLibraryModal
-        visible={addModalVisible}
-        onClose={() => setAddModalVisible(false)}
-        onSave={handleAdd}
-      />
     </View>
   );
 }

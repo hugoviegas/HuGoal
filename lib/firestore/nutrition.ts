@@ -25,6 +25,23 @@ function stripUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> {
   ) as Partial<T>;
 }
 
+function sanitizeNutritionItem(item: NutritionItem): NutritionItem {
+  const s = stripUndefined(item as unknown as Record<string, unknown>) as Partial<NutritionItem>;
+  return {
+    food_name: s.food_name ?? item.food_name ?? "",
+    brand: s.brand ?? item.brand,
+    notes: s.notes ?? item.notes,
+    serving_size_g: s.serving_size_g ?? item.serving_size_g ?? 0,
+    calories: s.calories ?? item.calories ?? 0,
+    protein_g: s.protein_g ?? item.protein_g ?? 0,
+    carbs_g: s.carbs_g ?? item.carbs_g ?? 0,
+    fat_g: s.fat_g ?? item.fat_g ?? 0,
+    fiber_g: s.fiber_g ?? item.fiber_g,
+    sugar_g: s.sugar_g ?? item.sugar_g,
+    source: s.source ?? item.source,
+  };
+}
+
 function nutritionLogsCollection() {
   return collection(db, "nutrition_logs");
 }
@@ -80,17 +97,13 @@ export async function listNutritionLogs(
     constraints.push(where("logged_at", "<", date + "T99")); // end of day hack -- ISO strings sort
   }
 
-  const snapshot = await getDocs(
-    query(nutritionLogsCollection(), ...constraints),
-  );
+  const snapshot = await getDocs(query(nutritionLogsCollection(), ...constraints));
   return snapshot.docs
     .map((d) => ({ id: d.id, ...d.data() }) as NutritionLog)
     .sort((a, b) => b.logged_at.localeCompare(a.logged_at));
 }
 
-export async function getNutritionLog(
-  logId: string,
-): Promise<NutritionLog | null> {
+export async function getNutritionLog(logId: string): Promise<NutritionLog | null> {
   const snapshot = await getDoc(doc(db, "nutrition_logs", logId));
   if (!snapshot.exists()) return null;
   return { id: snapshot.id, ...snapshot.data() } as NutritionLog;
@@ -115,13 +128,15 @@ export async function createNutritionLog(
   const now = new Date().toISOString();
   const reference = doc(nutritionLogsCollection());
   const total = computeTotals(input.items);
+  // Sanitize items to remove undefined fields (Firestore rejects undefined anywhere)
+  const sanitizedItems = input.items.map((it) => sanitizeNutritionItem(it));
 
   const payload: NutritionLog = {
     id: reference.id,
     user_id: uid,
     logged_at: now,
     meal_type: input.meal_type,
-    items: input.items,
+    items: sanitizedItems,
     total,
     notes: input.notes,
     image_url: input.image_url,
@@ -148,13 +163,22 @@ export async function updateNutritionLog(
 
     const existing = snapshot.data() as NutritionLog;
     const items = patch.items ?? existing.items;
-    const total = computeTotals(items);
+    // sanitize items if provided
+    const sanitizedItems = Array.isArray(patch.items)
+      ? (patch.items as NutritionItem[]).map((it) => sanitizeNutritionItem(it))
+      : items;
 
-    const writePatch = stripUndefined({
+    const total = computeTotals(sanitizedItems);
+
+    const writePatchObj: Record<string, unknown> = {
       ...patch,
       total,
       updated_at: new Date().toISOString(),
-    });
+    };
+
+    if (Array.isArray(patch.items)) writePatchObj.items = sanitizedItems;
+
+    const writePatch = stripUndefined(writePatchObj as Record<string, unknown>);
 
     transaction.set(reference, writePatch, { merge: true });
   });
@@ -284,10 +308,7 @@ export async function deleteFoodLibraryItem(itemId: string): Promise<void> {
 
 // ─── Water Logs ──────────────────────────────────────────────
 
-export async function listWaterLogs(
-  uid: string,
-  date: string,
-): Promise<WaterLog[]> {
+export async function listWaterLogs(uid: string, date: string): Promise<WaterLog[]> {
   const snapshot = await getDocs(
     query(
       waterLogsCollection(),
@@ -298,11 +319,7 @@ export async function listWaterLogs(
   return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as WaterLog);
 }
 
-export async function addWaterLog(
-  uid: string,
-  date: string,
-  amountMl: number,
-): Promise<WaterLog> {
+export async function addWaterLog(uid: string, date: string, amountMl: number): Promise<WaterLog> {
   const now = new Date().toISOString();
   const reference = doc(waterLogsCollection());
   const payload: WaterLog = {

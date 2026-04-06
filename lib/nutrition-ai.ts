@@ -1,5 +1,10 @@
 import { generateText, analyzeImage } from "@/lib/ai-provider";
 import type { AIProvider, NutritionItem, MealType, UserProfile } from "@/types";
+import {
+  analyzeMealImageWithGeminiModel,
+  NUTRITION_IMAGE_SYSTEM_PROMPT,
+  type NutritionVisionOutput,
+} from "@/lib/nutrition-vision";
 
 const SYSTEM_PROMPT_DIET_PLAN = `You are a certified sports nutritionist AI assistant for the BetterU fitness app.
 Generate a daily meal plan based on the user's profile and goals.
@@ -64,50 +69,59 @@ Make the plan balanced and practical with common foods.`;
   }
 }
 
-const SYSTEM_PROMPT_MEAL_PHOTO = `You are a food recognition AI for the BetterU fitness app.
-Analyze the meal photo and identify each food item with estimated quantities.
-Return ONLY valid JSON with no markdown formatting.
-The JSON structure must be an array of items:
-[
-  {
-    "food_name": "string",
-    "serving_size_g": number,
-    "calories": number,
-    "protein_g": number,
-    "carbs_g": number,
-    "fat_g": number
+export const SYSTEM_PROMPT_MEAL_PHOTO = NUTRITION_IMAGE_SYSTEM_PROMPT;
+
+export async function analyzeMealPhotoStructured(
+  provider: AIProvider,
+  base64Image: string,
+): Promise<NutritionVisionOutput> {
+  if (provider !== "gemini") {
+    const prompt =
+      NUTRITION_IMAGE_SYSTEM_PROMPT +
+      "\n\nAnalyze this meal photo and return strict JSON only.";
+    const response = await analyzeImage(provider, base64Image, prompt);
+    const clean = response.text
+      .replace(/```json?\n?/g, "")
+      .replace(/```/g, "")
+      .trim();
+    return JSON.parse(clean) as NutritionVisionOutput;
   }
-]
-Be conservative with estimates. If unsure, provide a reasonable middle-ground estimate.
-All nutritional values should be realistic.`;
+
+  return analyzeMealImageWithGeminiModel(base64Image);
+}
 
 export async function analyzeMealPhoto(
   provider: AIProvider,
   base64Image: string,
 ): Promise<NutritionItem[]> {
-  const prompt =
-    SYSTEM_PROMPT_MEAL_PHOTO +
-    "\n\nAnalyze this meal photo. Identify all visible food items with estimated quantities in grams and their nutritional values (calories, protein, carbs, fat). Be as accurate as possible.";
-
-  const response = await analyzeImage(provider, base64Image, prompt);
+  const structured = await analyzeMealPhotoStructured(provider, base64Image);
 
   try {
-    const clean = response.text
-      .replace(/```json?\n?/g, "")
-      .replace(/```/g, "")
-      .trim();
-    const items = JSON.parse(clean);
-    // Ensure source field is set
-    return items.map((item: Partial<NutritionItem>) => ({
-      ...item,
-      food_name: item.food_name ?? "Unknown food",
-      serving_size_g: item.serving_size_g ?? 100,
-      calories: item.calories ?? 0,
-      protein_g: item.protein_g ?? 0,
-      carbs_g: item.carbs_g ?? 0,
-      fat_g: item.fat_g ?? 0,
-      source: "ai_photo" as const,
-    }));
+    return structured.foods.map((food) => {
+      const primary = food.candidates[0]?.name ?? "Unknown food";
+      const selected = food.selected_name?.trim()
+        ? food.selected_name
+        : primary;
+
+      return {
+        food_name: selected,
+        serving_size_g: Math.max(0, Math.round(food.estimated_weight_g || 0)),
+        calories: Math.max(0, Math.round(food.macros.calories || 0)),
+        protein_g: Math.max(0, Math.round(food.macros.protein_g || 0)),
+        carbs_g: Math.max(0, Math.round(food.macros.carbs_g || 0)),
+        fat_g: Math.max(0, Math.round(food.macros.fat_g || 0)),
+        fiber_g:
+          typeof food.macros.fiber_g === "number"
+            ? Math.max(0, Math.round(food.macros.fiber_g || 0))
+            : undefined,
+        sugar_g:
+          typeof food.macros.sugar_g === "number"
+            ? Math.max(0, Math.round(food.macros.sugar_g || 0))
+            : undefined,
+        notes: food.notes,
+        source: "ai_photo" as const,
+      };
+    });
   } catch {
     throw new Error("AI could not analyze the meal photo. Please try again.");
   }

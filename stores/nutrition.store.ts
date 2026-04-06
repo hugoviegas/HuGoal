@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { NutritionLog, DailyNutritionGoal } from "@/types";
+import type { NutritionLog, DailyNutritionGoal, NutritionItem } from "@/types";
 
 interface NutritionState {
   // Today's state
@@ -7,6 +7,10 @@ interface NutritionState {
   dailyGoal: DailyNutritionGoal;
   waterMl: number;
   isLoading: boolean;
+  selectedFoodSelection: {
+    item: NutritionItem;
+    editIndex: number | null;
+  } | null;
 
   // Computed totals
   todayTotals: {
@@ -24,6 +28,14 @@ interface NutritionState {
   setWater: (ml: number) => void;
   addWater: (ml: number) => void;
   setLoading: (loading: boolean) => void;
+  setSelectedFoodSelection: (
+    item: NutritionItem | null,
+    editIndex?: number | null,
+  ) => void;
+  consumeSelectedFoodSelection: () => {
+    item: NutritionItem;
+    editIndex: number | null;
+  } | null;
   reset: () => void;
 }
 
@@ -51,6 +63,7 @@ export const useNutritionStore = create<NutritionState>((set, get) => ({
   dailyGoal: DEFAULT_GOAL,
   waterMl: 0,
   isLoading: false,
+  selectedFoodSelection: null,
   todayTotals: { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 },
 
   setTodayLogs: (logs) =>
@@ -73,12 +86,32 @@ export const useNutritionStore = create<NutritionState>((set, get) => ({
 
   setLoading: (loading) => set({ isLoading: loading }),
 
+  setSelectedFoodSelection: (item, editIndex = null) => {
+    if (!item) {
+      set({ selectedFoodSelection: null });
+      return;
+    }
+
+    set({
+      selectedFoodSelection: {
+        item,
+        editIndex,
+      },
+    });
+  },
+  consumeSelectedFoodSelection: () => {
+    const selection = get().selectedFoodSelection;
+    set({ selectedFoodSelection: null });
+    return selection;
+  },
+
   reset: () =>
     set({
       todayLogs: [],
       dailyGoal: DEFAULT_GOAL,
       waterMl: 0,
       isLoading: false,
+      selectedFoodSelection: null,
       todayTotals: { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 },
     }),
 }));

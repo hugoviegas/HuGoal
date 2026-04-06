@@ -131,6 +131,7 @@ export type FoodSource = "manual" | "ocr" | "ai_photo" | "ai_generated";
 export interface NutritionItem {
   food_name: string;
   brand?: string;
+  notes?: string;
   serving_size_g: number;
   calories: number;
   protein_g: number;

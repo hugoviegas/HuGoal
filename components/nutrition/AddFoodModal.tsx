@@ -2,23 +2,12 @@
  * AddFoodModal -- Modal form for manual food entry
  */
 import { useEffect, useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-  ActivityIndicator,
-  useWindowDimensions,
-} from "react-native";
+import { View, Text, ScrollView, Pressable, ActivityIndicator, useWindowDimensions } from "react-native";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { useThemeStore } from "@/stores/theme.store";
-import {
-  searchFoods,
-  toNutritionItemFromSearch,
-  type FoodSearchResult,
-} from "@/lib/food-service";
+import { searchFoods, toNutritionItemFromSearch, type FoodSearchResult } from "@/lib/food-service";
 import { typography } from "@/constants/typography";
 import { spacing } from "@/constants/spacing";
 import { radius } from "@/constants/radius";
@@ -47,15 +36,17 @@ export function AddFoodModal({
   const [foodName, setFoodName] = useState(initialValues?.food_name ?? "");
   const [brand, setBrand] = useState(initialValues?.brand ?? "");
   const [servingSize, setServingSize] = useState(
-    String(initialValues?.serving_size_g ?? "100"),
+    String(initialValues?.serving_size_g ?? "100")
   );
   const [calories, setCalories] = useState(
-    String(initialValues?.calories ?? ""),
+    String(initialValues?.calories ?? "")
   );
   const [protein, setProtein] = useState(
-    String(initialValues?.protein_g ?? ""),
+    String(initialValues?.protein_g ?? "")
   );
-  const [carbs, setCarbs] = useState(String(initialValues?.carbs_g ?? ""));
+  const [carbs, setCarbs] = useState(
+    String(initialValues?.carbs_g ?? "")
+  );
   const [fat, setFat] = useState(String(initialValues?.fat_g ?? ""));
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
@@ -100,7 +91,7 @@ export function AddFoodModal({
   const sourceLabel = useMemo(
     () => ({
       library: "My library",
-      openfoodfacts: "OpenFoodFacts",
+      edamam: "Edamam",
       usda: "USDA",
     }),
     [],
@@ -178,15 +169,9 @@ export function AddFoodModal({
             onChangeText={setSearchQuery}
           />
           {searching ? (
-            <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
-            >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <ActivityIndicator size="small" color={colors.primary} />
-              <Text
-                style={[typography.caption, { color: colors.mutedForeground }]}
-              >
-                Searching foods…
-              </Text>
+              <Text style={[typography.caption, { color: colors.mutedForeground }]}>Searching foods…</Text>
             </View>
           ) : null}
 
@@ -206,49 +191,22 @@ export function AddFoodModal({
                     gap: 2,
                   }}
                 >
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: spacing.sm,
-                    }}
-                  >
-                    <Text
-                      style={[
-                        typography.smallMedium,
-                        { color: colors.foreground, flex: 1 },
-                      ]}
-                      numberOfLines={1}
-                    >
+                  <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm }}>
+                    <Text style={[typography.smallMedium, { color: colors.foreground, flex: 1 }]} numberOfLines={1}>
                       {result.name}
                     </Text>
-                    <Text
-                      style={[typography.caption, { color: colors.primary }]}
-                    >
+                    <Text style={[typography.caption, { color: colors.primary }]}> 
                       {sourceLabel[result.source]}
                     </Text>
                   </View>
-                  <Text
-                    style={[
-                      typography.caption,
-                      { color: colors.mutedForeground },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {result.brand ?? "No brand"} · {result.calories} kcal · P{" "}
-                    {result.protein_g}g · C {result.carbs_g}g · F {result.fat_g}
-                    g
+                  <Text style={[typography.caption, { color: colors.mutedForeground }]} numberOfLines={1}>
+                    {result.brand ?? "No brand"} · {result.calories} kcal · P {result.protein_g}g · C {result.carbs_g}g · F {result.fat_g}g
                   </Text>
                 </Pressable>
               ))}
             </View>
           ) : searchQuery.trim().length >= 2 && !searching ? (
-            <Text
-              style={[typography.caption, { color: colors.mutedForeground }]}
-            >
-              No foods found. Fill values manually.
-            </Text>
+            <Text style={[typography.caption, { color: colors.mutedForeground }]}>No foods found. Fill values manually.</Text>
           ) : null}
         </View>
 
@@ -273,12 +231,7 @@ export function AddFoodModal({
             onChangeText={setServingSize}
           />
 
-          <View
-            style={{
-              flexDirection: compact ? "column" : "row",
-              gap: spacing.xs,
-            }}
-          >
+          <View style={{ flexDirection: compact ? "column" : "row", gap: spacing.xs }}>
             <View style={{ flex: 1 }}>
               <Input
                 label="Calories"
@@ -299,12 +252,7 @@ export function AddFoodModal({
             </View>
           </View>
 
-          <View
-            style={{
-              flexDirection: compact ? "column" : "row",
-              gap: spacing.xs,
-            }}
-          >
+          <View style={{ flexDirection: compact ? "column" : "row", gap: spacing.xs }}>
             <View style={{ flex: 1 }}>
               <Input
                 label="Carbs (g)"

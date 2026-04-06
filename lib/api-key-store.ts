@@ -54,6 +54,35 @@ export async function getApiKey(provider: AIProvider): Promise<string | null> {
   }
 }
 
+function previewKeyByProvider(provider: AIProvider): string | null {
+  const env =
+    provider === "gemini"
+      ? (process.env.EXPO_PUBLIC_GEMINI_API_KEY ?? process.env.GEMINI_API_KEY)
+      : provider === "claude"
+        ? (process.env.EXPO_PUBLIC_CLAUDE_API_KEY ?? process.env.CLAUDE_API_KEY)
+        : (process.env.EXPO_PUBLIC_OPENAI_API_KEY ??
+          process.env.OPENAI_API_KEY);
+
+  if (!env || !env.trim()) return null;
+  return env.trim();
+}
+
+export async function getResolvedApiKey(
+  provider: AIProvider,
+): Promise<{ key: string | null; source: "user" | "preview" | "none" }> {
+  const userKey = await getApiKey(provider);
+  if (userKey && userKey.trim()) {
+    return { key: userKey.trim(), source: "user" };
+  }
+
+  const previewKey = previewKeyByProvider(provider);
+  if (previewKey) {
+    return { key: previewKey, source: "preview" };
+  }
+
+  return { key: null, source: "none" };
+}
+
 export async function deleteApiKey(provider: AIProvider): Promise<void> {
   const k = storageKey(provider);
 
