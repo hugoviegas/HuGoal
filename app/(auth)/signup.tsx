@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  TextInput,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -24,7 +25,7 @@ import { useToastStore } from "@/stores/toast.store";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { ArrowLeft } from "lucide-react-native";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { UserProfile } from "@/types";
 
 const schema = z
@@ -49,6 +50,16 @@ export default function SignupScreen() {
   const showToast = useToastStore((s) => s.show);
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const emailInputRef = useRef<TextInput>(null);
+  const passwordInputRef = useRef<TextInput>(null);
+  const confirmPasswordInputRef = useRef<TextInput>(null);
+  const inputOffsets = useRef<Record<keyof SignupForm, number>>({
+    name: 0,
+    email: 0,
+    password: 0,
+    confirmPassword: 0,
+  });
 
   const {
     control,
@@ -97,6 +108,17 @@ export default function SignupScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSignupSubmit = handleSubmit(onSubmit);
+
+  const setInputOffset = (field: keyof SignupForm, y: number) => {
+    inputOffsets.current[field] = y;
+  };
+
+  const ensureInputVisible = (field: keyof SignupForm) => {
+    const y = inputOffsets.current[field] ?? 0;
+    scrollViewRef.current?.scrollTo({ y: Math.max(0, y - 24), animated: true });
   };
 
   if (emailSent) {
@@ -149,9 +171,11 @@ export default function SignupScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? insets.top : 0}
       style={{ flex: 1, backgroundColor: colors.background }}
     >
       <ScrollView
+        ref={scrollViewRef}
         contentContainerStyle={{
           flexGrow: 1,
           paddingTop: insets.top + 16,
@@ -198,62 +222,115 @@ export default function SignupScreen() {
             control={control}
             name="name"
             render={({ field: { onChange, onBlur, value } }) => (
-              <Input
-                label={t("onboarding.name")}
-                placeholder="Your full name"
-                autoComplete="name"
-                onBlur={onBlur}
-                onChangeText={onChange}
-                value={value}
-                error={errors.name?.message}
-              />
+              <View
+                onLayout={(event) =>
+                  setInputOffset("name", event.nativeEvent.layout.y)
+                }
+              >
+                <Input
+                  label={t("onboarding.name")}
+                  placeholder="Your full name"
+                  autoComplete="name"
+                  returnKeyType="next"
+                  blurOnSubmit={false}
+                  onFocus={() => ensureInputVisible("name")}
+                  onSubmitEditing={() => emailInputRef.current?.focus()}
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                  error={errors.name?.message}
+                />
+              </View>
             )}
           />
           <Controller
             control={control}
             name="email"
             render={({ field: { onChange, onBlur, value } }) => (
-              <Input
-                label={t("auth.email")}
-                placeholder="you@example.com"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                onBlur={onBlur}
-                onChangeText={onChange}
-                value={value}
-                error={errors.email?.message}
-              />
+              <View
+                onLayout={(event) =>
+                  setInputOffset("email", event.nativeEvent.layout.y)
+                }
+              >
+                <Input
+                  ref={emailInputRef}
+                  label={t("auth.email")}
+                  placeholder="you@example.com"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  textContentType="emailAddress"
+                  returnKeyType="next"
+                  blurOnSubmit={false}
+                  onFocus={() => ensureInputVisible("email")}
+                  onSubmitEditing={() => passwordInputRef.current?.focus()}
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                  error={errors.email?.message}
+                />
+              </View>
             )}
           />
           <Controller
             control={control}
             name="password"
             render={({ field: { onChange, onBlur, value } }) => (
-              <Input
-                label={t("auth.password")}
-                placeholder="••••••••"
-                secureTextEntry
-                onBlur={onBlur}
-                onChangeText={onChange}
-                value={value}
-                error={errors.password?.message}
-              />
+              <View
+                onLayout={(event) =>
+                  setInputOffset("password", event.nativeEvent.layout.y)
+                }
+              >
+                <Input
+                  ref={passwordInputRef}
+                  label={t("auth.password")}
+                  placeholder="••••••••"
+                  secureTextEntry
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="new-password"
+                  textContentType="newPassword"
+                  returnKeyType="next"
+                  blurOnSubmit={false}
+                  onFocus={() => ensureInputVisible("password")}
+                  onSubmitEditing={() =>
+                    confirmPasswordInputRef.current?.focus()
+                  }
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                  error={errors.password?.message}
+                />
+              </View>
             )}
           />
           <Controller
             control={control}
             name="confirmPassword"
             render={({ field: { onChange, onBlur, value } }) => (
-              <Input
-                label={t("auth.confirm_password")}
-                placeholder="••••••••"
-                secureTextEntry
-                onBlur={onBlur}
-                onChangeText={onChange}
-                value={value}
-                error={errors.confirmPassword?.message}
-              />
+              <View
+                onLayout={(event) =>
+                  setInputOffset("confirmPassword", event.nativeEvent.layout.y)
+                }
+              >
+                <Input
+                  ref={confirmPasswordInputRef}
+                  label={t("auth.confirm_password")}
+                  placeholder="••••••••"
+                  secureTextEntry
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="new-password"
+                  textContentType="newPassword"
+                  returnKeyType="done"
+                  onFocus={() => ensureInputVisible("confirmPassword")}
+                  onSubmitEditing={handleSignupSubmit}
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                  error={errors.confirmPassword?.message}
+                />
+              </View>
             )}
           />
 
@@ -261,7 +338,7 @@ export default function SignupScreen() {
             variant="primary"
             size="lg"
             isLoading={loading}
-            onPress={handleSubmit(onSubmit)}
+            onPress={handleSignupSubmit}
             className="mt-2"
           >
             {t("auth.signup")}
