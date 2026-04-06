@@ -10,12 +10,12 @@
  *   DS.radius.lg        // 16
  */
 
-export { spacing } from './spacing';
-export { typography } from './typography';
-export { duration, easing } from './animation';
-export { elevation } from './elevation';
-export { radius } from './radius';
+export { spacing } from "./spacing";
+export { typography } from "./typography";
+export { duration, easing } from "./animation";
+export { elevation } from "./elevation";
+export { radius } from "./radius";
 
 // Re-export color palettes for convenience
-export { lightColors, darkColors } from './colors';
-export type { ThemeColors } from './colors';
+export { lightColors, darkColors } from "./colors";
+export type { ThemeColors } from "./colors";

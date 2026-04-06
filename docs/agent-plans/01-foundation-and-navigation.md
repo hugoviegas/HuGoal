@@ -238,7 +238,7 @@ Transformar o app em um Expo Router shell funcionando com autenticação, routin
 
 - Landing screen: logo + description + "Sign In" button + "Sign Up" button
 - Hard-coded EN/PT strings (e.g., "Welcome to HuGoal")
-@@- Hard-coded EN/PT strings (e.g., "Welcome to HuGoal")
+  @@- Hard-coded EN/PT strings (e.g., "Welcome to HuGoal")
 - Navigation: Sign In → push `login`; Sign Up → push `signup`
 
 #### Task 11: Create app/(auth)/login.tsx _(depends on Task 9)_
@@ -525,7 +525,7 @@ Transformar o app em um Expo Router shell funcionando com autenticação, routin
 | --------------------------------- | ---------------------------------------------------------------------------------------------- |
 | Email verification required       | Ensures account ownership; reduces spam signups                                                |
 | Logout feedback screen (2s delay) | UX clarity; user sees logout worked before redirect                                            |
-| Floating tab bar (bottom-center)  | Modern mobile UX; matches HuGoal aesthetic                                                    |
+| Floating tab bar (bottom-center)  | Modern mobile UX; matches HuGoal aesthetic                                                     |
 | Hard-coded strings Phase 01       | Faster iteration; i18n cleanup Phase 03+ when translation keys stabilize                       |
 | Sentry from start                 | Early error visibility; prevents surprises in production                                       |
 | Android back customization        | Prevents accidental exits from onboarding; maintains UX consistency                            |

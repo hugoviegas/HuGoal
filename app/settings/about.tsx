@@ -41,7 +41,7 @@ export default function AboutScreen() {
         <Text
           style={{ fontSize: 22, fontWeight: "800", color: colors.foreground }}
         >
-            About HuGoal
+          About HuGoal
         </Text>
       </View>
 
@@ -124,7 +124,7 @@ export default function AboutScreen() {
         </Text>
         <Pressable
           onPress={() => Linking.openURL("https://github.com/hugovntr/HuGoal")}
-                    onPress={() => Linking.openURL("https://github.com/hugovntr/HuGoal")}
+          onPress={() => Linking.openURL("https://github.com/hugovntr/HuGoal")}
           style={{
             flexDirection: "row",
             alignItems: "center",

@@ -1,4 +1,4 @@
-import { Platform, type ViewStyle } from 'react-native';
+import { Platform, type ViewStyle } from "react-native";
 
 /**
  * HuGoal Design Tokens — Elevation
@@ -13,7 +13,7 @@ function shadow(
 ): ViewStyle {
   return Platform.select({
     ios: {
-      shadowColor: '#000',
+      shadowColor: "#000",
       shadowOffset: { width: 0, height: offsetY },
       shadowOpacity: opacity,
       shadowRadius: radius,

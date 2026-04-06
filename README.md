@@ -165,6 +165,7 @@ HuGoal/
 ## 🎨 Tech Stack
 
 ### Frontend
+
 - **React Native** + **Expo** — Cross-platform mobile development
 - **Expo Router** — File-based routing (similar to Next.js)
 - **NativeWind** — Tailwind CSS for React Native
@@ -173,17 +174,20 @@ HuGoal/
 - **React Hook Form** — Form state management
 
 ### Backend & Database
+
 - **Firebase** — Authentication & real-time database
 - **Firestore** — NoSQL cloud database
 - **Firebase Storage** — Image & file storage
 - **Firebase Hosting** — Web deployment
 
 ### AI & External Services
+
 - **Claude API** — Advanced AI for workout planning & nutrition analysis
 - **Google Gemini API** — Food image recognition & macro estimation
 - **Google Cloud Vision** — OCR for nutrition label parsing
 
 ### Tools & Services
+
 - **EAS (Expo Application Services)** — Build & deployment
 - **EAS Update** — OTA (Over-The-Air) updates
 - **Sentry** — Error tracking & monitoring
@@ -196,6 +200,7 @@ HuGoal/
 ### Firebase Rules
 
 Firestore security rules are configured in `firestore.rules` to ensure:
+
 - Users can only read their own data
 - Real-time friend requests with proper validation
 - Secure community posts and comments
@@ -203,11 +208,13 @@ Firestore security rules are configured in `firestore.rules` to ensure:
 ### API Keys Management
 
 Sensitive API keys are stored securely using:
+
 - **SecureStore** (React Native) on mobile
 - Environment variables on services
 - Never hardcoded in source
 
 Store keys in platform-specific secure storage or `.env` file:
+
 ```
 HUGOAL_AI_KEY_CLAUDE=sk-ant-...
 HUGOAL_AI_KEY_GEMINI=AIzaSy...
@@ -218,12 +225,14 @@ HUGOAL_AI_KEY_GEMINI=AIzaSy...
 ## 📚 Features Detail
 
 ### 🏋️ Workouts
+
 - **AI-Generated Plans** — Based on goals, experience level, and preferences
 - **Exercise Library** — 200+ exercises with video demonstrations
 - **Progress Tracking** — Log reps, sets, weights, and RPE
 - **Workout History** — View past workouts and trends
 
 ### 🥗 Nutrition
+
 - **Meal Tracking** — Log meals with photo recognition via AI
 - **Macro Calculator** — Real-time macro breakdown
 - **Diet Plans** — AI-personalized nutrition plans
@@ -231,12 +240,14 @@ HUGOAL_AI_KEY_GEMINI=AIzaSy...
 - **Food Library** — Searchable database with nutritional info
 
 ### 👥 Community
+
 - **Friend Requests** — Connect with other users
 - **Workout Sharing** — Share workout achievements
 - **Leaderboards** — Compete friendly with friends
 - **Group Challenges** — Participate in community challenges
 
 ### 📊 Dashboard
+
 - **Progress Overview** — Weight, body metrics, strength gains
 - **AI Insights** — Personalized recommendations
 - **Weekly Summary** — Stats and achievements recap
@@ -246,20 +257,25 @@ HUGOAL_AI_KEY_GEMINI=AIzaSy...
 ## 🚀 Deployment
 
 ### Android APK (Preview Build)
+
 ```bash
 npm run build:apk
 ```
+
 APK available under EAS releases with automatic version tagging.
 
 ### iOS (App Store)
+
 ```bash
 npm run build:ios
 ```
 
 ### OTA Updates
+
 ```bash
 npm run publish
 ```
+
 Updates deployed immediately to all users running the app.
 
 ---
@@ -267,21 +283,25 @@ Updates deployed immediately to all users running the app.
 ## 🛠️ Development
 
 ### Type Checking
+
 ```bash
 npm run tsc-check
 ```
 
 ### Linting
+
 ```bash
 npm run lint
 ```
 
 ### Code Style
+
 - **ESLint** — Enforce code standards
 - **Prettier** — Automatic code formatting
 - **NativeWind** — Consistent styling with Tailwind
 
 ### Testing
+
 ```bash
 npm test
 ```
@@ -300,24 +320,28 @@ npm test
 ## 📋 Roadmap
 
 ### Phase 01 ✅
+
 - Foundation & authentication
 - Onboarding flow
 - Tab navigation
 - Basic settings
 
 ### Phase 02 (In Progress)
+
 - Workout management UI
 - Nutrition tracking
 - Dashboard with charts
 - Real-time features
 
 ### Phase 03 (Planned)
+
 - Community features
 - AI-powered recommendations
 - Advanced analytics
 - Video tutorials
 
 ### Phase 04+ (Future)
+
 - Wearable integration (Apple Watch, Wear OS)
 - Social features enhancement
 - Premium subscription
@@ -336,6 +360,7 @@ We welcome contributions! Please follow these steps:
 5. **Open** a Pull Request
 
 ### Code Standards
+
 - Write TypeScript with strict mode
 - Follow ESLint rules
 - Add JSDoc comments for complex functions
@@ -358,13 +383,16 @@ This project is licensed under the **Business Source License 1.1 (BUSL 1.1)**.
 ## 🐛 Issues & Support
 
 ### Reporting Bugs
+
 Report issues on [GitHub Issues](https://github.com/hugovntr/HuGoal/issues) with:
+
 - Clear description
 - Steps to reproduce
 - Screenshots/videos if applicable
 - Device & OS information
 
 ### Getting Help
+
 - **Documentation**: Check [docs/](docs/)
 - **GitHub Discussions**: Ask community
 - **Discord Community**: (Coming soon)
@@ -374,6 +402,7 @@ Report issues on [GitHub Issues](https://github.com/hugovntr/HuGoal/issues) with
 ## 👨‍💻 Author
 
 **Hugo Viegas**
+
 - GitHub: [@hugovntr](https://github.com/hugovntr)
 - Project: [HuGoal](https://github.com/hugovntr/HuGoal)
 
