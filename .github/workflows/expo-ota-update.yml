@@ -4,6 +4,27 @@ on:
   push:
     branches:
       - "**"
+    paths:
+      - "app/**"
+      - "components/**"
+      - "stores/**"
+      - "hooks/**"
+      - "lib/**"
+      - "constants/**"
+      - "assets/**"
+      - "locales/**"
+      - "types/**"
+      - "app.json"
+      - "eas.json"
+      - "metro.config.js"
+      - "babel.config.js"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.json"
+      - "tailwind.config.js"
+      - "global.css"
+      - "index.ts"
+      - "App.tsx"
   workflow_dispatch:
     inputs:
       eas_branch:
@@ -49,6 +70,17 @@ jobs:
           node-version: 20
           cache: npm
 
+      - name: Cache Expo and npm folders
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.expo
+            ~/.eas
+          key: ${{ runner.os }}-expo-ota-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-expo-ota-
+
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v8
         with:
@@ -57,7 +89,7 @@ jobs:
           token: ${{ secrets['EXPO_TOKEN'] }}
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --prefer-offline --no-audit
 
       - name: Resolve OTA target
         id: target
@@ -89,10 +121,10 @@ jobs:
 
           CHANNEL="${{ steps.target.outputs.eas_branch }}"
 
-          if npx eas channel:view "${CHANNEL}" --non-interactive > /dev/null 2>&1; then
-            npx eas channel:edit "${CHANNEL}" --branch "${CHANNEL}" --non-interactive
+          if eas channel:view "${CHANNEL}" --non-interactive > /dev/null 2>&1; then
+            eas channel:edit "${CHANNEL}" --branch "${CHANNEL}" --non-interactive
           else
-            npx eas channel:create "${CHANNEL}" --branch "${CHANNEL}" --non-interactive
+            eas channel:create "${CHANNEL}" --branch "${CHANNEL}" --non-interactive
           fi
 
       - name: Publish OTA update
@@ -102,7 +134,7 @@ jobs:
           set -euo pipefail
 
           MESSAGE="CI OTA ${GITHUB_REF_NAME} ${GITHUB_SHA::7}"
-          UPDATE_JSON="$(npx eas update --branch "${{ steps.target.outputs.eas_branch }}" --platform "${{ steps.target.outputs.eas_platform }}" --message "${MESSAGE}" --non-interactive --json)"
+          UPDATE_JSON="$(eas update --branch "${{ steps.target.outputs.eas_branch }}" --platform "${{ steps.target.outputs.eas_platform }}" --message "${MESSAGE}" --non-interactive --json)"
 
           printf '%s\n' "${UPDATE_JSON}" > update.json
 

@@ -55,3 +55,8 @@ Copie o token e salve no segredo `EXPO_TOKEN` do GitHub.
 
 - O build instalado no aparelho deve estar no canal/branch correto (ex.: `preview`) para receber os updates desse branch.
 - `eas.json` ja foi configurado com canais por perfil (`development`, `preview`, `production`).
+- Nos workflows CI, o comando usado e `eas` (nao `npx eas`) porque o EAS CLI e provisionado pelo `expo/expo-github-action`.
+- Para reduzir tempo de execucao, os workflows usam:
+  - cache de `~/.npm`, `~/.expo` e `~/.eas`
+  - `npm ci --prefer-offline --no-audit`
+  - filtro de `paths` para nao disparar build/update em commits que so alteram docs/arquivos nao relevantes para app.
