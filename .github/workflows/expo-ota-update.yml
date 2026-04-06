@@ -63,6 +63,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          submodules: false
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -90,6 +93,15 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --prefer-offline --no-audit
+
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${EXPO_TOKEN:-}" ]; then
+            echo "EXPO_TOKEN nao esta definido nos GitHub Secrets"
+            exit 1
+          fi
 
       - name: Resolve OTA target
         id: target
@@ -121,10 +133,10 @@ jobs:
 
           CHANNEL="${{ steps.target.outputs.eas_branch }}"
 
-          if eas channel:view "${CHANNEL}" --non-interactive > /dev/null 2>&1; then
-            eas channel:edit "${CHANNEL}" --branch "${CHANNEL}" --non-interactive
+          if npx --yes eas-cli@latest channel:view "${CHANNEL}" --non-interactive > /dev/null 2>&1; then
+            npx --yes eas-cli@latest channel:edit "${CHANNEL}" --branch "${CHANNEL}" --non-interactive
           else
-            eas channel:create "${CHANNEL}" --branch "${CHANNEL}" --non-interactive
+            npx --yes eas-cli@latest channel:create "${CHANNEL}" --branch "${CHANNEL}" --non-interactive
           fi
 
       - name: Publish OTA update
@@ -134,7 +146,7 @@ jobs:
           set -euo pipefail
 
           MESSAGE="CI OTA ${GITHUB_REF_NAME} ${GITHUB_SHA::7}"
-          UPDATE_JSON="$(eas update --branch "${{ steps.target.outputs.eas_branch }}" --platform "${{ steps.target.outputs.eas_platform }}" --message "${MESSAGE}" --non-interactive --json)"
+          UPDATE_JSON="$(npx --yes eas-cli@latest update --branch "${{ steps.target.outputs.eas_branch }}" --platform "${{ steps.target.outputs.eas_platform }}" --message "${MESSAGE}" --non-interactive --json)"
 
           printf '%s\n' "${UPDATE_JSON}" > update.json
 

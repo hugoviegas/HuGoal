@@ -54,6 +54,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          submodules: false
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -82,13 +85,22 @@ jobs:
       - name: Install dependencies
         run: npm ci --prefer-offline --no-audit
 
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${EXPO_TOKEN:-}" ]; then
+            echo "EXPO_TOKEN nao esta definido nos GitHub Secrets"
+            exit 1
+          fi
+
       - name: Build preview APK on EAS
         id: build
         shell: bash
         run: |
           set -euo pipefail
 
-          BUILD_JSON="$(eas build --platform android --profile preview --non-interactive --wait --json)"
+          BUILD_JSON="$(npx --yes eas-cli@latest build --platform android --profile preview --non-interactive --wait --json)"
           printf '%s\n' "${BUILD_JSON}" > build.json
 
           APK_URL="$(node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync('build.json','utf8')); const b=Array.isArray(d)?d[0]:d; console.log((b?.artifacts?.buildUrl || b?.artifacts?.applicationArchiveUrl || '').trim());")"
