@@ -18,7 +18,6 @@ import { NutritionDisclaimer } from "@/components/nutrition/NutritionDisclaimer"
 import { FloatingActionMenu } from "@/components/ui/FloatingActionMenu";
 import { Spinner } from "@/components/ui/Spinner";
 import { Button } from "@/components/ui/Button";
-import { SwipeableTabScene } from "@/components/ui/SwipeableTabScene";
 
 import {
   listNutritionLogs,
@@ -93,7 +92,16 @@ export default function NutritionScreen() {
     } finally {
       setLoading(false);
     }
-  }, [user, profile, today, setTodayLogs, setWater, setDailyGoal, setLoading, showToast]);
+  }, [
+    user,
+    profile,
+    today,
+    setTodayLogs,
+    setWater,
+    setDailyGoal,
+    setLoading,
+    showToast,
+  ]);
 
   useEffect(() => {
     loadData();
@@ -140,9 +148,7 @@ export default function NutritionScreen() {
                 { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 },
               ),
             };
-            setTodayLogs(
-              todayLogs.map((l) => (l.id === log.id ? updated : l)),
-            );
+            setTodayLogs(todayLogs.map((l) => (l.id === log.id ? updated : l)));
           }
         } catch {
           showToast("Failed to delete item", "error");
@@ -164,9 +170,7 @@ export default function NutritionScreen() {
   };
 
   const getItemsForMeal = (mealType: MealType): NutritionItem[] =>
-    todayLogs
-      .filter((l) => l.meal_type === mealType)
-      .flatMap((l) => l.items);
+    todayLogs.filter((l) => l.meal_type === mealType).flatMap((l) => l.items);
 
   if (isLoading) {
     return (
@@ -184,17 +188,16 @@ export default function NutritionScreen() {
   }
 
   return (
-    <SwipeableTabScene tabIndex={2}>
-      <View style={{ flex: 1, backgroundColor: colors.background }}>
-        <ScrollView
-          contentContainerStyle={{
-            paddingTop: insets.top + spacing.sm,
-            paddingHorizontal: spacing.md,
-            paddingBottom: insets.bottom + 160,
-            gap: spacing.md,
-          }}
-          showsVerticalScrollIndicator={false}
-        >
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <ScrollView
+        contentContainerStyle={{
+          paddingTop: insets.top + spacing.sm,
+          paddingHorizontal: spacing.md,
+          paddingBottom: insets.bottom + 160,
+          gap: spacing.md,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Header */}
         <View style={{ gap: 2 }}>
           <Text style={[typography.caption, { color: colors.mutedForeground }]}>
@@ -223,7 +226,9 @@ export default function NutritionScreen() {
               borderColor: colors.destructive + "30",
             }}
           >
-            <Text style={[typography.bodyMedium, { color: colors.destructive }]}>
+            <Text
+              style={[typography.bodyMedium, { color: colors.destructive }]}
+            >
               {error}
             </Text>
             <Button variant="outline" size="sm" onPress={loadData}>
@@ -252,7 +257,7 @@ export default function NutritionScreen() {
             />
           );
         })}
-        </ScrollView>
+      </ScrollView>
 
       {/* Floating action menu */}
       <FloatingActionMenu
@@ -280,13 +285,12 @@ export default function NutritionScreen() {
         ]}
       />
 
-        {/* Add food modal */}
-        <AddFoodModal
-          visible={addModalVisible}
-          onClose={() => setAddModalVisible(false)}
-          onSave={handleAddItem}
-        />
-      </View>
-    </SwipeableTabScene>
+      {/* Add food modal */}
+      <AddFoodModal
+        visible={addModalVisible}
+        onClose={() => setAddModalVisible(false)}
+        onSave={handleAddItem}
+      />
+    </View>
   );
 }

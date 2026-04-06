@@ -23,7 +23,6 @@ import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import type { WorkoutTemplate } from "@/types";
 import { listWorkoutTemplates } from "@/lib/firestore/workouts";
-import { SwipeableTabScene } from "@/components/ui/SwipeableTabScene";
 
 /**
  * Workouts Index - Main workouts screen with tabs (Saved, Recent, Drafts)
@@ -210,22 +209,21 @@ export default function WorkoutsScreen() {
   const data = getListData();
 
   return (
-    <SwipeableTabScene tabIndex={1}>
-      <View className="flex-1 bg-light-bg dark:bg-dark-bg">
-        <View
-          className="px-4 pt-3 flex-1"
-          style={{ paddingTop: insets.top + 8, minHeight: 0 }}
+    <View className="flex-1 bg-light-bg dark:bg-dark-bg">
+      <View
+        className="px-4 pt-3 flex-1"
+        style={{ paddingTop: insets.top + 8, minHeight: 0 }}
+      >
+        <Tabs
+          className="flex-1"
+          items={tabs}
+          defaultValue="workouts"
+          onValueChange={setActiveTab}
+          variant="line"
+          size="md"
+          style={{ minHeight: 0 }}
+          contentClassName="mt-4 flex-1"
         >
-          <Tabs
-            className="flex-1"
-            items={tabs}
-            defaultValue="workouts"
-            onValueChange={setActiveTab}
-            variant="line"
-            size="md"
-            style={{ minHeight: 0 }}
-            contentClassName="mt-4 flex-1"
-          >
           <TabContent value="workouts">
             <View
               className={cn(
@@ -393,9 +391,8 @@ export default function WorkoutsScreen() {
               />
             )}
           </TabContent>
-          </Tabs>
-        </View>
+        </Tabs>
       </View>
-    </SwipeableTabScene>
+    </View>
   );
 }

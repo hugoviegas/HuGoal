@@ -116,6 +116,7 @@ jobs:
         with:
           eas-version: latest
           expo-version: latest
+          packager: npm
           token: ${{ secrets['EXPO_TOKEN'] }}
 
       - name: Install dependencies (cache miss)

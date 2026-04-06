@@ -4,7 +4,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 import { useThemeStore } from "@/stores/theme.store";
 import { useNavigationStore } from "@/stores/navigation.store";
-import { useTabSwipeContext } from "@/components/ui/tab-swipe-context";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import {
   LayoutDashboard,
@@ -56,10 +55,10 @@ export function ModernMobileMenu({
   const colors = useThemeStore((s) => s.colors);
   const isDark = useThemeStore((s) => s.isDark);
   const navbarVisible = useNavigationStore((s) => s.navbarVisible);
-  const { progress } = useTabSwipeContext();
 
   const slideAnim = useSharedValue(navbarVisible ? 0 : 120);
   const opacityAnim = useSharedValue(navbarVisible ? 1 : 0);
+  const indicatorIndex = useSharedValue(state.index);
   const [containerWidth, setContainerWidth] = useState(0);
 
   useEffect(() => {
@@ -68,8 +67,8 @@ export function ModernMobileMenu({
   }, [navbarVisible, opacityAnim, slideAnim]);
 
   useEffect(() => {
-    progress.value = withTiming(state.index, { duration: 220 });
-  }, [progress, state.index]);
+    indicatorIndex.value = withTiming(state.index, { duration: 220 });
+  }, [indicatorIndex, state.index]);
 
   const handleItemPress = (route: any, index: number) => {
     const isFocused = state.index === index;
@@ -110,7 +109,7 @@ export function ModernMobileMenu({
   }));
 
   const indicatorStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: progress.value * tabWidth }],
+    transform: [{ translateX: indicatorIndex.value * tabWidth }],
   }));
 
   return (
