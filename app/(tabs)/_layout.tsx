@@ -7,12 +7,12 @@ export default function TabsLayout() {
     <TabSwipeProvider>
       <Tabs
         backBehavior="history"
+        detachInactiveScreens={false}
         tabBar={(props) => <ModernMobileMenu {...props} />}
         screenOptions={{
           headerShown: false,
-          lazy: false,
-          freezeOnBlur: false,
-          detachInactiveScreens: false,
+          lazy: true,
+          freezeOnBlur: true,
         }}
       >
         <Tabs.Screen name="dashboard" />

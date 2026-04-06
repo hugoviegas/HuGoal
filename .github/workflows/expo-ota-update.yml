@@ -83,6 +83,34 @@ jobs:
           path: node_modules
           key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
 
+      - name: Ensure eas & expo CLI are available
+        shell: bash
+        run: |
+          set -euo pipefail
+          attempt=0
+          max=3
+          until [ $attempt -ge $max ]
+          do
+            if command -v eas >/dev/null 2>&1 || npx --yes eas-cli@latest --version >/dev/null 2>&1; then
+              echo "eas-cli available"
+            else
+              echo "Installing eas-cli and expo-cli (attempt $((attempt+1)))"
+              npm install --no-save --no-audit --no-fund eas-cli expo-cli || true
+            fi
+
+            if (command -v eas >/dev/null 2>&1) || npx --yes eas-cli@latest --version >/dev/null 2>&1; then
+              echo "eas-cli ready"
+              break
+            fi
+
+            attempt=$((attempt+1))
+            sleep $((attempt * 5))
+          done
+
+          if ! (command -v eas >/dev/null 2>&1 || npx --yes eas-cli@latest --version >/dev/null 2>&1); then
+            echo "Warning: eas-cli not available after retries; the workflow will still continue and the expo action will attempt its own installation."
+          fi
+
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v8
         with:

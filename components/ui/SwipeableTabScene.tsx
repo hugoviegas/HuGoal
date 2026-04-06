@@ -36,8 +36,20 @@ export function SwipeableTabScene({ tabIndex, children }: SwipeableTabSceneProps
   const { progress } = useTabSwipeContext();
   const translateX = useSharedValue(0);
   const isNavigatingRef = useRef(false);
+  const prefetchedRoutesRef = useRef(new Set<string>());
   const isNavigating = useSharedValue(false);
   const gestureActive = useSharedValue(false);
+  const prefetchHintIndex = useSharedValue(-1);
+
+  const prefetchTabRoute = (index: number) => {
+    const route = TAB_ROUTES[index];
+    if (!route || prefetchedRoutesRef.current.has(route)) {
+      return;
+    }
+
+    prefetchedRoutesRef.current.add(route);
+    router.prefetch(route);
+  };
 
   const navigateToTab = (nextIndex: number) => {
     if (nextIndex === tabIndex || isNavigatingRef.current) {
@@ -53,24 +65,12 @@ export function SwipeableTabScene({ tabIndex, children }: SwipeableTabSceneProps
     isNavigatingRef.current = false;
     isNavigating.value = false;
     gestureActive.value = false;
+    prefetchHintIndex.value = -1;
     cancelAnimation(translateX);
     cancelAnimation(progress);
     translateX.value = 0;
     progress.value = withTiming(tabIndex, { duration: 160 });
-  }, [gestureActive, isNavigating, progress, tabIndex, translateX]);
-
-  useEffect(() => {
-    const leftRoute = TAB_ROUTES[tabIndex - 1];
-    const rightRoute = TAB_ROUTES[tabIndex + 1];
-
-    if (leftRoute) {
-      router.prefetch(leftRoute);
-    }
-
-    if (rightRoute) {
-      router.prefetch(rightRoute);
-    }
-  }, [router, tabIndex]);
+  }, [gestureActive, isNavigating, prefetchHintIndex, progress, tabIndex, translateX]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],
@@ -87,6 +87,7 @@ export function SwipeableTabScene({ tabIndex, children }: SwipeableTabSceneProps
     .minDistance(10)
     .onBegin(() => {
       gestureActive.value = true;
+      prefetchHintIndex.value = -1;
       cancelAnimation(translateX);
       cancelAnimation(progress);
     })
@@ -106,6 +107,22 @@ export function SwipeableTabScene({ tabIndex, children }: SwipeableTabSceneProps
       const dragX = clamp(event.translationX, -width, width);
       if (!Number.isFinite(dragX)) {
         return;
+      }
+
+      let candidateIndex = -1;
+      if (dragX > 18) {
+        candidateIndex = tabIndex - 1;
+      } else if (dragX < -18) {
+        candidateIndex = tabIndex + 1;
+      }
+
+      if (
+        candidateIndex >= 0 &&
+        candidateIndex < TAB_ROUTES.length &&
+        candidateIndex !== prefetchHintIndex.value
+      ) {
+        prefetchHintIndex.value = candidateIndex;
+        runOnJS(prefetchTabRoute)(candidateIndex);
       }
 
       translateX.value = dragX;
