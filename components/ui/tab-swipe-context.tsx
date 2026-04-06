@@ -3,19 +3,14 @@ import { useSharedValue, type SharedValue } from "react-native-reanimated";
 
 interface TabSwipeContextValue {
   progress: SharedValue<number>;
-  isSwiping: SharedValue<boolean>;
 }
 
 const TabSwipeContext = createContext<TabSwipeContextValue | null>(null);
 
 export function TabSwipeProvider({ children }: { children: React.ReactNode }) {
   const progress = useSharedValue(0);
-  const isSwiping = useSharedValue(false);
 
-  const value = useMemo(
-    () => ({ progress, isSwiping }),
-    [isSwiping, progress],
-  );
+  const value = useMemo(() => ({ progress }), [progress]);
 
   return (
     <TabSwipeContext.Provider value={value}>

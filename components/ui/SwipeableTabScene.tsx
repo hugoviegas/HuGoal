@@ -29,7 +29,7 @@ interface SwipeableTabSceneProps {
 export function SwipeableTabScene({ tabIndex, children }: SwipeableTabSceneProps) {
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const { progress, isSwiping } = useTabSwipeContext();
+  const { progress } = useTabSwipeContext();
   const translateX = useSharedValue(0);
 
   useEffect(() => {
@@ -46,15 +46,13 @@ export function SwipeableTabScene({ tabIndex, children }: SwipeableTabSceneProps
       return;
     }
 
-    router.replace(TAB_ROUTES[nextIndex]);
+    router.navigate(TAB_ROUTES[nextIndex]);
   };
 
   const gesture = Gesture.Pan()
     .activeOffsetX([-12, 12])
     .failOffsetY([-12, 12])
-    .onBegin(() => {
-      isSwiping.value = true;
-    })
+    .minDistance(8)
     .onUpdate((event) => {
       if (width <= 0) {
         return;
@@ -68,7 +66,6 @@ export function SwipeableTabScene({ tabIndex, children }: SwipeableTabSceneProps
       if (width <= 0) {
         translateX.value = 0;
         progress.value = tabIndex;
-        isSwiping.value = false;
         return;
       }
 
@@ -83,16 +80,13 @@ export function SwipeableTabScene({ tabIndex, children }: SwipeableTabSceneProps
       }
 
       nextIndex = clamp(nextIndex, 0, TAB_ROUTES.length - 1);
-      const targetOffset = (tabIndex - nextIndex) * width;
+      // Always snap the current scene back; navigation happens on JS safely.
+      translateX.value = withTiming(0, { duration: 180 });
+      progress.value = withTiming(nextIndex, { duration: 180 });
 
-      translateX.value = withTiming(targetOffset, { duration: 220 }, (finished) => {
-        if (finished) {
-          runOnJS(goToTab)(nextIndex);
-        }
-        isSwiping.value = false;
-      });
-
-      progress.value = withTiming(nextIndex, { duration: 220 });
+      if (nextIndex !== tabIndex) {
+        runOnJS(goToTab)(nextIndex);
+      }
     });
 
   const animatedStyle = useAnimatedStyle(() => ({

@@ -28,6 +28,7 @@ tar: docs/agent-plans: Cannot mkdir: Permission denied
 tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/development-setup.md: Cannot open: Permission denied
 tar: docs/initial_prompt.md: Cannot open: Permission denied
+tar: docs/interactive-menu-integration.md: Cannot open: Permission denied
 tar: docs/main_plan.md: Cannot open: Permission denied
 tar: docs/prototype_files: Cannot mkdir: Permission denied
 tar: hooks/useHideMainTabBar.ts: Cannot open: Permission denied
@@ -41,15 +42,19 @@ tar: lib/firebase.ts: Cannot open: Permission denied
 tar: lib/firestore: Cannot mkdir: Permission denied
 tar: lib/firestore.ts: Cannot open: Permission denied
 tar: lib/i18n.ts: Cannot open: Permission denied
+tar: lib/macro-calculator.ts: Cannot open: Permission denied
+tar: lib/nutrition-ai.ts: Cannot open: Permission denied
 tar: lib/profile-dates.ts: Cannot open: Permission denied
 tar: lib/username.ts: Cannot open: Permission denied
 tar: lib/utils.ts: Cannot open: Permission denied
 tar: lib/validation: Cannot mkdir: Permission denied
 tar: locales/en.json: Cannot open: Permission denied
 tar: locales/pt.json: Cannot open: Permission denied
+tar: scripts/check-scrollbars.js: Cannot open: Permission denied
 tar: scripts/version-bump.js: Cannot open: Permission denied
 tar: stores/auth.store.ts: Cannot open: Permission denied
 tar: stores/navigation.store.ts: Cannot open: Permission denied
+tar: stores/nutrition.store.ts: Cannot open: Permission denied
 tar: stores/theme.store.ts: Cannot open: Permission denied
 tar: stores/toast.store.ts: Cannot open: Permission denied
 tar: stores/workout.store.ts: Cannot open: Permission denied
@@ -76,8 +81,6 @@ tar: app/(tabs)/dashboard.tsx: Cannot open: No such file or directory
 tar: app/(tabs): Cannot mkdir: Permission denied
 tar: app/(tabs)/nutrition: Cannot mkdir: No such file or directory
 tar: app/(tabs): Cannot mkdir: Permission denied
-tar: app/(tabs)/nutrition.tsx: Cannot open: No such file or directory
-tar: app/(tabs): Cannot mkdir: Permission denied
 tar: app/(tabs)/profile: Cannot mkdir: No such file or directory
 tar: app/(tabs): Cannot mkdir: Permission denied
 tar: app/(tabs)/profile.tsx: Cannot open: No such file or directory
@@ -95,6 +98,22 @@ tar: app/settings: Cannot mkdir: Permission denied
 tar: app/settings/_layout.tsx: Cannot open: No such file or directory
 tar: assets/images: Cannot mkdir: Permission denied
 tar: assets/images/muscle-map: Cannot mkdir: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/AddFoodModal.tsx: Cannot open: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/FoodRow.tsx: Cannot open: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/MacroBar.tsx: Cannot open: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/MacroRing.tsx: Cannot open: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/MacroSummary.tsx: Cannot open: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/MealSection.tsx: Cannot open: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/NutritionDisclaimer.tsx: Cannot open: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/WaterTracker.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
 tar: components/ui/Avatar.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
@@ -120,13 +139,35 @@ tar: components/ui/GlassCard.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
 tar: components/ui/Input.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/InteractiveMenu.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/InteractiveMenuWeb.css: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/InteractiveMenuWeb.demo.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/InteractiveMenuWeb.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
 tar: components/ui/Modal.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/modern-mobile-menu.README.md: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/modern-mobile-menu.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
 tar: components/ui/OptionPicker.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
 tar: components/ui/ProgressFormIndicator.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/ResponsiveModal.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/SafeView.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
 tar: components/ui/Spinner.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/stepper.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/SwipeableTabScene.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/tab-swipe-context.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
 tar: components/ui/TabBar.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
@@ -171,8 +212,7 @@ tar: docs/agent-plans: Cannot mkdir: Permission denied
 tar: docs/agent-plans/README.md: Cannot open: No such file or directory
 tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/components_prompts/accordion.md: Cannot open: No such file or directory
-tar:
-docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/components_prompts/activity_chart_card.md: Cannot open: No such file or directory
 tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/components_prompts/avatar_numbers.md: Cannot open: No such file or directory
@@ -203,14 +243,15 @@ tar: docs/components_prompts/execution_plan.md: Cannot open: No such file or dir
 tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/components_prompts/filter_popover.md: Cannot open: No such file or directory
 tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar:
-docs/components_prompts/floating_button.md: Cannot open: No such file or directory
+tar: docs/components_prompts/floating_button.md: Cannot open: No such file or directory
 tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/components_prompts/form_questions.md: Cannot open: No such file or directory
 tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/components_prompts/navbar_menu.md: Cannot open: No such file or directory
 tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/components_prompts/pagination.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/progress_bar.md: Cannot open: No such file or directory
 tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/components_prompts/progress_form_indicator.md: Cannot open: No such file or directory
 tar: docs/components_prompts: Cannot mkdir: Permission denied
@@ -225,6 +266,8 @@ tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/components_prompts/spinner_loader.md: Cannot open: No such file or directory
 tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/components_prompts/stacked_activity cards.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/steper.md: Cannot open: No such file or directory
 tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/components_prompts/tabs.md: Cannot open: No such file or directory
 tar: docs/components_prompts: Cannot mkdir: Permission denied
@@ -250,6 +293,8 @@ tar: docs/prototype_files/coachAI-prompt-generator.html: Cannot open: No such fi
 tar: docs/prototype_files: Cannot mkdir: Permission denied
 tar: docs/prototype_files/coachAI_exercises.json: Cannot open: No such file or directory
 tar: lib/firestore: Cannot mkdir: Permission denied
+tar: lib/firestore/nutrition.ts: Cannot open: No such file or directory
+tar: lib/firestore: Cannot mkdir: Permission denied
 tar: lib/firestore/profile.ts: Cannot open: No such file or directory
 tar: lib/firestore: Cannot mkdir: Permission denied
 tar: lib/firestore/username.ts: Cannot open: No such file or directory
@@ -257,71 +302,12 @@ tar: lib/firestore: Cannot mkdir: Permission denied
 tar: lib/firestore/workouts.ts: Cannot open: No such file or directory
 tar: lib/validation: Cannot mkdir: Permission denied
 tar: lib/validation/schemas.ts: Cannot open: No such file or directory
-tar: test_extract_betteru/.firebase/logs: Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(auth): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/index.tsx: Cannot open: Permission denied
-tar: test_extract_betteru/app/settings: Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/user: Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/_layout.tsx: Cannot open: Permission denied
-tar: test_extract_betteru/assets/adaptive-icon.png: Cannot open: Permission denied
-tar: test_extract_betteru/assets/favicon.png: Cannot open: Permission denied
-tar: test_extract_betteru/assets/fonts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/assets/icon.png: Cannot open: Permission denied
-tar: test_extract_betteru/assets/images: Cannot mkdir: Permission denied
-tar: test_extract_betteru/assets/notification-icon.png: Cannot open: Permission denied
-tar: test_extract_betteru/assets/splash-icon.png: Cannot open: Permission denied
-tar: test_extract_betteru/components/community: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/nutrition: Cannot mkdir: Permission denied
-tar:
-test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/workouts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/constants/animation.ts: Cannot open: Permission denied
-tar: test_extract_betteru/constants/colors.ts: Cannot open: Permission denied
-tar: test_extract_betteru/constants/design-system.ts: Cannot open: Permission denied
-tar: test_extract_betteru/constants/elevation.ts: Cannot open: Permission denied
-tar: test_extract_betteru/constants/radius.ts: Cannot open: Permission denied
-tar: test_extract_betteru/constants/spacing.ts: Cannot open: Permission denied
-tar: test_extract_betteru/constants/theme.ts: Cannot open: Permission denied
-tar: test_extract_betteru/constants/typography.ts: Cannot open: Permission denied
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/development-setup.md: Cannot open: Permission denied
-tar: test_extract_betteru/docs/initial_prompt.md: Cannot open: Permission denied
-tar: test_extract_betteru/docs/main_plan.md: Cannot open: Permission denied
-tar: test_extract_betteru/docs/prototype_files: Cannot mkdir: Permission denied
-tar: test_extract_betteru/hooks/useHideMainTabBar.ts: Cannot open: Permission denied
-tar: test_extract_betteru/hooks/useOnboardingDraft.ts: Cannot open: Permission denied
-tar: test_extract_betteru/hooks/useRootRoute.ts: Cannot open: Permission denied
-tar: test_extract_betteru/hooks/useUsernameCheck.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/ai-provider.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/api-key-store.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/bootstrap.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/firebase.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/firestore: Cannot mkdir: Permission denied
-tar: test_extract_betteru/lib/firestore.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/i18n.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/profile-dates.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/username.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/utils.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/validation: Cannot mkdir: Permission denied
-tar: test_extract_betteru/locales/en.json: Cannot open: Permission denied
-tar: test_extract_betteru/locales/pt.json: Cannot open: Permission denied
-tar: test_extract_betteru/scripts/version-bump.js: Cannot open: Permission denied
-tar: test_extract_betteru/stores/auth.store.ts: Cannot open: Permission denied
-tar: test_extract_betteru/stores/navigation.store.ts: Cannot open: Permission denied
-tar: test_extract_betteru/stores/theme.store.ts: Cannot open: Permission denied
-tar: test_extract_betteru/stores/toast.store.ts: Cannot open: Permission denied
-tar: test_extract_betteru/stores/workout.store.ts: Cannot open: Permission denied
-tar: test_extract_betteru/types/firebase-rn.d.ts: Cannot open: Permission denied
-tar: test_extract_betteru/types/index.ts: Cannot open: Permission denied
 tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
 tar: app/(auth)/onboarding/diet.tsx: Cannot open: No such file or directory
 tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
 tar: app/(auth)/onboarding/experience.tsx: Cannot open: No such file or directory
 tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: app/(auth)/onboarding/goals.tsx: Cannot open
-: No such file or directory
+tar: app/(auth)/onboarding/goals.tsx: Cannot open: No such file or directory
 tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
 tar: app/(auth)/onboarding/index.tsx: Cannot open: No such file or directory
 tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
@@ -331,13 +317,26 @@ tar: app/(auth)/onboarding/step-1.tsx: Cannot open: No such file or directory
 tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
 tar: app/(auth)/onboarding/step-2.tsx: Cannot open: No such file or directory
 tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: app/(auth)/onboarding/step-3.tsx: Cannot open: No such file or directory
+tar: app/(auth)/onboarding/step-3.tsx: Cannot open
+: No such file or directory
 tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
 tar: app/(auth)/onboarding/step-4.tsx: Cannot open: No such file or directory
 tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
 tar: app/(auth)/onboarding/_layout.tsx: Cannot open: No such file or directory
 tar: app/(tabs)/community: Cannot mkdir: No such file or directory
 tar: app/(tabs)/community/groups: Cannot mkdir: No such file or directory
+tar: app/(tabs)/nutrition: Cannot mkdir: No such file or directory
+tar: app/(tabs)/nutrition/history.tsx: Cannot open: No such file or directory
+tar: app/(tabs)/nutrition: Cannot mkdir: No such file or directory
+tar: app/(tabs)/nutrition/index.tsx: Cannot open: No such file or directory
+tar: app/(tabs)/nutrition: Cannot mkdir: No such file or directory
+tar: app/(tabs)/nutrition/library.tsx: Cannot open: No such file or directory
+tar: app/(tabs)/nutrition: Cannot mkdir: No such file or directory
+tar: app/(tabs)/nutrition/log.tsx: Cannot open: No such file or directory
+tar: app/(tabs)/nutrition: Cannot mkdir: No such file or directory
+tar: app/(tabs)/nutrition/plan.tsx: Cannot open: No such file or directory
+tar: app/(tabs)/nutrition: Cannot mkdir: No such file or directory
+tar: app/(tabs)/nutrition/_layout.tsx: Cannot open: No such file or directory
 tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
 tar: app/(tabs)/workouts/create.tsx: Cannot open: No such file or directory
 tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
@@ -350,258 +349,14 @@ tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
 tar: app/(tabs)/workouts/[id]: Cannot mkdir: No such file or directory
 tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
 tar: app/(tabs)/workouts/_layout.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(auth)/login.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth): Cannot mkdir
-: Permission denied
-tar: test_extract_betteru/app/(auth)/logout-feedback.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(auth)/signup.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(auth)/welcome.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(auth)/_layout.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/community: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/community.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/dashboard.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/nutrition: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/nutrition.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/profile: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/profile.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/_layout.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/settings: Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/settings/about.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/settings: Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/settings/index.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/settings: Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/settings/profile-edit.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/settings: Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/settings/_layout.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/assets/images: Cannot mkdir: Permission denied
-tar: test_extract_betteru/assets/images/muscle-map: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Avatar.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Badge.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Button.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/CalendarLume.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/CalendarPicker.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Checkbox.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/DietaryPreferencePicker.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/DropdownMenu.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/FloatingActionMenu.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/FormStepper.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/GlassCard.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Input.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Modal.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/OptionPicker.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/ProgressFormIndicator.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Spinner.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/TabBar.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Tabs.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Toast.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Toggle.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/UsernameAvailability.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/workouts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/workouts/ExerciseCard.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/workouts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/workouts/WorkoutCard.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/01-foundation-and-navigation.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/02-onboarding-and-profile.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/03-ui-system-and-layout.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/04-workouts.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/05-nutrition.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/06-ai-keys.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/07-community.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/08-coach.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/09-achievements.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/10-polish.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/phase-01-review.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/phase-02-review.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/phase-review-template.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/README.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/accordion.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/activity_chart_card.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/avatar_numbers.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/avatar_picker.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/badge_notification_icon.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/breadcrumbs.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/calendar_selection.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/card_item_count.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar:
-test_extract_betteru/docs/components_prompts/card_posts.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/card_style.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/checkbox.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/coloured_badges.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/dropdown_menu.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/edit_profile.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/execution_plan.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/filter_popover.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/floating_button.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/form_questions.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/navbar_menu.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/pagination.md: Cannot open
-: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/progress_form_indicator.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/quick_settings.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/responsive_modal.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/signup_page.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/sliders.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/spinner_loader.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/stacked_activity cards.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/tabs.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/terms_and_conditions.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/toasts.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/togle_button.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/tooltips.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/workout_cards.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/prototype_files: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/prototype_files/body_back.png: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/prototype_files: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/prototype_files/body_front.png: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/prototype_files: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/prototype_files/coachAI-muscle-map-v2.html: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/prototype_files: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/prototype_files/coachAI-muscle-map.html: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/prototype_files: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/prototype_files/coachAI-prompt-generator.html: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/prototype_files: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/prototype_files/coachAI_exercises.json: Cannot open: No such file or directory
-tar: test_extract_betteru/lib/firestore: Cannot mkdir: Permission denied
-tar: test_extract_betteru/lib/firestore/profile.ts: Cannot open: No such file or directory
-tar: test_extract_betteru/lib/firestore: Cannot mkdir: Permission denied
-tar: test_extract_betteru/lib/firestore/username.ts: Cannot open: No such file or directory
-tar: test_extract_betteru/lib/firestore: Cannot mkdir: Permission denied
-tar: test_extract_betteru/lib/firestore/workouts.ts: Cannot open: No such file or directory
-tar: test_extract_betteru/lib/validation: Cannot mkdir: Permission denied
-tar: test_extract_betteru/lib/validation/schemas.ts: Cannot open: No such file or directory
+tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
+tar: app/(tabs)/workouts/[id]/edit.tsx: Cannot open: No such file or directory
 tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
 tar: app/(tabs)/workouts/[id]/index.tsx: Cannot open: No such file or directory
 tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
 tar: app/(tabs)/workouts/[id]/run.tsx: Cannot open: No such file or directory
 tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
 tar: app/(tabs)/workouts/[id]/summary.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/diet.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/experience.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/goals.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/index.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/personal.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir
-: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/step-1.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/step-2.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/step-3.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/step-4.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/_layout.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/community: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/community/groups: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/create.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/explore.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/history.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/index.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/[id]: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/_layout.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/[id]/edit.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/[id]/index.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/[id]/run.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/[id]/summary.tsx: Cannot open: No such file or directory
 tar:
 Exiting with failure status due to previous errors
 tar: .firebase/logs: Cannot mkdir: Permission denied
@@ -634,6 +389,7 @@ tar: docs/agent-plans: Cannot mkdir: Permission denied
 tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/development-setup.md: Cannot open: Permission denied
 tar: docs/initial_prompt.md: Cannot open: Permission denied
+tar: docs/interactive-menu-integration.md: Cannot open: Permission denied
 tar: docs/main_plan.md: Cannot open: Permission denied
 tar: docs/prototype_files: Cannot mkdir: Permission denied
 tar: hooks/useHideMainTabBar.ts: Cannot open: Permission denied
@@ -647,18 +403,23 @@ tar: lib/firebase.ts: Cannot open: Permission denied
 tar: lib/firestore: Cannot mkdir: Permission denied
 tar: lib/firestore.ts: Cannot open: Permission denied
 tar: lib/i18n.ts: Cannot open: Permission denied
+tar: lib/macro-calculator.ts: Cannot open: Permission denied
+tar: lib/nutrition-ai.ts: Cannot open: Permission denied
 tar: lib/profile-dates.ts: Cannot open: Permission denied
 tar: lib/username.ts: Cannot open: Permission denied
 tar: lib/utils.ts: Cannot open: Permission denied
 tar: lib/validation: Cannot mkdir: Permission denied
 tar: locales/en.json: Cannot open: Permission denied
 tar: locales/pt.json: Cannot open: Permission denied
+tar: scripts/check-scrollbars.js: Cannot open: Permission denied
 tar: scripts/version-bump.js: Cannot open: Permission denied
 tar: stores/auth.store.ts: Cannot open: Permission denied
 tar: stores/navigation.store.ts: Cannot open: Permission denied
+tar: stores/nutrition.store.ts: Cannot open: Permission denied
 tar: stores/theme.store.ts: Cannot open: Permission denied
 tar: stores/toast.store.ts: Cannot open: Permission denied
-tar: stores/workout.store.ts: Cannot open: Permission denied
+tar: stores/workout.store.ts: Cannot open
+: Permission denied
 tar: types/firebase-rn.d.ts: Cannot open: Permission denied
 tar: types/index.ts: Cannot open: Permission denied
 tar: app/(auth): Cannot mkdir: Permission denied
@@ -672,7 +433,8 @@ tar: app/(auth)/signup.tsx: Cannot open: No such file or directory
 tar: app/(auth): Cannot mkdir: Permission denied
 tar: app/(auth)/welcome.tsx: Cannot open: No such file or directory
 tar: app/(auth): Cannot mkdir: Permission denied
-tar: app/(auth)/_layout.tsx: Cannot open: No such file or directory
+tar: app/(auth)/_layout.tsx: Cannot open
+: No such file or directory
 tar: app/(tabs): Cannot mkdir: Permission denied
 tar: app/(tabs)/community: Cannot mkdir: No such file or directory
 tar: app/(tabs): Cannot mkdir: Permission denied
@@ -681,8 +443,6 @@ tar: app/(tabs): Cannot mkdir: Permission denied
 tar: app/(tabs)/dashboard.tsx: Cannot open: No such file or directory
 tar: app/(tabs): Cannot mkdir: Permission denied
 tar: app/(tabs)/nutrition: Cannot mkdir: No such file or directory
-tar: app/(tabs): Cannot mkdir: Permission denied
-tar: app/(tabs)/nutrition.tsx: Cannot open: No such file or directory
 tar: app/(tabs): Cannot mkdir: Permission denied
 tar: app/(tabs)/profile: Cannot mkdir: No such file or directory
 tar: app/(tabs): Cannot mkdir: Permission denied
@@ -701,6 +461,22 @@ tar: app/settings: Cannot mkdir: Permission denied
 tar: app/settings/_layout.tsx: Cannot open: No such file or directory
 tar: assets/images: Cannot mkdir: Permission denied
 tar: assets/images/muscle-map: Cannot mkdir: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/AddFoodModal.tsx: Cannot open: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/FoodRow.tsx: Cannot open: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/MacroBar.tsx: Cannot open: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/MacroRing.tsx: Cannot open: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/MacroSummary.tsx: Cannot open: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/MealSection.tsx: Cannot open: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/NutritionDisclaimer.tsx: Cannot open: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/WaterTracker.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
 tar: components/ui/Avatar.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
@@ -714,7 +490,8 @@ tar: components/ui/CalendarPicker.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
 tar: components/ui/Checkbox.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
-tar: components/ui/DietaryPreferencePicker.tsx: Cannot open: No such file or directory
+tar:
+components/ui/DietaryPreferencePicker.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
 tar: components/ui/DropdownMenu.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
@@ -726,13 +503,35 @@ tar: components/ui/GlassCard.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
 tar: components/ui/Input.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/InteractiveMenu.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/InteractiveMenuWeb.css: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/InteractiveMenuWeb.demo.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/InteractiveMenuWeb.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
 tar: components/ui/Modal.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/modern-mobile-menu.README.md: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/modern-mobile-menu.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
 tar: components/ui/OptionPicker.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
 tar: components/ui/ProgressFormIndicator.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/ResponsiveModal.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/SafeView.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
 tar: components/ui/Spinner.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/stepper.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/SwipeableTabScene.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/tab-swipe-context.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
 tar: components/ui/TabBar.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
@@ -801,8 +600,7 @@ tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/components_prompts/coloured_badges.md: Cannot open: No such file or directory
 tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/components_prompts/dropdown_menu.md: Cannot open: No such file or directory
-tar:
-docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/components_prompts/edit_profile.md: Cannot open: No such file or directory
 tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/components_prompts/execution_plan.md: Cannot open: No such file or directory
@@ -817,11 +615,12 @@ tar: docs/components_prompts/navbar_menu.md: Cannot open: No such file or direct
 tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/components_prompts/pagination.md: Cannot open: No such file or directory
 tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/progress_bar.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/components_prompts/progress_form_indicator.md: Cannot open: No such file or directory
 tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/components_prompts/quick_settings.md: Cannot open: No such file or directory
-tar:
-docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/components_prompts/responsive_modal.md: Cannot open: No such file or directory
 tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/components_prompts/signup_page.md: Cannot open: No such file or directory
@@ -831,6 +630,8 @@ tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/components_prompts/spinner_loader.md: Cannot open: No such file or directory
 tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/components_prompts/stacked_activity cards.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/steper.md: Cannot open: No such file or directory
 tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/components_prompts/tabs.md: Cannot open: No such file or directory
 tar: docs/components_prompts: Cannot mkdir: Permission denied
@@ -849,16 +650,15 @@ tar: docs/prototype_files: Cannot mkdir: Permission denied
 tar: docs/prototype_files/body_front.png: Cannot open: No such file or directory
 tar: docs/prototype_files: Cannot mkdir: Permission denied
 tar: docs/prototype_files/coachAI-muscle-map-v2.html: Cannot open: No such file or directory
-tar: docs/prototype_files: Cannot mkdir
-: Permission denied
+tar:
+docs/prototype_files: Cannot mkdir: Permission denied
 tar: docs/prototype_files/coachAI-muscle-map.html: Cannot open: No such file or directory
-tar:
-docs/prototype_files: Cannot mkdir: Permission denied
+tar: docs/prototype_files: Cannot mkdir: Permission denied
 tar: docs/prototype_files/coachAI-prompt-generator.html: Cannot open: No such file or directory
-tar:
-docs/prototype_files: Cannot mkdir: Permission denied
-tar: docs/prototype_files/coachAI_exercises.json: Cannot open
-: No such file or directory
+tar: docs/prototype_files: Cannot mkdir: Permission denied
+tar: docs/prototype_files/coachAI_exercises.json: Cannot open: No such file or directory
+tar: lib/firestore: Cannot mkdir: Permission denied
+tar: lib/firestore/nutrition.ts: Cannot open: No such file or directory
 tar: lib/firestore: Cannot mkdir: Permission denied
 tar: lib/firestore/profile.ts: Cannot open: No such file or directory
 tar: lib/firestore: Cannot mkdir: Permission denied
@@ -867,676 +667,12 @@ tar: lib/firestore: Cannot mkdir: Permission denied
 tar: lib/firestore/workouts.ts: Cannot open: No such file or directory
 tar: lib/validation: Cannot mkdir: Permission denied
 tar: lib/validation/schemas.ts: Cannot open: No such file or directory
-tar: test_extract_betteru/.firebase/logs: Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(auth): Cannot mkdir: Permission denied
-tar:
-test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/index.tsx: Cannot open: Permission denied
-tar: test_extract_betteru/app/settings: Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/user: Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/_layout.tsx: Cannot open: Permission denied
-tar: test_extract_betteru/assets/adaptive-icon.png: Cannot open: Permission denied
-tar: test_extract_betteru/assets/favicon.png: Cannot open: Permission denied
-tar: test_extract_betteru/assets/fonts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/assets/icon.png: Cannot open: Permission denied
-tar: test_extract_betteru/assets/images: Cannot mkdir: Permission denied
-tar: test_extract_betteru/assets/notification-icon.png: Cannot open: Permission denied
-tar: test_extract_betteru/assets/splash-icon.png: Cannot open: Permission denied
-tar: test_extract_betteru/components/community: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/nutrition: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/workouts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/constants/animation.ts: Cannot open: Permission denied
-tar: test_extract_betteru/constants/colors.ts: Cannot open: Permission denied
-tar: test_extract_betteru/constants/design-system.ts: Cannot open: Permission denied
-tar: test_extract_betteru/constants/elevation.ts: Cannot open: Permission denied
-tar: test_extract_betteru/constants/radius.ts: Cannot open: Permission denied
-tar: test_extract_betteru/constants/spacing.ts: Cannot open: Permission denied
-tar: test_extract_betteru/constants/theme.ts: Cannot open: Permission denied
-tar: test_extract_betteru/constants/typography.ts: Cannot open: Permission denied
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/development-setup.md: Cannot open: Permission denied
-tar: test_extract_betteru/docs/initial_prompt.md: Cannot open: Permission denied
-tar: test_extract_betteru/docs/main_plan.md: Cannot open: Permission denied
-tar: test_extract_betteru/docs/prototype_files: Cannot mkdir: Permission denied
-tar: test_extract_betteru/hooks/useHideMainTabBar.ts: Cannot open: Permission denied
-tar: test_extract_betteru/hooks/useOnboardingDraft.ts: Cannot open: Permission denied
-tar: test_extract_betteru/hooks/useRootRoute.ts: Cannot open: Permission denied
-tar: test_extract_betteru/hooks/useUsernameCheck.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/ai-provider.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/api-key-store.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/bootstrap.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/firebase.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/firestore: Cannot mkdir: Permission denied
-tar: test_extract_betteru/lib/firestore.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/i18n.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/profile-dates.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/username.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/utils.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/validation: Cannot mkdir: Permission denied
-tar: test_extract_betteru/locales/en.json: Cannot open: Permission denied
-tar: test_extract_betteru/locales/pt.json: Cannot open: Permission denied
-tar: test_extract_betteru/scripts/version-bump.js: Cannot open: Permission denied
-tar: test_extract_betteru/stores/auth.store.ts: Cannot open: Permission denied
-tar: test_extract_betteru/stores/navigation.store.ts: Cannot open: Permission denied
-tar: test_extract_betteru/stores/theme.store.ts: Cannot open: Permission denied
-tar: test_extract_betteru/stores/toast.store.ts: Cannot open: Permission denied
-tar: test_extract_betteru/stores/workout.store.ts: Cannot open: Permission denied
-tar: test_extract_betteru/types/firebase-rn.d.ts: Cannot open: Permission denied
-tar: test_extract_betteru/types/index.ts: Cannot open: Permission denied
 tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
 tar: app/(auth)/onboarding/diet.tsx: Cannot open: No such file or directory
-tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: app/(auth)/onboarding/experience.tsx: Cannot open: No such file or directory
-tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: app/(auth)/onboarding/goals.tsx: Cannot open: No such file or directory
-tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: app/(auth)/onboarding/index.tsx: Cannot open: No such file or directory
-tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: app/(auth)/onboarding/personal.tsx: Cannot open: No such file or directory
-tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: app/(auth)/onboarding/step-1.tsx: Cannot open: No such file or directory
-tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: app/(auth)/onboarding/step-2.tsx: Cannot open: No such file or directory
-tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: app/(auth)/onboarding/step-3.tsx: Cannot open: No such file or directory
-tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: app/(auth)/onboarding/step-4.tsx: Cannot open: No such file or directory
-tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: app/(auth)/onboarding/_layout.tsx: Cannot open: No such file or directory
-tar: app/(tabs)/community: Cannot mkdir: No such file or directory
-tar: app/(tabs)/community/groups: Cannot mkdir: No such file or directory
-tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: app/(tabs)/workouts/create.tsx: Cannot open: No such file or directory
-tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: app/(tabs)/workouts/explore.tsx: Cannot open: No such file or directory
-tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: app/(tabs)/workouts/history.tsx: Cannot open: No such file or directory
-tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: app/(tabs)/workouts/index.tsx: Cannot open: No such file or directory
-tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: app/(tabs)/workouts/[id]: Cannot mkdir: No such file or directory
-tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: app/(tabs)/workouts/_layout.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(auth)/login.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(auth)/logout-feedback.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(auth)/signup.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(auth)/welcome.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(auth)/_layout.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/community: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/community.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/dashboard.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/nutrition: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/nutrition.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/profile: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/profile.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/_layout.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/settings: Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/settings/about.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/settings: Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/settings/index.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/settings: Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/settings/profile-edit.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/settings: Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/settings/_layout.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/assets/images: Cannot mkdir: Permission denied
-tar: test_extract_betteru/assets/images/muscle-map: Cannot mkdir
-: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Avatar.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Badge.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Button.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/CalendarLume.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/CalendarPicker.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Checkbox.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/DietaryPreferencePicker.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/DropdownMenu.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/FloatingActionMenu.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/FormStepper.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/GlassCard.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Input.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Modal.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/OptionPicker.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/ProgressFormIndicator.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Spinner.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/TabBar.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Tabs.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Toast.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Toggle.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/UsernameAvailability.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/workouts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/workouts/ExerciseCard.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/workouts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/workouts/WorkoutCard.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/01-foundation-and-navigation.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/02-onboarding-and-profile.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/03-ui-system-and-layout.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/04-workouts.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/05-nutrition.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/06-ai-keys.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/07-community.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/08-coach.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/09-achievements.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/10-polish.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/phase-01-review.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/phase-02-review.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/phase-review-template.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/README.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/accordion.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/activity_chart_card.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/avatar_numbers.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/avatar_picker.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/badge_notification_icon.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/breadcrumbs.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/calendar_selection.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/card_item_count.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/card_posts.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/card_style.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/checkbox.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/coloured_badges.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/dropdown_menu.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/edit_profile.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/execution_plan.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/filter_popover.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/floating_button.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/form_questions.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/navbar_menu.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/pagination.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/progress_form_indicator.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/quick_settings.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/responsive_modal.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/signup_page.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/sliders.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/spinner_loader.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/stacked_activity cards.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/tabs.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/terms_and_conditions.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/toasts.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/togle_button.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/tooltips.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/workout_cards.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/prototype_files: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/prototype_files/body_back.png: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/prototype_files: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/prototype_files/body_front.png: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/prototype_files: Cannot mkdir
-: Permission denied
-tar: test_extract_betteru/docs/prototype_files/coachAI-muscle-map-v2.html: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/prototype_files: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/prototype_files/coachAI-muscle-map.html: Cannot open: No such file or directory
-tar:
-test_extract_betteru/docs/prototype_files: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/prototype_files/coachAI-prompt-generator.html: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/prototype_files: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/prototype_files/coachAI_exercises.json: Cannot open: No such file or directory
-tar: test_extract_betteru/lib/firestore: Cannot mkdir: Permission denied
-tar: test_extract_betteru/lib/firestore/profile.ts: Cannot open
-: No such file or directory
-tar: test_extract_betteru/lib/firestore: Cannot mkdir: Permission denied
-tar: test_extract_betteru/lib/firestore/username.ts: Cannot open: No such file or directory
-tar: test_extract_betteru/lib/firestore: Cannot mkdir: Permission denied
-tar: test_extract_betteru/lib/firestore/workouts.ts: Cannot open: No such file or directory
-tar: test_extract_betteru/lib/validation: Cannot mkdir: Permission denied
-tar: test_extract_betteru/lib/validation/schemas.ts: Cannot open: No such file or directory
-tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: app/(tabs)/workouts/[id]/index.tsx: Cannot open: No such file or directory
-tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: app/(tabs)/workouts/[id]/run.tsx: Cannot open: No such file or directory
-tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: app/(tabs)/workouts/[id]/summary.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/diet.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/experience.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/goals.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/index.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/personal.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/step-1.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/step-2.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/step-3.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/step-4.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/_layout.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/community: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/community/groups: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/create.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/explore.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/history.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/index.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/[id]: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/_layout.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/[id]/edit.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/[id]/index.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/[id]/run.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/[id]/summary.tsx: Cannot open: No such file or directory
-tar: Exiting with failure status due to previous errors
-tar: .firebase/logs: Cannot mkdir: Permission denied
-tar: app/(auth): Cannot mkdir: Permission denied
-tar: app/(tabs): Cannot mkdir: Permission denied
-tar: app/index.tsx: Cannot open: Permission denied
-tar: app/settings: Cannot mkdir: Permission denied
-tar: app/user: Cannot mkdir: Permission denied
-tar: app/_layout.tsx: Cannot open: Permission denied
-tar: assets/adaptive-icon.png: Cannot open: Permission denied
-tar: assets/favicon.png: Cannot open: Permission denied
-tar: assets/fonts: Cannot mkdir: Permission denied
-tar: assets/icon.png: Cannot open: Permission denied
-tar: assets/images: Cannot mkdir: Permission denied
-tar: assets/notification-icon.png: Cannot open: Permission denied
-tar: assets/splash-icon.png: Cannot open: Permission denied
-tar: components/community: Cannot mkdir: Permission denied
-tar: components/nutrition: Cannot mkdir: Permission denied
-tar: components/ui: Cannot mkdir: Permission denied
-tar: components/workouts: Cannot mkdir: Permission denied
-tar: constants/animation.ts: Cannot open: Permission denied
-tar: constants/colors.ts: Cannot open: Permission denied
-tar: constants/design-system.ts: Cannot open: Permission denied
-tar: constants/elevation.ts: Cannot open: Permission denied
-tar: constants/radius.ts: Cannot open: Permission denied
-tar: constants/spacing.ts: Cannot open: Permission denied
-tar: constants/theme.ts: Cannot open: Permission denied
-tar: constants/typography.ts: Cannot open: Permission denied
-tar: docs/agent-plans: Cannot mkdir: Permission denied
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/development-setup.md: Cannot open: Permission denied
-tar: docs/initial_prompt.md: Cannot open: Permission denied
-tar: docs/main_plan.md: Cannot open: Permission denied
-tar: docs/prototype_files: Cannot mkdir: Permission denied
-tar: hooks/useHideMainTabBar.ts: Cannot open: Permission denied
-tar: hooks/useOnboardingDraft.ts: Cannot open: Permission denied
-tar: hooks/useRootRoute.ts: Cannot open: Permission denied
-tar: hooks/useUsernameCheck.ts: Cannot open: Permission denied
-tar: lib/ai-provider.ts: Cannot open: Permission denied
-tar: lib/api-key-store.ts: Cannot open: Permission denied
-tar: lib/bootstrap.ts: Cannot open: Permission denied
-tar: lib/firebase.ts: Cannot open: Permission denied
-tar: lib/firestore: Cannot mkdir: Permission denied
-tar: lib/firestore.ts: Cannot open: Permission denied
-tar: lib/i18n.ts: Cannot open: Permission denied
-tar: lib/profile-dates.ts: Cannot open: Permission denied
-tar: lib/username.ts: Cannot open: Permission denied
-tar: lib/utils.ts: Cannot open: Permission denied
-tar: lib/validation: Cannot mkdir: Permission denied
-tar: locales/en.json: Cannot open: Permission denied
-tar: locales/pt.json: Cannot open: Permission denied
-tar: scripts/version-bump.js: Cannot open: Permission denied
-tar: stores/auth.store.ts: Cannot open: Permission denied
-tar: stores/navigation.store.ts: Cannot open: Permission denied
-tar: stores/theme.store.ts: Cannot open: Permission denied
-tar: stores/toast.store.ts: Cannot open: Permission denied
-tar: stores/workout.store.ts: Cannot open: Permission denied
-tar: types/firebase-rn.d.ts: Cannot open: Permission denied
-tar: types/index.ts: Cannot open: Permission denied
-tar: app/(auth): Cannot mkdir: Permission denied
-tar: app/(auth)/login.tsx: Cannot open: No such file or directory
-tar: app/(auth): Cannot mkdir: Permission denied
-tar:
-app/(auth)/logout-feedback.tsx: Cannot open: No such file or directory
-tar: app/(auth): Cannot mkdir: Permission denied
-tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: app/(auth): Cannot mkdir: Permission denied
-tar: app/(auth)/signup.tsx: Cannot open: No such file or directory
-tar: app/(auth): Cannot mkdir: Permission denied
-tar: app/(auth)/welcome.tsx: Cannot open: No such file or directory
-tar: app/(auth): Cannot mkdir: Permission denied
-tar: app/(auth)/_layout.tsx: Cannot open: No such file or directory
-tar: app/(tabs): Cannot mkdir: Permission denied
-tar: app/(tabs)/community: Cannot mkdir: No such file or directory
-tar: app/(tabs): Cannot mkdir: Permission denied
-tar: app/(tabs)/community.tsx: Cannot open: No such file or directory
-tar: app/(tabs): Cannot mkdir: Permission denied
-tar: app/(tabs)/dashboard.tsx: Cannot open: No such file or directory
-tar: app/(tabs): Cannot mkdir: Permission denied
-tar: app/(tabs)/nutrition: Cannot mkdir: No such file or directory
-tar: app/(tabs): Cannot mkdir: Permission denied
-tar: app/(tabs)/nutrition.tsx: Cannot open: No such file or directory
-tar: app/(tabs): Cannot mkdir: Permission denied
-tar: app/(tabs)/profile: Cannot mkdir: No such file or directory
-tar: app/(tabs): Cannot mkdir: Permission denied
-tar: app/(tabs)/profile.tsx: Cannot open: No such file or directory
-tar: app/(tabs): Cannot mkdir: Permission denied
-tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: app/(tabs): Cannot mkdir: Permission denied
-tar: app/(tabs)/_layout.tsx: Cannot open: No such file or directory
-tar: app/settings: Cannot mkdir: Permission denied
-tar: app/settings/about.tsx: Cannot open: No such file or directory
-tar: app/settings: Cannot mkdir: Permission denied
-tar: app/settings/index.tsx: Cannot open: No such file or directory
-tar: app/settings: Cannot mkdir: Permission denied
-tar: app/settings/profile-edit.tsx: Cannot open: No such file or directory
-tar: app/settings: Cannot mkdir: Permission denied
-tar: app/settings/_layout.tsx: Cannot open: No such file or directory
-tar: assets/images: Cannot mkdir: Permission denied
-tar: assets/images/muscle-map: Cannot mkdir: No such file or directory
-tar: components/ui: Cannot mkdir: Permission denied
-tar: components/ui/Avatar.tsx: Cannot open: No such file or directory
-tar: components/ui: Cannot mkdir: Permission denied
-tar: components/ui/Badge.tsx: Cannot open: No such file or directory
-tar: components/ui: Cannot mkdir: Permission denied
-tar: components/ui/Button.tsx: Cannot open: No such file or directory
-tar: components/ui: Cannot mkdir: Permission denied
-tar: components/ui/CalendarLume.tsx: Cannot open: No such file or directory
-tar: components/ui: Cannot mkdir: Permission denied
-tar: components/ui/CalendarPicker.tsx: Cannot open: No such file or directory
-tar: components/ui: Cannot mkdir: Permission denied
-tar: components/ui/Checkbox.tsx: Cannot open: No such file or directory
-tar: components/ui: Cannot mkdir: Permission denied
-tar: components/ui/DietaryPreferencePicker.tsx: Cannot open: No such file or directory
-tar: components/ui: Cannot mkdir: Permission denied
-tar: components/ui/DropdownMenu.tsx: Cannot open: No such file or directory
-tar: components/ui: Cannot mkdir: Permission denied
-tar: components/ui/FloatingActionMenu.tsx: Cannot open: No such file or directory
-tar: components/ui: Cannot mkdir: Permission denied
-tar: components/ui/FormStepper.tsx: Cannot open: No such file or directory
-tar: components/ui: Cannot mkdir: Permission denied
-tar: components/ui/GlassCard.tsx: Cannot open: No such file or directory
-tar: components/ui: Cannot mkdir: Permission denied
-tar: components/ui/Input.tsx: Cannot open: No such file or directory
-tar: components/ui: Cannot mkdir: Permission denied
-tar: components/ui/Modal.tsx: Cannot open: No such file or directory
-tar: components/ui: Cannot mkdir: Permission denied
-tar: components/ui/OptionPicker.tsx: Cannot open: No such file or directory
-tar: components/ui: Cannot mkdir: Permission denied
-tar: components/ui/ProgressFormIndicator.tsx: Cannot open: No such file or directory
-tar: components/ui: Cannot mkdir: Permission denied
-tar: components/ui/Spinner.tsx: Cannot open: No such file or directory
-tar: components/ui: Cannot mkdir: Permission denied
-tar: components/ui/TabBar.tsx: Cannot open: No such file or directory
-tar: components/ui: Cannot mkdir: Permission denied
-tar: components/ui/Tabs.tsx: Cannot open: No such file or directory
-tar: components/ui: Cannot mkdir: Permission denied
-tar: components/ui/Toast.tsx: Cannot open: No such file or directory
-tar: components/ui: Cannot mkdir: Permission denied
-tar: components/ui/Toggle.tsx: Cannot open: No such file or directory
-tar: components/ui: Cannot mkdir: Permission denied
-tar: components/ui/UsernameAvailability.tsx: Cannot open: No such file or directory
-tar: components/workouts: Cannot mkdir: Permission denied
-tar: components/workouts/ExerciseCard.tsx: Cannot open: No such file or directory
-tar: components/workouts: Cannot mkdir: Permission denied
-tar: components/workouts/WorkoutCard.tsx: Cannot open: No such file or directory
-tar: docs/agent-plans: Cannot mkdir: Permission denied
-tar: docs/agent-plans/01-foundation-and-navigation.md: Cannot open: No such file or directory
-tar: docs/agent-plans: Cannot mkdir: Permission denied
-tar: docs/agent-plans/02-onboarding-and-profile.md: Cannot open: No such file or directory
-tar: docs/agent-plans: Cannot mkdir: Permission denied
-tar: docs/agent-plans/03-ui-system-and-layout.md: Cannot open: No such file or directory
-tar: docs/agent-plans: Cannot mkdir: Permission denied
-tar: docs/agent-plans/04-workouts.md: Cannot open: No such file or directory
-tar: docs/agent-plans: Cannot mkdir: Permission denied
-tar: docs/agent-plans/05-nutrition.md: Cannot open: No such file or directory
-tar: docs/agent-plans: Cannot mkdir: Permission denied
-tar: docs/agent-plans/06-ai-keys.md: Cannot open: No such file or directory
-tar: docs/agent-plans: Cannot mkdir: Permission denied
-tar: docs/agent-plans/07-community.md: Cannot open: No such file or directory
-tar: docs/agent-plans: Cannot mkdir: Permission denied
-tar: docs/agent-plans/08-coach.md: Cannot open: No such file or directory
-tar: docs/agent-plans: Cannot mkdir: Permission denied
-tar: docs/agent-plans/09-achievements.md: Cannot open: No such file or directory
-tar: docs/agent-plans: Cannot mkdir: Permission denied
-tar: docs/agent-plans/10-polish.md: Cannot open: No such file or directory
-tar: docs/agent-plans: Cannot mkdir: Permission denied
-tar: docs/agent-plans/phase-01-review.md: Cannot open: No such file or directory
-tar: docs/agent-plans: Cannot mkdir: Permission denied
-tar: docs/agent-plans/phase-02-review.md: Cannot open: No such file or directory
-tar: docs/agent-plans: Cannot mkdir: Permission denied
-tar: docs/agent-plans/phase-review-template.md: Cannot open: No such file or directory
-tar: docs/agent-plans: Cannot mkdir: Permission denied
-tar: docs/agent-plans/README.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/accordion.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/activity_chart_card.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/avatar_numbers.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/avatar_picker.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/badge_notification_icon.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/breadcrumbs.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/calendar_selection.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/card_item_count.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/card_posts.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/card_style.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/checkbox.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/coloured_badges.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/dropdown_menu.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/edit_profile.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/execution_plan.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/filter_popover.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/floating_button.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/form_questions.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar:
-docs/components_prompts/navbar_menu.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/pagination.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/progress_form_indicator.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/quick_settings.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/responsive_modal.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/signup_page.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/sliders.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/spinner_loader.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/stacked_activity cards.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/tabs.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/terms_and_conditions.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/toasts.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/togle_button.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/tooltips.md: Cannot open: No such file or directory
-tar: docs/components_prompts: Cannot mkdir: Permission denied
-tar: docs/components_prompts/workout_cards.md: Cannot open: No such file or directory
-tar: docs/prototype_files: Cannot mkdir: Permission denied
-tar: docs/prototype_files/body_back.png: Cannot open: No such file or directory
-tar: docs/prototype_files: Cannot mkdir: Permission denied
-
-tar: docs/prototype_files/body_front.png: Cannot open: No such file or directory
-tar: docs/prototype_files: Cannot mkdir
-: Permission denied
-tar: docs/prototype_files/coachAI-muscle-map-v2.html: Cannot open: No such file or directory
-tar: docs/prototype_files: Cannot mkdir: Permission denied
-tar: docs/prototype_files/coachAI-muscle-map.html: Cannot open: No such file or directory
-tar: docs/prototype_files: Cannot mkdir: Permission denied
-tar: docs/prototype_files/coachAI-prompt-generator.html: Cannot open: No such file or directory
-tar: docs/prototype_files: Cannot mkdir: Permission denied
-tar: docs/prototype_files/coachAI_exercises.json: Cannot open: No such file or directory
-tar: lib/firestore: Cannot mkdir: Permission denied
-tar: lib/firestore/profile.ts: Cannot open
-: No such file or directory
-tar: lib/firestore: Cannot mkdir: Permission denied
-tar: lib/firestore/username.ts: Cannot open: No such file or directory
-tar: lib/firestore: Cannot mkdir: Permission denied
-tar: lib/firestore/workouts.ts: Cannot open: No such file or directory
-tar: lib/validation: Cannot mkdir: Permission denied
-tar: lib/validation/schemas.ts: Cannot open: No such file or directory
-tar: test_extract_betteru/.firebase/logs: Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(auth): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/index.tsx: Cannot open: Permission denied
-tar: test_extract_betteru/app/settings: Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/user: Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/_layout.tsx: Cannot open: Permission denied
-tar: test_extract_betteru/assets/adaptive-icon.png: Cannot open: Permission denied
-tar: test_extract_betteru/assets/favicon.png: Cannot open: Permission denied
-tar: test_extract_betteru/assets/fonts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/assets/icon.png: Cannot open: Permission denied
-tar: test_extract_betteru/assets/images: Cannot mkdir: Permission denied
-tar: test_extract_betteru/assets/notification-icon.png: Cannot open: Permission denied
-tar: test_extract_betteru/assets/splash-icon.png: Cannot open: Permission denied
-tar: test_extract_betteru/components/community: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/nutrition: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/workouts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/constants/animation.ts: Cannot open: Permission denied
-tar: test_extract_betteru/constants/colors.ts: Cannot open: Permission denied
-tar: test_extract_betteru/constants/design-system.ts: Cannot open: Permission denied
-tar: test_extract_betteru/constants/elevation.ts: Cannot open: Permission denied
-tar: test_extract_betteru/constants/radius.ts: Cannot open: Permission denied
-tar: test_extract_betteru/constants/spacing.ts: Cannot open: Permission denied
-tar: test_extract_betteru/constants/theme.ts: Cannot open: Permission denied
-tar: test_extract_betteru/constants/typography.ts: Cannot open: Permission denied
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/development-setup.md: Cannot open: Permission denied
-tar: test_extract_betteru/docs/initial_prompt.md: Cannot open: Permission denied
-tar: test_extract_betteru/docs/main_plan.md: Cannot open: Permission denied
-tar: test_extract_betteru/docs/prototype_files: Cannot mkdir: Permission denied
-tar: test_extract_betteru/hooks/useHideMainTabBar.ts: Cannot open: Permission denied
-tar: test_extract_betteru/hooks/useOnboardingDraft.ts: Cannot open: Permission denied
-tar: test_extract_betteru/hooks/useRootRoute.ts: Cannot open: Permission denied
-tar: test_extract_betteru/hooks/useUsernameCheck.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/ai-provider.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/api-key-store.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/bootstrap.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/firebase.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/firestore: Cannot mkdir: Permission denied
-tar: test_extract_betteru/lib/firestore.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/i18n.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/profile-dates.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/username.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/utils.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/validation: Cannot mkdir: Permission denied
-tar: test_extract_betteru/locales/en.json: Cannot open: Permission denied
-tar: test_extract_betteru/locales/pt.json: Cannot open: Permission denied
-tar: test_extract_betteru/scripts/version-bump.js: Cannot open: Permission denied
-tar: test_extract_betteru/stores/auth.store.ts: Cannot open: Permission denied
-tar: test_extract_betteru/stores/navigation.store.ts: Cannot open: Permission denied
-tar: test_extract_betteru/stores/theme.store.ts: Cannot open: Permission denied
-tar: test_extract_betteru/stores/toast.store.ts: Cannot open: Permission denied
-tar: test_extract_betteru/stores/workout.store.ts: Cannot open: Permission denied
-tar: test_extract_betteru/types/firebase-rn.d.ts: Cannot open: Permission denied
-tar: test_extract_betteru/types/index.ts: Cannot open: Permission denied
-tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: app/(auth)/onboarding/diet.tsx: Cannot open: No such file or directory
-tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: app/(auth)/onboarding/experience.tsx: Cannot open: No such file or directory
 tar: app/(auth)/onboarding: Cannot mkdir
 : No such file or directory
+tar: app/(auth)/onboarding/experience.tsx: Cannot open: No such file or directory
+tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
 tar: app/(auth)/onboarding/goals.tsx: Cannot open: No such file or directory
 tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
 tar: app/(auth)/onboarding/index.tsx: Cannot open: No such file or directory
@@ -1554,6 +690,19 @@ tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
 tar: app/(auth)/onboarding/_layout.tsx: Cannot open: No such file or directory
 tar: app/(tabs)/community: Cannot mkdir: No such file or directory
 tar: app/(tabs)/community/groups: Cannot mkdir: No such file or directory
+tar: app/(tabs)/nutrition: Cannot mkdir: No such file or directory
+tar: app/(tabs)/nutrition/history.tsx: Cannot open: No such file or directory
+tar: app/(tabs)/nutrition: Cannot mkdir: No such file or directory
+tar: app/(tabs)/nutrition/index.tsx: Cannot open: No such file or directory
+tar: app/(tabs)/nutrition: Cannot mkdir: No such file or directory
+tar: app/(tabs)/nutrition/library.tsx: Cannot open: No such file or directory
+tar: app/(tabs)/nutrition: Cannot mkdir: No such file or directory
+tar: app/(tabs)/nutrition/log.tsx: Cannot open: No such file or directory
+tar: app/(tabs)/nutrition: Cannot mkdir: No such file or directory
+tar: app/(tabs)/nutrition/plan.tsx: Cannot open
+: No such file or directory
+tar: app/(tabs)/nutrition: Cannot mkdir: No such file or directory
+tar: app/(tabs)/nutrition/_layout.tsx: Cannot open: No such file or directory
 tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
 tar: app/(tabs)/workouts/create.tsx: Cannot open: No such file or directory
 tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
@@ -1566,260 +715,14 @@ tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
 tar: app/(tabs)/workouts/[id]: Cannot mkdir: No such file or directory
 tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
 tar: app/(tabs)/workouts/_layout.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(auth)/login.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(auth)/logout-feedback.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(auth)/signup.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(auth)/welcome.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(auth)/_layout.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/community: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/community.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/dashboard.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/nutrition: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/nutrition.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/profile: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/profile.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/_layout.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/settings: Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/settings/about.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/settings: Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/settings/index.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/settings: Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/settings/profile-edit.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/settings: Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/settings/_layout.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/assets/images: Cannot mkdir: Permission denied
-tar: test_extract_betteru/assets/images/muscle-map: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Avatar.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Badge.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Button.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/CalendarLume.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/CalendarPicker.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Checkbox.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/DietaryPreferencePicker.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/DropdownMenu.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/FloatingActionMenu.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/FormStepper.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/GlassCard.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Input.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Modal.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/OptionPicker.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/ProgressFormIndicator.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Spinner.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/TabBar.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Tabs.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Toast.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Toggle.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/UsernameAvailability.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/workouts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/workouts/ExerciseCard.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/workouts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/workouts/WorkoutCard.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/01-foundation-and-navigation.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/02-onboarding-and-profile.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/03-ui-system-and-layout.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/04-workouts.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/05-nutrition.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/06-ai-keys.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/07-community.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/08-coach.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/09-achievements.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/10-polish.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/phase-01-review.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/phase-02-review.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/phase-review-template.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/README.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/accordion.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/activity_chart_card.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/avatar_numbers.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/avatar_picker.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/badge_notification_icon.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/breadcrumbs.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/calendar_selection.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/card_item_count.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/card_posts.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/card_style.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/checkbox.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/coloured_badges.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/dropdown_menu.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/edit_profile.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/execution_plan.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/filter_popover.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/floating_button.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/form_questions.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/navbar_menu.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/pagination.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/progress_form_indicator.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/quick_settings.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/responsive_modal.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/signup_page.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/sliders.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/spinner_loader.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/stacked_activity cards.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/tabs.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/terms_and_conditions.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/toasts.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/togle_button.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/tooltips.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/workout_cards.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/prototype_files: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/prototype_files/body_back.png: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/prototype_files: Cannot mkdir
-: Permission denied
-tar: test_extract_betteru/docs/prototype_files/body_front.png: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/prototype_files: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/prototype_files/coachAI-muscle-map-v2.html: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/prototype_files: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/prototype_files/coachAI-muscle-map.html: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/prototype_files: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/prototype_files/coachAI-prompt-generator.html: Cannot open: No such file or directory
-tar:
-test_extract_betteru/docs/prototype_files: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/prototype_files/coachAI_exercises.json: Cannot open: No such file or directory
-tar: test_extract_betteru/lib/firestore: Cannot mkdir: Permission denied
-tar: test_extract_betteru/lib/firestore/profile.ts: Cannot open: No such file or directory
-tar: test_extract_betteru/lib/firestore: Cannot mkdir: Permission denied
-tar: test_extract_betteru/lib/firestore/username.ts: Cannot open: No such file or directory
-tar: test_extract_betteru/lib/firestore: Cannot mkdir: Permission denied
-tar: test_extract_betteru/lib/firestore/workouts.ts: Cannot open: No such file or directory
-tar: test_extract_betteru/lib/validation: Cannot mkdir: Permission denied
-tar: test_extract_betteru/lib/validation/schemas.ts: Cannot open: No such file or directory
+tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
+tar: app/(tabs)/workouts/[id]/edit.tsx: Cannot open: No such file or directory
 tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
 tar: app/(tabs)/workouts/[id]/index.tsx: Cannot open: No such file or directory
 tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
 tar: app/(tabs)/workouts/[id]/run.tsx: Cannot open: No such file or directory
 tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
 tar: app/(tabs)/workouts/[id]/summary.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/diet.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir
-: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/experience.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/goals.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/index.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/personal.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/step-1.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir
-: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/step-2.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/step-3.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/step-4.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/_layout.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/community: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/community/groups: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/create.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar:
-test_extract_betteru/app/(tabs)/workouts/explore.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/history.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/index.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/[id]: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/_layout.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir
-: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/[id]/edit.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/[id]/index.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/[id]/run.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/[id]/summary.tsx: Cannot open: No such file or directory
 tar: Exiting with failure status due to previous errors
 tar: .firebase/logs: Cannot mkdir: Permission denied
 tar: app/(auth): Cannot mkdir: Permission denied
@@ -1851,6 +754,7 @@ tar: docs/agent-plans: Cannot mkdir: Permission denied
 tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/development-setup.md: Cannot open: Permission denied
 tar: docs/initial_prompt.md: Cannot open: Permission denied
+tar: docs/interactive-menu-integration.md: Cannot open: Permission denied
 tar: docs/main_plan.md: Cannot open: Permission denied
 tar: docs/prototype_files: Cannot mkdir: Permission denied
 tar: hooks/useHideMainTabBar.ts: Cannot open: Permission denied
@@ -1864,15 +768,19 @@ tar: lib/firebase.ts: Cannot open: Permission denied
 tar: lib/firestore: Cannot mkdir: Permission denied
 tar: lib/firestore.ts: Cannot open: Permission denied
 tar: lib/i18n.ts: Cannot open: Permission denied
+tar: lib/macro-calculator.ts: Cannot open: Permission denied
+tar: lib/nutrition-ai.ts: Cannot open: Permission denied
 tar: lib/profile-dates.ts: Cannot open: Permission denied
 tar: lib/username.ts: Cannot open: Permission denied
 tar: lib/utils.ts: Cannot open: Permission denied
 tar: lib/validation: Cannot mkdir: Permission denied
 tar: locales/en.json: Cannot open: Permission denied
 tar: locales/pt.json: Cannot open: Permission denied
+tar: scripts/check-scrollbars.js: Cannot open: Permission denied
 tar: scripts/version-bump.js: Cannot open: Permission denied
 tar: stores/auth.store.ts: Cannot open: Permission denied
 tar: stores/navigation.store.ts: Cannot open: Permission denied
+tar: stores/nutrition.store.ts: Cannot open: Permission denied
 tar: stores/theme.store.ts: Cannot open: Permission denied
 tar: stores/toast.store.ts: Cannot open: Permission denied
 tar: stores/workout.store.ts: Cannot open: Permission denied
@@ -1880,8 +788,7 @@ tar: types/firebase-rn.d.ts: Cannot open: Permission denied
 tar: types/index.ts: Cannot open: Permission denied
 tar: app/(auth): Cannot mkdir: Permission denied
 tar: app/(auth)/login.tsx: Cannot open: No such file or directory
-tar:
-app/(auth): Cannot mkdir: Permission denied
+tar: app/(auth): Cannot mkdir: Permission denied
 tar: app/(auth)/logout-feedback.tsx: Cannot open: No such file or directory
 tar: app/(auth): Cannot mkdir: Permission denied
 tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
@@ -1900,8 +807,6 @@ tar: app/(tabs)/dashboard.tsx: Cannot open: No such file or directory
 tar: app/(tabs): Cannot mkdir: Permission denied
 tar: app/(tabs)/nutrition: Cannot mkdir: No such file or directory
 tar: app/(tabs): Cannot mkdir: Permission denied
-tar: app/(tabs)/nutrition.tsx: Cannot open: No such file or directory
-tar: app/(tabs): Cannot mkdir: Permission denied
 tar: app/(tabs)/profile: Cannot mkdir: No such file or directory
 tar: app/(tabs): Cannot mkdir: Permission denied
 tar: app/(tabs)/profile.tsx: Cannot open: No such file or directory
@@ -1919,6 +824,23 @@ tar: app/settings: Cannot mkdir: Permission denied
 tar: app/settings/_layout.tsx: Cannot open: No such file or directory
 tar: assets/images: Cannot mkdir: Permission denied
 tar: assets/images/muscle-map: Cannot mkdir: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/AddFoodModal.tsx: Cannot open: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/FoodRow.tsx: Cannot open: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/MacroBar.tsx: Cannot open: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/MacroRing.tsx: Cannot open: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/MacroSummary.tsx: Cannot open: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/MealSection.tsx: Cannot open: No such file or directory
+tar:
+components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/NutritionDisclaimer.tsx: Cannot open: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/WaterTracker.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
 tar: components/ui/Avatar.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
@@ -1944,16 +866,39 @@ tar: components/ui/GlassCard.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
 tar: components/ui/Input.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/InteractiveMenu.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/InteractiveMenuWeb.css: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/InteractiveMenuWeb.demo.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/InteractiveMenuWeb.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
 tar: components/ui/Modal.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/modern-mobile-menu.README.md: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/modern-mobile-menu.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
 tar: components/ui/OptionPicker.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
 tar: components/ui/ProgressFormIndicator.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/ResponsiveModal.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/SafeView.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
 tar: components/ui/Spinner.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
-tar: components/ui/TabBar.tsx: Cannot open: No such file or directory
+tar: components/ui/stepper.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/SwipeableTabScene.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/tab-swipe-context.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/TabBar.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir
+: Permission denied
 tar: components/ui/Tabs.tsx: Cannot open: No such file or directory
 tar: components/ui: Cannot mkdir: Permission denied
 tar: components/ui/Toast.tsx: Cannot open: No such file or directory
@@ -1976,8 +921,7 @@ tar: docs/agent-plans/04-workouts.md: Cannot open: No such file or directory
 tar: docs/agent-plans: Cannot mkdir: Permission denied
 tar: docs/agent-plans/05-nutrition.md: Cannot open: No such file or directory
 tar: docs/agent-plans: Cannot mkdir: Permission denied
-tar:
-docs/agent-plans/06-ai-keys.md: Cannot open: No such file or directory
+tar: docs/agent-plans/06-ai-keys.md: Cannot open: No such file or directory
 tar: docs/agent-plans: Cannot mkdir: Permission denied
 tar: docs/agent-plans/07-community.md: Cannot open: No such file or directory
 tar: docs/agent-plans: Cannot mkdir: Permission denied
@@ -2035,6 +979,8 @@ tar: docs/components_prompts/navbar_menu.md: Cannot open: No such file or direct
 tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/components_prompts/pagination.md: Cannot open: No such file or directory
 tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/progress_bar.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/components_prompts/progress_form_indicator.md: Cannot open: No such file or directory
 tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/components_prompts/quick_settings.md: Cannot open: No such file or directory
@@ -2048,6 +994,372 @@ tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/components_prompts/spinner_loader.md: Cannot open: No such file or directory
 tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/components_prompts/stacked_activity cards.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/steper.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/tabs.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/terms_and_conditions.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/toasts.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/togle_button.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/tooltips.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/workout_cards.md: Cannot open: No such file or directory
+tar: docs/prototype_files: Cannot mkdir: Permission denied
+tar: docs/prototype_files/body_back.png: Cannot open: No such file or directory
+tar: docs/prototype_files: Cannot mkdir: Permission denied
+tar: docs/prototype_files/body_front.png: Cannot open: No such file or directory
+tar: docs/prototype_files: Cannot mkdir
+: Permission denied
+tar: docs/prototype_files/coachAI-muscle-map-v2.html: Cannot open: No such file or directory
+tar: docs/prototype_files: Cannot mkdir: Permission denied
+tar: docs/prototype_files/coachAI-muscle-map.html: Cannot open: No such file or directory
+tar: docs/prototype_files: Cannot mkdir: Permission denied
+tar: docs/prototype_files/coachAI-prompt-generator.html: Cannot open: No such file or directory
+tar:
+docs/prototype_files: Cannot mkdir: Permission denied
+tar: docs/prototype_files/coachAI_exercises.json: Cannot open: No such file or directory
+tar: lib/firestore: Cannot mkdir: Permission denied
+tar: lib/firestore/nutrition.ts: Cannot open: No such file or directory
+tar: lib/firestore: Cannot mkdir: Permission denied
+tar: lib/firestore/profile.ts: Cannot open: No such file or directory
+tar: lib/firestore: Cannot mkdir: Permission denied
+tar: lib/firestore/username.ts: Cannot open: No such file or directory
+tar: lib/firestore: Cannot mkdir: Permission denied
+tar: lib/firestore/workouts.ts: Cannot open: No such file or directory
+tar: lib/validation: Cannot mkdir: Permission denied
+tar: lib/validation/schemas.ts: Cannot open: No such file or directory
+tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
+tar: app/(auth)/onboarding/diet.tsx: Cannot open: No such file or directory
+tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
+tar: app/(auth)/onboarding/experience.tsx: Cannot open: No such file or directory
+tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
+tar: app/(auth)/onboarding/goals.tsx: Cannot open: No such file or directory
+tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
+tar: app/(auth)/onboarding/index.tsx: Cannot open: No such file or directory
+tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
+tar: app/(auth)/onboarding/personal.tsx: Cannot open: No such file or directory
+tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
+tar: app/(auth)/onboarding/step-1.tsx: Cannot open: No such file or directory
+tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
+tar: app/(auth)/onboarding/step-2.tsx: Cannot open: No such file or directory
+tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
+tar: app/(auth)/onboarding/step-3.tsx: Cannot open: No such file or directory
+tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
+tar: app/(auth)/onboarding/step-4.tsx: Cannot open: No such file or directory
+tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
+tar: app/(auth)/onboarding/_layout.tsx: Cannot open: No such file or directory
+tar: app/(tabs)/community: Cannot mkdir: No such file or directory
+tar: app/(tabs)/community/groups: Cannot mkdir: No such file or directory
+tar: app/(tabs)/nutrition: Cannot mkdir: No such file or directory
+tar: app/(tabs)/nutrition/history.tsx: Cannot open: No such file or directory
+tar: app/(tabs)/nutrition: Cannot mkdir: No such file or directory
+tar: app/(tabs)/nutrition/index.tsx: Cannot open: No such file or directory
+tar: app/(tabs)/nutrition: Cannot mkdir: No such file or directory
+tar: app/(tabs)/nutrition/library.tsx: Cannot open: No such file or directory
+tar: app/(tabs)/nutrition: Cannot mkdir: No such file or directory
+tar: app/(tabs)/nutrition/log.tsx: Cannot open: No such file or directory
+tar: app/(tabs)/nutrition: Cannot mkdir: No such file or directory
+tar: app/(tabs)/nutrition/plan.tsx: Cannot open: No such file or directory
+tar: app/(tabs)/nutrition: Cannot mkdir: No such file or directory
+tar: app/(tabs)/nutrition/_layout.tsx: Cannot open: No such file or directory
+tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
+tar: app/(tabs)/workouts/create.tsx: Cannot open: No such file or directory
+tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
+tar: app/(tabs)/workouts/explore.tsx: Cannot open: No such file or directory
+tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
+tar: app/(tabs)/workouts/history.tsx: Cannot open: No such file or directory
+tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
+tar: app/(tabs)/workouts/index.tsx: Cannot open: No such file or directory
+tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
+tar: app/(tabs)/workouts/[id]: Cannot mkdir: No such file or directory
+tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
+tar: app/(tabs)/workouts/_layout.tsx: Cannot open: No such file or directory
+tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
+tar: app/(tabs)/workouts/[id]/edit.tsx: Cannot open: No such file or directory
+tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
+tar: app/(tabs)/workouts/[id]/index.tsx: Cannot open
+: No such file or directory
+tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
+tar: app/(tabs)/workouts/[id]/run.tsx: Cannot open: No such file or directory
+tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
+tar: app/(tabs)/workouts/[id]/summary.tsx: Cannot open: No such file or directory
+tar: Exiting with failure status due to previous errors
+tar: .firebase/logs: Cannot mkdir: Permission denied
+tar: app/(auth): Cannot mkdir: Permission denied
+tar: app/(tabs): Cannot mkdir: Permission denied
+tar: app/index.tsx: Cannot open: Permission denied
+tar: app/settings: Cannot mkdir: Permission denied
+tar: app/user: Cannot mkdir: Permission denied
+tar: app/_layout.tsx: Cannot open: Permission denied
+tar: assets/adaptive-icon.png: Cannot open: Permission denied
+tar: assets/favicon.png: Cannot open: Permission denied
+tar: assets/fonts: Cannot mkdir: Permission denied
+tar: assets/icon.png: Cannot open: Permission denied
+tar: assets/images: Cannot mkdir: Permission denied
+tar: assets/notification-icon.png: Cannot open: Permission denied
+tar: assets/splash-icon.png: Cannot open: Permission denied
+tar: components/community: Cannot mkdir: Permission denied
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/workouts: Cannot mkdir: Permission denied
+tar: constants/animation.ts: Cannot open: Permission denied
+tar: constants/colors.ts: Cannot open: Permission denied
+tar: constants/design-system.ts: Cannot open: Permission denied
+tar: constants/elevation.ts: Cannot open: Permission denied
+tar: constants/radius.ts: Cannot open: Permission denied
+tar: constants/spacing.ts: Cannot open: Permission denied
+tar: constants/theme.ts: Cannot open: Permission denied
+tar: constants/typography.ts: Cannot open: Permission denied
+tar: docs/agent-plans: Cannot mkdir: Permission denied
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/development-setup.md: Cannot open: Permission denied
+tar: docs/initial_prompt.md: Cannot open: Permission denied
+tar: docs/interactive-menu-integration.md: Cannot open: Permission denied
+tar: docs/main_plan.md: Cannot open: Permission denied
+tar: docs/prototype_files: Cannot mkdir: Permission denied
+tar: hooks/useHideMainTabBar.ts: Cannot open: Permission denied
+tar: hooks/useOnboardingDraft.ts: Cannot open: Permission denied
+tar: hooks/useRootRoute.ts: Cannot open: Permission denied
+tar: hooks/useUsernameCheck.ts: Cannot open: Permission denied
+tar: lib/ai-provider.ts: Cannot open: Permission denied
+tar: lib/api-key-store.ts: Cannot open: Permission denied
+tar: lib/bootstrap.ts: Cannot open: Permission denied
+tar: lib/firebase.ts: Cannot open: Permission denied
+tar: lib/firestore: Cannot mkdir: Permission denied
+tar: lib/firestore.ts: Cannot open: Permission denied
+tar: lib/i18n.ts: Cannot open: Permission denied
+tar: lib/macro-calculator.ts: Cannot open: Permission denied
+tar: lib/nutrition-ai.ts: Cannot open: Permission denied
+tar: lib/profile-dates.ts: Cannot open: Permission denied
+tar: lib/username.ts: Cannot open: Permission denied
+tar: lib/utils.ts: Cannot open: Permission denied
+tar: lib/validation: Cannot mkdir: Permission denied
+tar: locales/en.json: Cannot open: Permission denied
+tar: locales/pt.json: Cannot open: Permission denied
+tar: scripts/check-scrollbars.js: Cannot open: Permission denied
+tar: scripts/version-bump.js: Cannot open: Permission denied
+tar: stores/auth.store.ts: Cannot open: Permission denied
+tar: stores/navigation.store.ts: Cannot open: Permission denied
+tar: stores/nutrition.store.ts: Cannot open: Permission denied
+tar: stores/theme.store.ts: Cannot open: Permission denied
+tar: stores/toast.store.ts: Cannot open: Permission denied
+tar: stores/workout.store.ts: Cannot open: Permission denied
+tar: types/firebase-rn.d.ts: Cannot open: Permission denied
+tar: types/index.ts: Cannot open: Permission denied
+tar: app/(auth): Cannot mkdir: Permission denied
+tar: app/(auth)/login.tsx: Cannot open: No such file or directory
+tar: app/(auth): Cannot mkdir: Permission denied
+tar: app/(auth)/logout-feedback.tsx: Cannot open: No such file or directory
+tar: app/(auth): Cannot mkdir: Permission denied
+tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
+tar: app/(auth): Cannot mkdir: Permission denied
+tar: app/(auth)/signup.tsx: Cannot open: No such file or directory
+tar: app/(auth): Cannot mkdir: Permission denied
+tar: app/(auth)/welcome.tsx: Cannot open: No such file or directory
+tar: app/(auth): Cannot mkdir: Permission denied
+tar: app/(auth)/_layout.tsx: Cannot open: No such file or directory
+tar: app/(tabs): Cannot mkdir: Permission denied
+tar: app/(tabs)/community: Cannot mkdir: No such file or directory
+tar: app/(tabs): Cannot mkdir: Permission denied
+tar: app/(tabs)/community.tsx: Cannot open: No such file or directory
+tar: app/(tabs): Cannot mkdir: Permission denied
+tar: app/(tabs)/dashboard.tsx: Cannot open: No such file or directory
+tar: app/(tabs): Cannot mkdir: Permission denied
+tar: app/(tabs)/nutrition: Cannot mkdir: No such file or directory
+tar: app/(tabs): Cannot mkdir: Permission denied
+tar: app/(tabs)/profile: Cannot mkdir: No such file or directory
+tar: app/(tabs): Cannot mkdir: Permission denied
+tar: app/(tabs)/profile.tsx: Cannot open: No such file or directory
+tar: app/(tabs): Cannot mkdir: Permission denied
+tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
+tar: app/(tabs): Cannot mkdir: Permission denied
+tar: app/(tabs)/_layout.tsx: Cannot open: No such file or directory
+tar: app/settings: Cannot mkdir: Permission denied
+tar: app/settings/about.tsx: Cannot open: No such file or directory
+tar: app/settings: Cannot mkdir: Permission denied
+tar: app/settings/index.tsx: Cannot open: No such file or directory
+tar: app/settings: Cannot mkdir: Permission denied
+tar: app/settings/profile-edit.tsx: Cannot open: No such file or directory
+tar: app/settings: Cannot mkdir: Permission denied
+tar: app/settings/_layout.tsx: Cannot open: No such file or directory
+tar: assets/images: Cannot mkdir: Permission denied
+tar: assets/images/muscle-map: Cannot mkdir: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/AddFoodModal.tsx: Cannot open: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/FoodRow.tsx: Cannot open: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/MacroBar.tsx: Cannot open: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/MacroRing.tsx: Cannot open: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/MacroSummary.tsx: Cannot open: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/MealSection.tsx: Cannot open: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/NutritionDisclaimer.tsx: Cannot open
+: No such file or directory
+tar: components/nutrition: Cannot mkdir: Permission denied
+tar: components/nutrition/WaterTracker.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/Avatar.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/Badge.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/Button.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/CalendarLume.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/CalendarPicker.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/Checkbox.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/DietaryPreferencePicker.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/DropdownMenu.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/FloatingActionMenu.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/FormStepper.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/GlassCard.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/Input.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/InteractiveMenu.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/InteractiveMenuWeb.css: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/InteractiveMenuWeb.demo.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/InteractiveMenuWeb.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/Modal.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/modern-mobile-menu.README.md: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/modern-mobile-menu.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/OptionPicker.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/ProgressFormIndicator.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/ResponsiveModal.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/SafeView.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/Spinner.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/stepper.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/SwipeableTabScene.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/tab-swipe-context.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/TabBar.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/Tabs.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/Toast.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/Toggle.tsx: Cannot open: No such file or directory
+tar: components/ui: Cannot mkdir: Permission denied
+tar: components/ui/UsernameAvailability.tsx: Cannot open: No such file or directory
+tar: components/workouts: Cannot mkdir: Permission denied
+tar: components/workouts/ExerciseCard.tsx: Cannot open: No such file or directory
+tar: components/workouts: Cannot mkdir: Permission denied
+tar:
+components/workouts/WorkoutCard.tsx: Cannot open: No such file or directory
+tar: docs/agent-plans: Cannot mkdir: Permission denied
+tar: docs/agent-plans/01-foundation-and-navigation.md: Cannot open: No such file or directory
+tar: docs/agent-plans: Cannot mkdir: Permission denied
+tar: docs/agent-plans/02-onboarding-and-profile.md: Cannot open: No such file or directory
+tar: docs/agent-plans: Cannot mkdir: Permission denied
+tar: docs/agent-plans/03-ui-system-and-layout.md: Cannot open: No such file or directory
+tar: docs/agent-plans: Cannot mkdir: Permission denied
+tar: docs/agent-plans/04-workouts.md: Cannot open: No such file or directory
+tar: docs/agent-plans: Cannot mkdir: Permission denied
+tar: docs/agent-plans/05-nutrition.md: Cannot open: No such file or directory
+tar: docs/agent-plans: Cannot mkdir: Permission denied
+tar: docs/agent-plans/06-ai-keys.md: Cannot open: No such file or directory
+tar: docs/agent-plans: Cannot mkdir: Permission denied
+tar: docs/agent-plans/07-community.md: Cannot open: No such file or directory
+tar: docs/agent-plans: Cannot mkdir: Permission denied
+tar: docs/agent-plans/08-coach.md: Cannot open: No such file or directory
+tar: docs/agent-plans: Cannot mkdir: Permission denied
+tar: docs/agent-plans/09-achievements.md: Cannot open: No such file or directory
+tar: docs/agent-plans: Cannot mkdir: Permission denied
+tar: docs/agent-plans/10-polish.md: Cannot open: No such file or directory
+tar: docs/agent-plans: Cannot mkdir: Permission denied
+tar: docs/agent-plans/phase-01-review.md: Cannot open: No such file or directory
+tar: docs/agent-plans: Cannot mkdir: Permission denied
+tar: docs/agent-plans/phase-02-review.md: Cannot open: No such file or directory
+tar: docs/agent-plans: Cannot mkdir: Permission denied
+tar: docs/agent-plans/phase-review-template.md: Cannot open: No such file or directory
+tar: docs/agent-plans: Cannot mkdir: Permission denied
+tar: docs/agent-plans/README.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/accordion.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/activity_chart_card.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/avatar_numbers.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/avatar_picker.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/badge_notification_icon.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/breadcrumbs.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/calendar_selection.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/card_item_count.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/card_posts.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/card_style.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/checkbox.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/coloured_badges.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/dropdown_menu.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/edit_profile.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/execution_plan.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/filter_popover.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/floating_button.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/form_questions.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/navbar_menu.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/pagination.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/progress_bar.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/progress_form_indicator.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/quick_settings.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/responsive_modal.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/signup_page.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/sliders.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/spinner_loader.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/stacked_activity cards.md: Cannot open: No such file or directory
+tar: docs/components_prompts: Cannot mkdir: Permission denied
+tar: docs/components_prompts/steper.md: Cannot open: No such file or directory
 tar: docs/components_prompts: Cannot mkdir: Permission denied
 tar: docs/components_prompts/tabs.md: Cannot open: No such file or directory
 tar: docs/components_prompts: Cannot mkdir: Permission denied
@@ -2073,73 +1385,15 @@ tar: docs/prototype_files/coachAI-prompt-generator.html: Cannot open: No such fi
 tar: docs/prototype_files: Cannot mkdir: Permission denied
 tar: docs/prototype_files/coachAI_exercises.json: Cannot open: No such file or directory
 tar: lib/firestore: Cannot mkdir: Permission denied
+tar: lib/firestore/nutrition.ts: Cannot open: No such file or directory
+tar: lib/firestore: Cannot mkdir: Permission denied
 tar: lib/firestore/profile.ts: Cannot open: No such file or directory
 tar: lib/firestore: Cannot mkdir: Permission denied
-tar:
-lib/firestore/username.ts: Cannot open: No such file or directory
+tar: lib/firestore/username.ts: Cannot open: No such file or directory
 tar: lib/firestore: Cannot mkdir: Permission denied
 tar: lib/firestore/workouts.ts: Cannot open: No such file or directory
 tar: lib/validation: Cannot mkdir: Permission denied
 tar: lib/validation/schemas.ts: Cannot open: No such file or directory
-tar: test_extract_betteru/.firebase/logs: Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(auth): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/index.tsx: Cannot open: Permission denied
-tar: test_extract_betteru/app/settings: Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/user: Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/_layout.tsx: Cannot open: Permission denied
-tar: test_extract_betteru/assets/adaptive-icon.png: Cannot open: Permission denied
-tar: test_extract_betteru/assets/favicon.png: Cannot open: Permission denied
-tar: test_extract_betteru/assets/fonts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/assets/icon.png: Cannot open: Permission denied
-tar: test_extract_betteru/assets/images: Cannot mkdir: Permission denied
-tar: test_extract_betteru/assets/notification-icon.png: Cannot open: Permission denied
-tar: test_extract_betteru/assets/splash-icon.png: Cannot open: Permission denied
-tar: test_extract_betteru/components/community: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/nutrition: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/workouts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/constants/animation.ts: Cannot open: Permission denied
-tar: test_extract_betteru/constants/colors.ts: Cannot open: Permission denied
-tar: test_extract_betteru/constants/design-system.ts: Cannot open: Permission denied
-tar: test_extract_betteru/constants/elevation.ts: Cannot open: Permission denied
-tar: test_extract_betteru/constants/radius.ts: Cannot open: Permission denied
-tar: test_extract_betteru/constants/spacing.ts: Cannot open: Permission denied
-tar: test_extract_betteru/constants/theme.ts: Cannot open: Permission denied
-tar: test_extract_betteru/constants/typography.ts: Cannot open
-: Permission denied
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/development-setup.md: Cannot open: Permission denied
-tar: test_extract_betteru/docs/initial_prompt.md: Cannot open: Permission denied
-tar: test_extract_betteru/docs/main_plan.md: Cannot open: Permission denied
-tar: test_extract_betteru/docs/prototype_files: Cannot mkdir: Permission denied
-tar: test_extract_betteru/hooks/useHideMainTabBar.ts: Cannot open: Permission denied
-tar: test_extract_betteru/hooks/useOnboardingDraft.ts: Cannot open: Permission denied
-tar: test_extract_betteru/hooks/useRootRoute.ts: Cannot open: Permission denied
-tar: test_extract_betteru/hooks/useUsernameCheck.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/ai-provider.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/api-key-store.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/bootstrap.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/firebase.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/firestore: Cannot mkdir: Permission denied
-tar: test_extract_betteru/lib/firestore.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/i18n.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/profile-dates.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/username.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/utils.ts: Cannot open: Permission denied
-tar: test_extract_betteru/lib/validation: Cannot mkdir: Permission denied
-tar: test_extract_betteru/locales/en.json: Cannot open: Permission denied
-tar: test_extract_betteru/locales/pt.json: Cannot open: Permission denied
-tar: test_extract_betteru/scripts/version-bump.js: Cannot open: Permission denied
-tar: test_extract_betteru/stores/auth.store.ts: Cannot open: Permission denied
-tar: test_extract_betteru/stores/navigation.store.ts: Cannot open: Permission denied
-tar: test_extract_betteru/stores/theme.store.ts: Cannot open: Permission denied
-tar: test_extract_betteru/stores/toast.store.ts: Cannot open: Permission denied
-tar: test_extract_betteru/stores/workout.store.ts: Cannot open
-: Permission denied
-tar: test_extract_betteru/types/firebase-rn.d.ts: Cannot open: Permission denied
-tar: test_extract_betteru/types/index.ts: Cannot open: Permission denied
 tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
 tar: app/(auth)/onboarding/diet.tsx: Cannot open: No such file or directory
 tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
@@ -2163,6 +1417,18 @@ tar: app/(auth)/onboarding: Cannot mkdir: No such file or directory
 tar: app/(auth)/onboarding/_layout.tsx: Cannot open: No such file or directory
 tar: app/(tabs)/community: Cannot mkdir: No such file or directory
 tar: app/(tabs)/community/groups: Cannot mkdir: No such file or directory
+tar: app/(tabs)/nutrition: Cannot mkdir: No such file or directory
+tar: app/(tabs)/nutrition/history.tsx: Cannot open: No such file or directory
+tar: app/(tabs)/nutrition: Cannot mkdir: No such file or directory
+tar: app/(tabs)/nutrition/index.tsx: Cannot open: No such file or directory
+tar: app/(tabs)/nutrition: Cannot mkdir: No such file or directory
+tar: app/(tabs)/nutrition/library.tsx: Cannot open: No such file or directory
+tar: app/(tabs)/nutrition: Cannot mkdir: No such file or directory
+tar: app/(tabs)/nutrition/log.tsx: Cannot open: No such file or directory
+tar: app/(tabs)/nutrition: Cannot mkdir: No such file or directory
+tar: app/(tabs)/nutrition/plan.tsx: Cannot open: No such file or directory
+tar: app/(tabs)/nutrition: Cannot mkdir: No such file or directory
+tar: app/(tabs)/nutrition/_layout.tsx: Cannot open: No such file or directory
 tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
 tar: app/(tabs)/workouts/create.tsx: Cannot open: No such file or directory
 tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
@@ -2174,257 +1440,13 @@ tar: app/(tabs)/workouts/index.tsx: Cannot open: No such file or directory
 tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
 tar: app/(tabs)/workouts/[id]: Cannot mkdir: No such file or directory
 tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: app/(tabs)/workouts/_layout.tsx: Cannot open
-: No such file or directory
-tar: test_extract_betteru/app/(auth): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(auth)/login.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(auth)/logout-feedback.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(auth)/signup.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(auth)/welcome.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(auth)/_layout.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/community: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/community.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/dashboard.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/nutrition: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/nutrition.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/profile: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/profile.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs): Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/(tabs)/_layout.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/settings: Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/settings/about.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/settings: Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/settings/index.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/settings: Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/settings/profile-edit.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/settings: Cannot mkdir: Permission denied
-tar: test_extract_betteru/app/settings/_layout.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/assets/images: Cannot mkdir: Permission denied
-tar: test_extract_betteru/assets/images/muscle-map: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Avatar.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Badge.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Button.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/CalendarLume.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/CalendarPicker.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Checkbox.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/DietaryPreferencePicker.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/DropdownMenu.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/FloatingActionMenu.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/FormStepper.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/GlassCard.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Input.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Modal.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/OptionPicker.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/ProgressFormIndicator.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Spinner.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/TabBar.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Tabs.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Toast.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/Toggle.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/ui: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/ui/UsernameAvailability.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/workouts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/workouts/ExerciseCard.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/components/workouts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/components/workouts/WorkoutCard.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/01-foundation-and-navigation.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/02-onboarding-and-profile.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/03-ui-system-and-layout.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/04-workouts.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/05-nutrition.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/06-ai-keys.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/07-community.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/08-coach.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/09-achievements.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/10-polish.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/phase-01-review.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/phase-02-review.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/phase-review-template.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/agent-plans: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/agent-plans/README.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/accordion.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/activity_chart_card.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/avatar_numbers.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/avatar_picker.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/badge_notification_icon.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/breadcrumbs.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/calendar_selection.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/card_item_count.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/card_posts.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/card_style.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/checkbox.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/coloured_badges.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/dropdown_menu.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/edit_profile.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/execution_plan.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/filter_popover.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/floating_button.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/form_questions.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/navbar_menu.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/pagination.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/progress_form_indicator.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/quick_settings.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/responsive_modal.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/signup_page.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/sliders.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/spinner_loader.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/stacked_activity cards.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/tabs.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/terms_and_conditions.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/toasts.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/togle_button.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/tooltips.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/components_prompts: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/components_prompts/workout_cards.md: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/prototype_files: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/prototype_files/body_back.png: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/prototype_files: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/prototype_files/body_front.png: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/prototype_files: Cannot mkdir
-: Permission denied
-tar: test_extract_betteru/docs/prototype_files/coachAI-muscle-map-v2.html: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/prototype_files: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/prototype_files/coachAI-muscle-map.html: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/prototype_files: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/prototype_files/coachAI-prompt-generator.html: Cannot open: No such file or directory
-tar: test_extract_betteru/docs/prototype_files: Cannot mkdir: Permission denied
-tar: test_extract_betteru/docs/prototype_files/coachAI_exercises.json: Cannot open: No such file or directory
-tar: test_extract_betteru/lib/firestore: Cannot mkdir: Permission denied
-tar: test_extract_betteru/lib/firestore/profile.ts: Cannot open
-: No such file or directory
-tar: test_extract_betteru/lib/firestore: Cannot mkdir: Permission denied
-tar: test_extract_betteru/lib/firestore/username.ts: Cannot open: No such file or directory
-tar: test_extract_betteru/lib/firestore: Cannot mkdir: Permission denied
-tar: test_extract_betteru/lib/firestore/workouts.ts: Cannot open: No such file or directory
-tar: test_extract_betteru/lib/validation: Cannot mkdir: Permission denied
-tar: test_extract_betteru/lib/validation/schemas.ts: Cannot open: No such file or directory
+tar: app/(tabs)/workouts/_layout.tsx: Cannot open: No such file or directory
+tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
+tar: app/(tabs)/workouts/[id]/edit.tsx: Cannot open: No such file or directory
 tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
 tar: app/(tabs)/workouts/[id]/index.tsx: Cannot open: No such file or directory
 tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
 tar: app/(tabs)/workouts/[id]/run.tsx: Cannot open: No such file or directory
 tar: app/(tabs)/workouts: Cannot mkdir: No such file or directory
 tar: app/(tabs)/workouts/[id]/summary.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/diet.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/experience.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/goals.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/index.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/personal.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar:
-test_extract_betteru/app/(auth)/onboarding/step-1.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/step-2.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/step-3.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/step-4.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(auth)/onboarding/_layout.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/community: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/community/groups: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/create.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/explore.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/history.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/index.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/[id]: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/_layout.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/[id]/edit.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/[id]/index.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/[id]/run.tsx: Cannot open: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts: Cannot mkdir: No such file or directory
-tar: test_extract_betteru/app/(tabs)/workouts/[id]/summary.tsx: Cannot open: No such file or directory
 tar: Exiting with failure status due to previous errors

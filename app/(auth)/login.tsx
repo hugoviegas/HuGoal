@@ -47,8 +47,6 @@ export default function LoginScreen() {
     defaultValues: { email: "", password: "" },
   });
 
-  const handleLoginSubmit = handleSubmit(onSubmit);
-
   const onSubmit = async (data: LoginForm) => {
     setLoading(true);
     try {
@@ -68,6 +66,8 @@ export default function LoginScreen() {
       setLoading(false);
     }
   };
+
+  const handleLoginSubmit = handleSubmit(onSubmit);
 
   return (
     <KeyboardAvoidingView
@@ -150,7 +150,7 @@ export default function LoginScreen() {
                 secureTextEntry
                 autoCapitalize="none"
                 autoCorrect={false}
-                autoComplete="password"
+                autoComplete="current-password"
                 textContentType="password"
                 returnKeyType="done"
                 onSubmitEditing={handleLoginSubmit}
