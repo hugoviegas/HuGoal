@@ -1,9 +1,10 @@
-# Expo OTA e APK no GitHub Actions
+# Expo OTA e Build no GitHub Actions
 
-Este projeto agora possui dois workflows:
+Este projeto agora possui tres workflows organizados por ambiente:
 
-- `.github/workflows/expo-ota-update.yml`: publica OTA (EAS Update) em cada commit.
-- `.github/workflows/expo-build-apk.yml`: gera APK preview e publica no GitHub Release `preview-apk-latest`.
+- `.github/workflows/expo-ota-update.yml`: preview OTA (Android) para branches que nao sao `main`.
+- `.github/workflows/expo-build-apk.yml`: build development (Android APK) para branches que nao sao `main`.
+- `.github/workflows/expo-publish-main.yml`: build de publish para a branch `main`.
 
 ## OTA vs APK
 
@@ -29,19 +30,14 @@ Configure em `Settings > Secrets and variables > Actions` no GitHub:
 
 ## Gerar EXPO_TOKEN
 
-No terminal local autenticado no Expo:
+O token deve ser criado no painel do Expo (`expo.dev`) em Account Settings > Access Tokens.
+Depois, salve no secret `EXPO_TOKEN` do GitHub.
 
-```bash
-npx eas token:create
-```
+## Como baixar os builds
 
-Copie o token e salve no segredo `EXPO_TOKEN` do GitHub.
-
-## Como baixar o APK
-
-1. Acesse `Actions` e abra o run de `Build Android APK and Publish`.
-2. Baixe em `Artifacts` o arquivo APK.
-3. Ou abra o release `preview-apk-latest` e baixe o APK de la.
+1. Para development APK, abra o workflow `Build Development APK (Android)`.
+2. Baixe na aba `Artifacts` ou no release `development-apk-latest`.
+3. Para publish (main), abra o workflow `Publish Build (Main)` e baixe o artifact/release `publish-main-latest`.
 
 ## Como o app recebe update OTA
 
@@ -51,14 +47,21 @@ Copie o token e salve no segredo `EXPO_TOKEN` do GitHub.
 - Resultado: ao abrir o app, ele verifica update automaticamente.
 - Tambem existe acao manual em `Settings > App Updates > Check for updates`.
 
+## Regras de versionamento
+
+- Branches nao-main (preview/development): bump `patch` (ex.: `1.0.0` -> `1.0.1`).
+- Branch `main` (publish): bump `minor` (ex.: `1.0.0` -> `1.1.0`).
+- O workflow aplica o bump durante o CI em `app.json` e `package.json` para que a versao apareca no app.
+- A tela de Settings mostra a versao atual do app.
+
 ## Observacoes
 
 - O build instalado no aparelho deve estar no canal/branch correto (ex.: `preview`) para receber os updates desse branch.
 - `eas.json` ja foi configurado com canais por perfil (`development`, `preview`, `production`).
-- Nos workflows CI, o comando usado e `eas` (nao `npx eas`) porque o EAS CLI e provisionado pelo `expo/expo-github-action`.
 - Para maior estabilidade, os workflows agora chamam `npx --yes eas-cli@latest ...` diretamente nos passos de build/update.
 - Existe validacao explicita do `EXPO_TOKEN` no inicio do job para falhar cedo com mensagem clara quando o secret nao estiver disponivel.
 - Para reduzir tempo de execucao, os workflows usam:
   - cache de `~/.npm`, `~/.expo` e `~/.eas`
   - `npm ci --prefer-offline --no-audit`
   - filtro de `paths` para nao disparar build/update em commits que so alteram docs/arquivos nao relevantes para app.
+  - skip de run obsoleto para builds (se existir commit mais novo na branch, o build antigo e ignorado).

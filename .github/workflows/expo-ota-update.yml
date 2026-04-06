@@ -1,9 +1,9 @@
-name: Expo OTA Update
+name: Preview OTA Update (Android)
 
 on:
   push:
-    branches:
-      - "**"
+    branches-ignore:
+      - main
     paths:
       - "app/**"
       - "components/**"
@@ -26,21 +26,13 @@ on:
       - "index.ts"
       - "App.tsx"
   workflow_dispatch:
-    inputs:
-      eas_branch:
-        description: "EAS branch (preview|production)"
-        required: false
-        default: ""
-      platform:
-        description: "Platform (all|android|ios)"
-        required: false
-        default: "all"
+    inputs: {}
 
 permissions:
   contents: read
 
 concurrency:
-  group: ota-${{ github.ref }}
+  group: ota-preview-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -103,28 +95,18 @@ jobs:
             exit 1
           fi
 
+      - name: Bump preview version (patch)
+        env:
+          CI_BUILD_NUMBER: ${{ github.run_number }}
+        run: node scripts/version-bump.js patch
+
       - name: Resolve OTA target
         id: target
         shell: bash
         run: |
           set -euo pipefail
-
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.eas_branch }}" ]; then
-            EAS_BRANCH="${{ github.event.inputs.eas_branch }}"
-          elif [ "${GITHUB_REF_NAME}" = "main" ] || [ "${GITHUB_REF_NAME}" = "feat/expo-mobile-setup" ]; then
-            EAS_BRANCH="production"
-          else
-            EAS_BRANCH="preview"
-          fi
-
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.platform }}" ]; then
-            EAS_PLATFORM="${{ github.event.inputs.platform }}"
-          else
-            EAS_PLATFORM="all"
-          fi
-
-          echo "eas_branch=${EAS_BRANCH}" >> "$GITHUB_OUTPUT"
-          echo "eas_platform=${EAS_PLATFORM}" >> "$GITHUB_OUTPUT"
+          echo "eas_branch=preview" >> "$GITHUB_OUTPUT"
+          echo "eas_platform=android" >> "$GITHUB_OUTPUT"
 
       - name: Ensure channel is linked to branch
         shell: bash

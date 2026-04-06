@@ -1,13 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { Platform, useWindowDimensions } from "react-native";
 import { useRouter } from "expo-router";
+import { useIsFocused } from "@react-navigation/native";
 import {
   Gesture,
   GestureDetector,
 } from "react-native-gesture-handler";
 import Animated, {
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -28,16 +28,23 @@ interface SwipeableTabSceneProps {
 
 export function SwipeableTabScene({ tabIndex, children }: SwipeableTabSceneProps) {
   const router = useRouter();
+  const isFocused = useIsFocused();
   const { width } = useWindowDimensions();
   const { progress } = useTabSwipeContext();
   const translateX = useSharedValue(0);
+  const isNavigatingRef = useRef(false);
 
   useEffect(() => {
+    isNavigatingRef.current = false;
     translateX.value = 0;
     progress.value = tabIndex;
   }, [progress, tabIndex, translateX]);
 
-  if (Platform.OS === "web") {
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
+  if (Platform.OS === "web" || !isFocused) {
     return <>{children}</>;
   }
 
@@ -50,11 +57,20 @@ export function SwipeableTabScene({ tabIndex, children }: SwipeableTabSceneProps
   };
 
   const gesture = Gesture.Pan()
-    .activeOffsetX([-12, 12])
-    .failOffsetY([-12, 12])
-    .minDistance(8)
+    .runOnJS(true)
+    .activeOffsetX([-20, 20])
+    .failOffsetY([-10, 10])
+    .minDistance(10)
     .onUpdate((event) => {
-      if (width <= 0) {
+      if (width <= 0 || isNavigatingRef.current) {
+        return;
+      }
+
+      const absX = Math.abs(event.translationX);
+      const absY = Math.abs(event.translationY);
+
+      // Ignore vertical drags to avoid accidental tab changes/crashes.
+      if (absY > absX * 1.15) {
         return;
       }
 
@@ -63,9 +79,19 @@ export function SwipeableTabScene({ tabIndex, children }: SwipeableTabSceneProps
       progress.value = clamp(tabIndex - dragX / width, 0, TAB_ROUTES.length - 1);
     })
     .onEnd((event) => {
-      if (width <= 0) {
+      if (width <= 0 || isNavigatingRef.current) {
         translateX.value = 0;
         progress.value = tabIndex;
+        return;
+      }
+
+      const absX = Math.abs(event.translationX);
+      const absY = Math.abs(event.translationY);
+
+      // Vertical interaction should never trigger tab navigation.
+      if (absX < 18 || absY > absX * 1.15) {
+        translateX.value = withTiming(0, { duration: 180 });
+        progress.value = withTiming(tabIndex, { duration: 180 });
         return;
       }
 
@@ -85,13 +111,16 @@ export function SwipeableTabScene({ tabIndex, children }: SwipeableTabSceneProps
       progress.value = withTiming(nextIndex, { duration: 180 });
 
       if (nextIndex !== tabIndex) {
-        runOnJS(goToTab)(nextIndex);
+        isNavigatingRef.current = true;
+        goToTab(nextIndex);
+      }
+    })
+    .onFinalize(() => {
+      if (!isNavigatingRef.current) {
+        translateX.value = withTiming(0, { duration: 150 });
+        progress.value = withTiming(tabIndex, { duration: 150 });
       }
     });
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
-  }));
 
   return (
     <GestureDetector gesture={gesture}>

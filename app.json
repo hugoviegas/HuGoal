@@ -54,7 +54,7 @@
       "url": "https://u.expo.dev/211cd445-e6d4-48c8-a1ee-c58716ec6a26"
     },
     "runtimeVersion": {
-      "policy": "appVersion"
+      "policy": "sdkVersion"
     },
     "extra": {
       "router": {},

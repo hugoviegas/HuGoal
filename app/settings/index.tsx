@@ -1,6 +1,7 @@
 import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Constants from "expo-constants";
 import * as Updates from "expo-updates";
 import { useThemeStore } from "@/stores/theme.store";
 import { useAuthStore } from "@/stores/auth.store";
@@ -28,6 +29,7 @@ export default function SettingsScreen() {
   const logout = useAuthStore((s) => s.logout);
   const showToast = useToastStore((s) => s.show);
   const [checkingForUpdate, setCheckingForUpdate] = useState(false);
+  const appVersion = Constants.expoConfig?.version ?? "1.0.0";
 
   const handleLogout = async () => {
     await logout();
@@ -253,6 +255,12 @@ export default function SettingsScreen() {
           icon={<Info size={18} color={colors.foreground} />}
           label="About BetterU"
           onPress={() => router.push("/settings/about")}
+        />
+        <Row
+          icon={<Info size={18} color={colors.mutedForeground} />}
+          label="App Version"
+          right={<Text style={{ color: colors.mutedForeground }}>{appVersion}</Text>}
+          disabled
         />
       </View>
 

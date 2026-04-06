@@ -1,8 +1,8 @@
-name: Build Development APK (Android)
+name: Publish Build (Main)
 
 on:
   push:
-    branches-ignore:
+    branches:
       - main
     paths:
       - "app/**"
@@ -31,11 +31,11 @@ permissions:
   contents: write
 
 concurrency:
-  group: build-development-android
+  group: build-publish-main
   cancel-in-progress: false
 
 jobs:
-  build-and-publish-apk:
+  build-publish-main:
     runs-on: ubuntu-latest
     env:
       EXPO_TOKEN: ${{ secrets['EXPO_TOKEN'] }}
@@ -71,9 +71,9 @@ jobs:
             ~/.npm
             ~/.expo
             ~/.eas
-          key: ${{ runner.os }}-expo-apk-${{ hashFiles('package-lock.json') }}
+          key: ${{ runner.os }}-expo-publish-${{ hashFiles('package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-expo-apk-
+            ${{ runner.os }}-expo-publish-
 
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v8
@@ -109,46 +109,49 @@ jobs:
             echo "should_build=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Bump preview version (patch)
+      - name: Bump main version (minor)
         if: steps.freshness.outputs.should_build == 'true'
         env:
           CI_BUILD_NUMBER: ${{ github.run_number }}
-        run: node scripts/version-bump.js patch
+        run: node scripts/version-bump.js minor
 
-      - name: Build preview APK on EAS
+      - name: Build production (Android)
         if: steps.freshness.outputs.should_build == 'true'
         id: build
         shell: bash
         run: |
           set -euo pipefail
 
-          BUILD_JSON="$(npx --yes eas-cli@latest build --platform android --profile development --non-interactive --wait --json)"
+          BUILD_JSON="$(npx --yes eas-cli@latest build --platform android --profile production --non-interactive --wait --json)"
           printf '%s\n' "${BUILD_JSON}" > build.json
 
-          APK_URL="$(node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync('build.json','utf8')); const b=Array.isArray(d)?d[0]:d; console.log((b?.artifacts?.buildUrl || b?.artifacts?.applicationArchiveUrl || '').trim());")"
+          ARTIFACT_URL="$(node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync('build.json','utf8')); const b=Array.isArray(d)?d[0]:d; console.log((b?.artifacts?.buildUrl || b?.artifacts?.applicationArchiveUrl || '').trim());")"
 
-          if [ -z "${APK_URL}" ]; then
-            echo "Nao foi possivel obter a URL do APK em build.json"
+          if [ -z "${ARTIFACT_URL}" ]; then
+            echo "Nao foi possivel obter artifact URL do build de producao"
             cat build.json
             exit 1
           fi
 
-          APK_FILE="betteru-development-${GITHUB_SHA::7}.apk"
-          curl -fsSL "${APK_URL}" -o "${APK_FILE}"
+          EXT="aab"
+          if [[ "${ARTIFACT_URL}" == *.apk ]]; then EXT="apk"; fi
 
-          echo "apk_file=${APK_FILE}" >> "$GITHUB_OUTPUT"
-          echo "apk_url=${APK_URL}" >> "$GITHUB_OUTPUT"
+          OUTPUT_FILE="betteru-publish-${GITHUB_SHA::7}.${EXT}"
+          curl -fsSL "${ARTIFACT_URL}" -o "${OUTPUT_FILE}"
 
-      - name: Upload APK as workflow artifact
+          echo "output_file=${OUTPUT_FILE}" >> "$GITHUB_OUTPUT"
+          echo "artifact_url=${ARTIFACT_URL}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload publish artifact
         if: steps.freshness.outputs.should_build == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: betteru-development-apk-${{ github.run_id }}
+          name: betteru-publish-android-${{ github.run_id }}
           path: |
-            ${{ steps.build.outputs.apk_file }}
+            ${{ steps.build.outputs.output_file }}
             build.json
 
-      - name: Publish APK in GitHub Release
+      - name: Publish artifact in GitHub Release
         if: steps.freshness.outputs.should_build == 'true'
         shell: bash
         env:
@@ -156,26 +159,26 @@ jobs:
         run: |
           set -euo pipefail
 
-          RELEASE_TAG="development-apk-latest"
+          RELEASE_TAG="publish-main-latest"
           RELEASE_URL="https://github.com/${GITHUB_REPOSITORY}/releases/tag/${RELEASE_TAG}"
 
           if ! gh release view "${RELEASE_TAG}" > /dev/null 2>&1; then
-            gh release create "${RELEASE_TAG}" --title "BetterU Development APK (Latest)" --notes "Release automatica com o APK de development mais recente." --prerelease
+            gh release create "${RELEASE_TAG}" --title "BetterU Publish Build (Main)" --notes "Build de publish mais recente da branch main." --latest
           fi
 
-          gh release upload "${RELEASE_TAG}" "${{ steps.build.outputs.apk_file }}" build.json --clobber
-          gh release edit "${RELEASE_TAG}" --notes "APK preview mais recente.\n\n- Commit: ${GITHUB_SHA}\n- Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\n- Download: ${RELEASE_URL}"
+          gh release upload "${RELEASE_TAG}" "${{ steps.build.outputs.output_file }}" build.json --clobber
+          gh release edit "${RELEASE_TAG}" --notes "Build publish mais recente (main).\n\n- Commit: ${GITHUB_SHA}\n- Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\n- Download: ${RELEASE_URL}"
 
       - name: Summary
         shell: bash
         run: |
           {
-            echo "### Android Development APK"
+            echo "### Publish Build (Main)"
             if [ "${{ steps.freshness.outputs.should_build }}" = "true" ]; then
-              echo "- Arquivo: ${{ steps.build.outputs.apk_file }}"
-              echo "- Release: https://github.com/${GITHUB_REPOSITORY}/releases/tag/development-apk-latest"
+              echo "- Arquivo: ${{ steps.build.outputs.output_file }}"
+              echo "- Release: https://github.com/${GITHUB_REPOSITORY}/releases/tag/publish-main-latest"
               echo "- Artifact do run: aba Artifacts deste workflow"
             else
-              echo "- Build ignorado por estar obsoleto (ja existe commit mais novo na branch)."
+              echo "- Build ignorado por estar obsoleto (ja existe commit mais novo na main)."
             fi
           } >> "$GITHUB_STEP_SUMMARY"
