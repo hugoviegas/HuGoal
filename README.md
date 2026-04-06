@@ -403,8 +403,8 @@ Report issues on [GitHub Issues](https://github.com/hugovntr/HuGoal/issues) with
 
 **Hugo Viegas**
 
-- GitHub: [@hugovntr](https://github.com/hugovntr)
-- Project: [HuGoal](https://github.com/hugovntr/HuGoal)
+- GitHub: [@hugoviegas](https://github.com/hugoviegas)
+- Project: [HuGoal](https://github.com/hugoviegas/HuGoal)
 
 ---
 
