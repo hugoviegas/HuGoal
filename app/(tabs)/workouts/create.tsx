@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, ScrollView, Pressable, TextInput } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -21,10 +21,16 @@ import { Badge } from "@/components/ui/Badge";
 import { ExerciseCard } from "@/components/workouts/ExerciseCard";
 import { ProgressFormIndicator } from "@/components/ui/ProgressFormIndicator";
 import { Modal } from "@/components/ui/Modal";
+import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
 import { createWorkoutTemplate } from "@/lib/firestore/workouts";
 import { useHideMainTabBar } from "@/hooks/useHideMainTabBar";
 import type { Difficulty, EquipmentType, Exercise } from "@/types";
+import {
+  getExerciseCatalog,
+  muscleKeyToLabel,
+} from "@/lib/workouts/exercise-catalog";
+import type { OfficialExerciseRecord } from "@/lib/workouts/generated/official-exercises";
 
 type WorkflowType = "manual" | "ai";
 type CreateStep = "workflow" | "details" | "exercises" | "preview";
@@ -72,128 +78,33 @@ const STEP_LABELS = ["Workflow", "Details", "Exercises", "Preview"];
 const GENERIC_EXERCISE_IMAGE =
   "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1200&q=80";
 
-const EXERCISE_LIBRARY: (Exercise & {
+type LibraryExercise = Exercise & {
   has_weight: boolean;
   equipment_label: EquipmentType;
   short_description: string;
-})[] = [
-  {
-    id: "pushups",
-    name: "Push-ups",
-    name_en: "Push-ups",
-    primary_muscles: ["chest", "triceps"],
-    secondary_muscles: ["shoulders"],
-    equipment: ["bodyweight"],
-    equipment_label: "bodyweight",
-    difficulty: "beginner",
-    video_youtube_ids: [],
-    aliases: ["press-up"],
-    has_weight: false,
-    short_description: "Classic upper body movement with controlled tempo.",
-  },
-  {
-    id: "barbell-squat",
-    name: "Barbell Squat",
-    name_en: "Barbell Squat",
-    primary_muscles: ["quadriceps", "glutes"],
-    secondary_muscles: ["hamstrings"],
-    equipment: ["barbell"],
-    equipment_label: "barbell",
-    difficulty: "intermediate",
-    video_youtube_ids: [],
-    aliases: ["back squat"],
-    has_weight: true,
-    short_description: "Compound leg movement focused on lower body strength.",
-  },
-  {
-    id: "deadlift",
-    name: "Deadlift",
-    name_en: "Deadlift",
-    primary_muscles: ["hamstrings", "glutes"],
-    secondary_muscles: ["back"],
-    equipment: ["barbell"],
-    equipment_label: "barbell",
-    difficulty: "advanced",
-    video_youtube_ids: [],
-    aliases: ["conventional deadlift"],
-    has_weight: true,
-    short_description:
-      "Posterior chain builder for power and total-body strength.",
-  },
-  {
-    id: "dumbbell-row",
-    name: "Dumbbell Row",
-    name_en: "Dumbbell Row",
-    primary_muscles: ["back"],
-    secondary_muscles: ["biceps"],
-    equipment: ["dumbbell"],
-    equipment_label: "dumbbell",
-    difficulty: "beginner",
-    video_youtube_ids: [],
-    aliases: ["one arm row"],
-    has_weight: true,
-    short_description:
-      "Unilateral pulling pattern for back and scapular control.",
-  },
-  {
-    id: "bench-press",
-    name: "Bench Press",
-    name_en: "Bench Press",
-    primary_muscles: ["chest"],
-    secondary_muscles: ["triceps", "shoulders"],
-    equipment: ["barbell"],
-    equipment_label: "barbell",
-    difficulty: "intermediate",
-    video_youtube_ids: [],
-    aliases: ["barbell bench"],
-    has_weight: true,
-    short_description:
-      "Pressing benchmark for upper body strength progression.",
-  },
-  {
-    id: "plank",
-    name: "Plank",
-    name_en: "Plank",
-    primary_muscles: ["core"],
-    secondary_muscles: ["shoulders"],
-    equipment: ["bodyweight"],
-    equipment_label: "bodyweight",
-    difficulty: "beginner",
-    video_youtube_ids: [],
-    aliases: ["front plank"],
-    has_weight: false,
-    short_description: "Isometric core stability drill with posture control.",
-  },
-  {
-    id: "kettlebell-swing",
-    name: "Kettlebell Swing",
-    name_en: "Kettlebell Swing",
-    primary_muscles: ["glutes", "hamstrings"],
-    secondary_muscles: ["core"],
-    equipment: ["kettlebell"],
-    equipment_label: "kettlebell",
-    difficulty: "intermediate",
-    video_youtube_ids: [],
-    aliases: ["swing"],
-    has_weight: true,
-    short_description:
-      "Explosive hip hinge movement for conditioning and power.",
-  },
-  {
-    id: "jump-rope",
-    name: "Jump Rope",
-    name_en: "Jump Rope",
-    primary_muscles: ["calves", "cardio"],
-    secondary_muscles: ["shoulders"],
-    equipment: ["none"],
-    equipment_label: "none",
-    difficulty: "beginner",
-    video_youtube_ids: [],
-    aliases: ["rope skip"],
-    has_weight: false,
-    short_description: "Cardio finisher with cadence and coordination focus.",
-  },
-];
+};
+
+function toLibraryExercise(exercise: OfficialExerciseRecord): LibraryExercise {
+  const firstEquipment =
+    (exercise.equipment.find((item) => item !== "none") as EquipmentType | undefined) ??
+    (exercise.equipment[0] as EquipmentType | undefined) ??
+    "none";
+
+  const hasWeight = !exercise.equipment.every(
+    (equipment) => equipment === "none" || equipment === "bodyweight",
+  );
+
+  const firstMuscle = exercise.primary_muscles[0]
+    ? muscleKeyToLabel(exercise.primary_muscles[0])
+    : "Mixed";
+
+  return {
+    ...exercise,
+    equipment_label: firstEquipment,
+    has_weight: hasWeight,
+    short_description: `${exercise.category} • ${firstMuscle}`,
+  };
+}
 
 const EQUIPMENT_FILTERS: ("all" | EquipmentType)[] = [
   "all",
@@ -245,6 +156,8 @@ export default function CreateWorkoutScreen() {
   const [difficultyFilter, setDifficultyFilter] = useState<"all" | Difficulty>(
     "all",
   );
+  const [exerciseLibrary, setExerciseLibrary] = useState<LibraryExercise[]>([]);
+  const [loadingExerciseLibrary, setLoadingExerciseLibrary] = useState(false);
   const [draft, setDraft] = useState<WorkoutDraft>({
     name: "",
     description: "",
@@ -258,6 +171,37 @@ export default function CreateWorkoutScreen() {
     (sum, round) => sum + round.exercises.length,
     0,
   );
+
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      try {
+        setLoadingExerciseLibrary(true);
+        const catalog = await getExerciseCatalog();
+
+        if (!mounted) {
+          return;
+        }
+
+        setExerciseLibrary(catalog.exercises.map(toLibraryExercise));
+      } catch (error) {
+        console.error("[createWorkout] failed to load exercise catalog", error);
+        if (!mounted) {
+          return;
+        }
+        showToast("Failed to load exercise catalog", "error");
+      } finally {
+        if (mounted) {
+          setLoadingExerciseLibrary(false);
+        }
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [showToast]);
 
   const estimatedDuration = useMemo(() => {
     return draft.rounds.reduce((total, round) => {
@@ -273,7 +217,7 @@ export default function CreateWorkoutScreen() {
   }, [draft.rounds]);
 
   const groupedExercises = useMemo(() => {
-    const filtered = EXERCISE_LIBRARY.filter((exercise) => {
+    const filtered = exerciseLibrary.filter((exercise) => {
       const searchable = [
         exercise.name,
         exercise.short_description,
@@ -302,7 +246,7 @@ export default function CreateWorkoutScreen() {
       acc[key].push(exercise);
       return acc;
     }, {});
-  }, [difficultyFilter, equipmentFilter, exerciseSearch]);
+  }, [difficultyFilter, equipmentFilter, exerciseLibrary, exerciseSearch]);
 
   const handleWorkflowSelect = (type: WorkflowType) => {
     setWorkflowType(type);
@@ -343,10 +287,14 @@ export default function CreateWorkoutScreen() {
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
       // Mock AI response - replace with real Gemini API call later
-      const generatedExercises: RoundExerciseConfig[] = EXERCISE_LIBRARY.slice(
-        0,
-        5,
-      ).map((exercise) => ({
+      if (exerciseLibrary.length === 0) {
+        showToast("Exercise catalog is still loading. Try again in a moment.", "error");
+        return;
+      }
+
+      const generatedExercises: RoundExerciseConfig[] = exerciseLibrary
+        .slice(0, 5)
+        .map((exercise) => ({
         id: `selected-${exercise.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         exerciseId: exercise.id,
         name: exercise.name,
@@ -359,7 +307,7 @@ export default function CreateWorkoutScreen() {
         reps: `${8 + Math.floor(Math.random() * 4)}-${12 + Math.floor(Math.random() * 4)}`,
         weightKg: exercise.has_weight ? 20 : undefined,
         restSeconds: 60,
-      }));
+        }));
 
       setDraft((prev) => ({
         ...prev,
@@ -393,10 +341,7 @@ export default function CreateWorkoutScreen() {
     setPickerRoundId(null);
   };
 
-  const handleAddExercise = (
-    roundId: string,
-    exercise: (typeof EXERCISE_LIBRARY)[number],
-  ) => {
+  const handleAddExercise = (roundId: string, exercise: LibraryExercise) => {
     const selectedExercise: RoundExerciseConfig = {
       id: `selected-${exercise.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       exerciseId: exercise.id,
@@ -911,7 +856,14 @@ export default function CreateWorkoutScreen() {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: scrollPaddingBottom + 24 }}
           >
-            {Object.entries(groupedExercises).length === 0 ? (
+            {loadingExerciseLibrary ? (
+              <View className="py-16 items-center">
+                <Spinner size="lg" color={colors.primary} />
+                <Text className="text-sm text-gray-600 dark:text-gray-400 mt-3">
+                  Loading official exercise catalog...
+                </Text>
+              </View>
+            ) : Object.entries(groupedExercises).length === 0 ? (
               <View className="py-12 items-center">
                 <Text className="text-base font-semibold text-gray-900 dark:text-gray-100">
                   No exercises found
@@ -924,7 +876,7 @@ export default function CreateWorkoutScreen() {
               Object.entries(groupedExercises).map(([group, items]) => (
                 <View key={group} className="mb-5">
                   <Text className="text-sm font-bold uppercase tracking-wide text-gray-600 dark:text-gray-300 mb-2">
-                    {group}
+                    {muscleKeyToLabel(group)}
                   </Text>
 
                   {items.map((exercise) => (

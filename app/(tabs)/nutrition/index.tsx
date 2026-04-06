@@ -26,6 +26,7 @@ import {
   updateNutritionLog,
   listWaterLogs,
   addWaterLog,
+  upsertFoodLibraryItemFromNutritionItem,
 } from "@/lib/firestore/nutrition";
 import { calculateDailyGoal } from "@/lib/macro-calculator";
 import { spacing } from "@/constants/spacing";
@@ -114,6 +115,7 @@ export default function NutritionScreen() {
         meal_type: activeMealType,
         items: [item],
       });
+      await upsertFoodLibraryItemFromNutritionItem(user.uid, item);
       addLog(log);
       showToast("Food added", "success");
     } catch {
@@ -290,6 +292,7 @@ export default function NutritionScreen() {
         visible={addModalVisible}
         onClose={() => setAddModalVisible(false)}
         onSave={handleAddItem}
+        userId={user?.uid}
       />
     </View>
   );

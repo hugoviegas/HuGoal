@@ -45,6 +45,21 @@ function mealTemplatesCollection() {
   return collection(db, "meal_templates");
 }
 
+function normalizeFoodSegment(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+}
+
+function buildFoodLibraryId(uid: string, name: string, brand?: string): string {
+  const nameSegment = normalizeFoodSegment(name || "food") || "food";
+  const brandSegment = normalizeFoodSegment(brand || "generic") || "generic";
+  return `${uid}_${nameSegment}_${brandSegment}`.slice(0, 120);
+}
+
 // ─── Nutrition Logs ─────────────────────────────────────────
 
 export interface NutritionLogInput {
@@ -65,13 +80,17 @@ export async function listNutritionLogs(
     constraints.push(where("logged_at", "<", date + "T99")); // end of day hack -- ISO strings sort
   }
 
-  const snapshot = await getDocs(query(nutritionLogsCollection(), ...constraints));
+  const snapshot = await getDocs(
+    query(nutritionLogsCollection(), ...constraints),
+  );
   return snapshot.docs
     .map((d) => ({ id: d.id, ...d.data() }) as NutritionLog)
     .sort((a, b) => b.logged_at.localeCompare(a.logged_at));
 }
 
-export async function getNutritionLog(logId: string): Promise<NutritionLog | null> {
+export async function getNutritionLog(
+  logId: string,
+): Promise<NutritionLog | null> {
   const snapshot = await getDoc(doc(db, "nutrition_logs", logId));
   if (!snapshot.exists()) return null;
   return { id: snapshot.id, ...snapshot.data() } as NutritionLog;
@@ -232,13 +251,43 @@ export async function createFoodLibraryItem(
   return payload;
 }
 
+export async function upsertFoodLibraryItemFromNutritionItem(
+  uid: string,
+  item: NutritionItem,
+): Promise<FoodLibraryItem> {
+  const now = new Date().toISOString();
+  const id = buildFoodLibraryId(uid, item.food_name, item.brand);
+  const reference = doc(db, "food_library", id);
+  const payload: FoodLibraryItem = {
+    id,
+    user_id: uid,
+    name: item.food_name,
+    brand: item.brand,
+    serving_size_g: item.serving_size_g,
+    calories: item.calories,
+    protein_g: item.protein_g,
+    carbs_g: item.carbs_g,
+    fat_g: item.fat_g,
+    created_at: now,
+  };
+
+  await runTransaction(db, async (transaction) => {
+    transaction.set(reference, stripUndefined({ ...payload }), { merge: true });
+  });
+
+  return payload;
+}
+
 export async function deleteFoodLibraryItem(itemId: string): Promise<void> {
   await deleteDoc(doc(db, "food_library", itemId));
 }
 
 // ─── Water Logs ──────────────────────────────────────────────
 
-export async function listWaterLogs(uid: string, date: string): Promise<WaterLog[]> {
+export async function listWaterLogs(
+  uid: string,
+  date: string,
+): Promise<WaterLog[]> {
   const snapshot = await getDocs(
     query(
       waterLogsCollection(),
@@ -249,7 +298,11 @@ export async function listWaterLogs(uid: string, date: string): Promise<WaterLog
   return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as WaterLog);
 }
 
-export async function addWaterLog(uid: string, date: string, amountMl: number): Promise<WaterLog> {
+export async function addWaterLog(
+  uid: string,
+  date: string,
+  amountMl: number,
+): Promise<WaterLog> {
   const now = new Date().toISOString();
   const reference = doc(waterLogsCollection());
   const payload: WaterLog = {

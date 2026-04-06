@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Pressable, FlatList } from "react-native";
+import { View, Text, ScrollView, Pressable } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ArrowLeft, Plus } from "lucide-react-native";
@@ -12,9 +12,11 @@ import { useNutritionStore } from "@/stores/nutrition.store";
 import { AddFoodModal } from "@/components/nutrition/AddFoodModal";
 import { FoodRow } from "@/components/nutrition/FoodRow";
 import { Button } from "@/components/ui/Button";
-import { Spinner } from "@/components/ui/Spinner";
 
-import { createNutritionLog } from "@/lib/firestore/nutrition";
+import {
+  createNutritionLog,
+  upsertFoodLibraryItemFromNutritionItem,
+} from "@/lib/firestore/nutrition";
 import { spacing } from "@/constants/spacing";
 import { typography } from "@/constants/typography";
 import { radius } from "@/constants/radius";
@@ -69,6 +71,11 @@ export default function LogFoodScreen() {
         meal_type: selectedMealType,
         items,
       });
+      await Promise.allSettled(
+        items.map((item) =>
+          upsertFoodLibraryItemFromNutritionItem(user.uid, item),
+        ),
+      );
       addLog(log);
       showToast("Meal logged successfully", "success");
       router.back();
@@ -132,7 +139,9 @@ export default function LogFoodScreen() {
       >
         {/* Meal type selector */}
         <View style={{ gap: spacing.xs }}>
-          <Text style={[typography.smallMedium, { color: colors.mutedForeground }]}>
+          <Text
+            style={[typography.smallMedium, { color: colors.mutedForeground }]}
+          >
             Meal type
           </Text>
           <ScrollView
@@ -151,12 +160,8 @@ export default function LogFoodScreen() {
                     paddingVertical: 8,
                     borderRadius: radius.full,
                     borderWidth: 1,
-                    backgroundColor: active
-                      ? colors.primary
-                      : colors.card,
-                    borderColor: active
-                      ? colors.primary
-                      : colors.cardBorder,
+                    backgroundColor: active ? colors.primary : colors.card,
+                    borderColor: active ? colors.primary : colors.cardBorder,
                     minHeight: 44,
                     justifyContent: "center",
                   }}
@@ -181,7 +186,10 @@ export default function LogFoodScreen() {
         {items.length > 0 ? (
           <View style={{ gap: spacing.xs }}>
             <Text
-              style={[typography.smallMedium, { color: colors.mutedForeground }]}
+              style={[
+                typography.smallMedium,
+                { color: colors.mutedForeground },
+              ]}
             >
               Items ({items.length})
             </Text>
@@ -233,15 +241,24 @@ export default function LogFoodScreen() {
             }}
           >
             <Text
-              style={[typography.smallMedium, { color: colors.mutedForeground }]}
+              style={[
+                typography.smallMedium,
+                { color: colors.mutedForeground },
+              ]}
             >
               Meal totals
             </Text>
-            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-              <Text style={[typography.bodyMedium, { color: colors.foreground }]}>
+            <View
+              style={{ flexDirection: "row", justifyContent: "space-between" }}
+            >
+              <Text
+                style={[typography.bodyMedium, { color: colors.foreground }]}
+              >
                 {totalCals} kcal
               </Text>
-              <Text style={[typography.caption, { color: colors.mutedForeground }]}>
+              <Text
+                style={[typography.caption, { color: colors.mutedForeground }]}
+              >
                 P {totalProtein}g · C {totalCarbs}g · F {totalFat}g
               </Text>
             </View>
@@ -267,6 +284,7 @@ export default function LogFoodScreen() {
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
         onSave={handleAddItem}
+        userId={user?.uid}
       />
     </View>
   );

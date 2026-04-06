@@ -28,6 +28,7 @@ export async function generateDietPlan(
   provider: AIProvider,
   profile: Partial<UserProfile>,
   targetCalories: number,
+  mealsPerDay = 4,
 ): Promise<{ meal_type: MealType; items: NutritionItem[]; notes?: string }[]> {
   const userPrompt = `Generate a daily meal plan for:
 - Goal: ${profile.goal ?? "maintain"}
@@ -40,15 +41,23 @@ export async function generateDietPlan(
 - Allergies: ${(profile.allergies ?? []).join(", ") || "none"}
 - Dietary restrictions: ${(profile.dietary_restrictions ?? []).join(", ") || "none"}
 - Preferred cuisines: ${(profile.preferred_cuisines ?? []).join(", ") || "any"}
+- Meals per day: ${mealsPerDay}
 
-Include 4-5 meals (breakfast, lunch, dinner, and 1-2 snacks).
+Include exactly ${mealsPerDay} meals selected from breakfast, lunch, dinner, snack, pre_workout and post_workout.
 Make the plan balanced and practical with common foods.`;
 
-  const response = await generateText(provider, SYSTEM_PROMPT_DIET_PLAN, userPrompt);
+  const response = await generateText(
+    provider,
+    SYSTEM_PROMPT_DIET_PLAN,
+    userPrompt,
+  );
 
   try {
     // Strip potential markdown code fences
-    const clean = response.text.replace(/```json?\n?/g, "").replace(/```/g, "").trim();
+    const clean = response.text
+      .replace(/```json?\n?/g, "")
+      .replace(/```/g, "")
+      .trim();
     return JSON.parse(clean);
   } catch {
     throw new Error("AI returned invalid meal plan format. Please try again.");
@@ -76,13 +85,17 @@ export async function analyzeMealPhoto(
   provider: AIProvider,
   base64Image: string,
 ): Promise<NutritionItem[]> {
-  const prompt = SYSTEM_PROMPT_MEAL_PHOTO +
+  const prompt =
+    SYSTEM_PROMPT_MEAL_PHOTO +
     "\n\nAnalyze this meal photo. Identify all visible food items with estimated quantities in grams and their nutritional values (calories, protein, carbs, fat). Be as accurate as possible.";
 
   const response = await analyzeImage(provider, base64Image, prompt);
 
   try {
-    const clean = response.text.replace(/```json?\n?/g, "").replace(/```/g, "").trim();
+    const clean = response.text
+      .replace(/```json?\n?/g, "")
+      .replace(/```/g, "")
+      .trim();
     const items = JSON.parse(clean);
     // Ensure source field is set
     return items.map((item: Partial<NutritionItem>) => ({
@@ -122,10 +135,17 @@ export async function parseNutritionLabel(
 ): Promise<NutritionItem> {
   const userPrompt = `Parse this nutrition label text and extract the nutritional information:\n\n${ocrText}`;
 
-  const response = await generateText(provider, SYSTEM_PROMPT_OCR_PARSE, userPrompt);
+  const response = await generateText(
+    provider,
+    SYSTEM_PROMPT_OCR_PARSE,
+    userPrompt,
+  );
 
   try {
-    const clean = response.text.replace(/```json?\n?/g, "").replace(/```/g, "").trim();
+    const clean = response.text
+      .replace(/```json?\n?/g, "")
+      .replace(/```/g, "")
+      .trim();
     const parsed = JSON.parse(clean);
     return {
       food_name: parsed.food_name ?? "Unknown food",
@@ -139,6 +159,8 @@ export async function parseNutritionLabel(
       source: "ocr" as const,
     };
   } catch {
-    throw new Error("Could not parse the nutrition label. Please enter values manually.");
+    throw new Error(
+      "Could not parse the nutrition label. Please enter values manually.",
+    );
   }
 }

@@ -1,13 +1,19 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, Text, FlatList, Pressable, TextInput } from "react-native";
+import { View, Text, Pressable, TextInput, FlatList } from "react-native";
 import { Search, SearchX, X } from "lucide-react-native";
 import { useThemeStore } from "@/stores/theme.store";
 import { useToastStore } from "@/stores/toast.store";
 import { Tabs, TabContent } from "@/components/ui/Tabs";
 import { ExerciseCard } from "@/components/workouts/ExerciseCard";
+import { MuscleMap } from "@/components/workouts/MuscleMap";
 import { Badge } from "@/components/ui/Badge";
 import { Spinner } from "@/components/ui/Spinner";
 import type { Exercise } from "@/types";
+import {
+  buildMuscleTabs,
+  getExerciseCatalog,
+  muscleKeyToLabel,
+} from "@/lib/workouts/exercise-catalog";
 
 /**
  * Exercise Library - Browse and search exercises
@@ -30,61 +36,29 @@ export default function ExploreScreen() {
   const [filteredExercises, setFilteredExercises] = useState<Exercise[]>([]);
   const [activeTab, setActiveTab] = useState("all");
   const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
+    null,
+  );
+  const [tabs, setTabs] = useState<{ id: string; label: string }[]>([
+    { id: "all", label: "All" },
+  ]);
 
   const loadExercises = useCallback(async () => {
     try {
       setLoading(true);
+      const catalog = await getExerciseCatalog();
+      setExercises(catalog.exercises);
+      setTabs(buildMuscleTabs(catalog.exercises));
+      setSelectedExercise(
+        (previous) => previous ?? catalog.exercises[0] ?? null,
+      );
 
-      // TODO: Fetch from Firestore exercises collection
-      // For now, using mock data
-      const mockExercises: Exercise[] = [
-        {
-          id: "barbell-squat",
-          name: "Barbell Back Squat",
-          name_en: "Barbell Back Squat",
-          primary_muscles: ["quadriceps", "glutes"],
-          secondary_muscles: ["hamstrings", "lower_back"],
-          equipment: ["barbell"],
-          difficulty: "intermediate",
-          video_youtube_ids: [],
-          aliases: ["back squat", "squat"],
-        },
-        {
-          id: "bench-press",
-          name: "Barbell Bench Press",
-          name_en: "Barbell Bench Press",
-          primary_muscles: ["chest", "triceps"],
-          secondary_muscles: ["shoulders"],
-          equipment: ["barbell"],
-          difficulty: "intermediate",
-          video_youtube_ids: [],
-          aliases: ["bench press"],
-        },
-        {
-          id: "deadlift",
-          name: "Deadlift",
-          name_en: "Deadlift",
-          primary_muscles: ["glutes", "hamstrings"],
-          secondary_muscles: ["back", "quads"],
-          equipment: ["barbell"],
-          difficulty: "advanced",
-          video_youtube_ids: [],
-          aliases: ["conventional deadlift"],
-        },
-        {
-          id: "pushup",
-          name: "Push-up",
-          name_en: "Push-up",
-          primary_muscles: ["chest", "triceps"],
-          secondary_muscles: ["shoulders"],
-          equipment: ["bodyweight"],
-          difficulty: "beginner",
-          video_youtube_ids: [],
-          aliases: ["pushup", "press-up"],
-        },
-      ];
-
-      setExercises(mockExercises);
+      if (catalog.source === "bundled") {
+        showToast(
+          "Using bundled exercise catalog while Firestore sync is unavailable.",
+          "info",
+        );
+      }
     } catch {
       const message = "Failed to load exercises";
       showToast(message, "error");
@@ -131,45 +105,33 @@ export default function ExploreScreen() {
     filterExercises();
   }, [filterExercises]);
 
+  useEffect(() => {
+    if (filteredExercises.length === 0) {
+      setSelectedExercise(null);
+      return;
+    }
+
+    if (!selectedExercise) {
+      setSelectedExercise(filteredExercises[0]);
+      return;
+    }
+
+    const exists = filteredExercises.some(
+      (item) => item.id === selectedExercise.id,
+    );
+    if (!exists) {
+      setSelectedExercise(filteredExercises[0]);
+    }
+  }, [filteredExercises, selectedExercise]);
+
   const handleAddExercise = (exercise: Exercise) => {
     showToast(`Added ${exercise.name} to workout`, "success");
     // TODO: Dispatch to workout store or parent
   };
 
   const handleSelectExercise = (exercise: Exercise) => {
-    showToast(`Viewing ${exercise.name}`, "info");
-    // TODO: Navigate to exercise detail
+    setSelectedExercise(exercise);
   };
-
-  const muscleGroups = [
-    "all",
-    "chest",
-    "back",
-    "shoulders",
-    "biceps",
-    "triceps",
-    "forearms",
-    "quadriceps",
-    "hamstrings",
-    "glutes",
-    "calves",
-  ];
-
-  const tabs = muscleGroups.map((muscle) => ({
-    id: muscle,
-    label: muscle.charAt(0).toUpperCase() + muscle.slice(1),
-  }));
-
-  const renderExerciseCard = (item: Exercise) => (
-    <ExerciseCard
-      key={item.id}
-      exercise={item}
-      onPress={() => handleSelectExercise(item)}
-      onAddPress={() => handleAddExercise(item)}
-      variant="list"
-      className="mb-3"
-    />
-  );
 
   const renderEmptyState = () => (
     <View className="flex-1 justify-center items-center gap-3 px-6">
@@ -259,10 +221,11 @@ export default function ExploreScreen() {
           <Spinner size="lg" color="#06b6d4" />
         </View>
       ) : (
-        <View className="flex-1">
+        <View className="flex-1" style={{ minHeight: 0 }}>
           {/* Muscle Tabs */}
-          <View className="px-4 pt-2">
+          <View className="flex-1 px-4 pt-2" style={{ minHeight: 0 }}>
             <Tabs
+              className="flex-1"
               items={tabs}
               defaultValue="all"
               onValueChange={setActiveTab}
@@ -275,13 +238,45 @@ export default function ExploreScreen() {
                   {filteredExercises.length === 0 ? (
                     renderEmptyState()
                   ) : (
-                    <FlatList
-                      data={filteredExercises}
-                      renderItem={({ item }) => renderExerciseCard(item)}
-                      keyExtractor={(item) => item.id}
-                      scrollEnabled={false}
-                      contentContainerStyle={{ gap: 12 }}
-                    />
+                    <View className="flex-1" style={{ minHeight: 0 }}>
+                      <FlatList
+                        data={filteredExercises}
+                        keyExtractor={(item) => item.id}
+                        keyboardShouldPersistTaps="handled"
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={{
+                          paddingHorizontal: 16,
+                          paddingBottom: 24,
+                        }}
+                        ListHeaderComponent={
+                          selectedExercise ? (
+                            <View className="mb-3">
+                              <MuscleMap
+                                primaryMuscles={
+                                  selectedExercise.primary_muscles
+                                }
+                                secondaryMuscles={
+                                  selectedExercise.secondary_muscles
+                                }
+                                title={selectedExercise.name}
+                                subtitle={`Primary: ${selectedExercise.primary_muscles
+                                  .map((muscle) => muscleKeyToLabel(muscle))
+                                  .join(", ")}`}
+                              />
+                            </View>
+                          ) : null
+                        }
+                        renderItem={({ item }) => (
+                          <ExerciseCard
+                            exercise={item}
+                            onPress={() => handleSelectExercise(item)}
+                            onAddPress={() => handleAddExercise(item)}
+                            variant="list"
+                            className="mb-3"
+                          />
+                        )}
+                      />
+                    </View>
                   )}
                 </TabContent>
               ))}

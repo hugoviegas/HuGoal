@@ -83,7 +83,7 @@ export function Tabs({
 
   const tabTriggerClass = (isActive: boolean) =>
     cn(
-      "flex-row items-center justify-center transition",
+      "flex-row items-center justify-center transition flex-shrink-0",
       tabSizeMap[size],
       variant === "default" && "rounded-md",
       variant === "button" && "rounded-md",
@@ -100,17 +100,31 @@ export function Tabs({
 
   return (
     <View className={className} {...props}>
-      {/* Tabs header */}
-      <View className={tabListClass}>
-        {items.map((item) => (
-          <Pressable
-            key={item.id}
-            onPress={() => handleTabChange(item.id)}
-            className={tabTriggerClass(activeTab === item.id)}
-          >
-            {item.icon ? (
-              <View className="flex-row items-center gap-1.5">
-                {item.icon}
+      {/* Tabs header (horizontally scrollable) */}
+      <View className="overflow-x-auto whitespace-nowrap hide-scrollbar">
+        <View className={tabListClass}>
+          {items.map((item) => (
+            <Pressable
+              key={item.id}
+              onPress={() => handleTabChange(item.id)}
+              className={tabTriggerClass(activeTab === item.id)}
+            >
+              {item.icon ? (
+                <View className="flex-row items-center gap-1.5">
+                  {item.icon}
+                  <Text
+                    className={cn(
+                      textSizeMap[size],
+                      "font-medium",
+                      activeTab === item.id
+                        ? "text-cyan-600 dark:text-cyan-400"
+                        : "text-gray-600 dark:text-gray-400",
+                    )}
+                  >
+                    {item.label}
+                  </Text>
+                </View>
+              ) : (
                 <Text
                   className={cn(
                     textSizeMap[size],
@@ -122,22 +136,10 @@ export function Tabs({
                 >
                   {item.label}
                 </Text>
-              </View>
-            ) : (
-              <Text
-                className={cn(
-                  textSizeMap[size],
-                  "font-medium",
-                  activeTab === item.id
-                    ? "text-cyan-600 dark:text-cyan-400"
-                    : "text-gray-600 dark:text-gray-400",
-                )}
-              >
-                {item.label}
-              </Text>
-            )}
-          </Pressable>
-        ))}
+              )}
+            </Pressable>
+          ))}
+        </View>
       </View>
 
       {/* Tabs content */}

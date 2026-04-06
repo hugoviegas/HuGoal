@@ -2,7 +2,13 @@ import { useState, useCallback, useEffect } from "react";
 import { View, Text, ScrollView, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ArrowLeft, ChevronDown, ChevronUp, Sparkles, Trash2 } from "lucide-react-native";
+import {
+  ArrowLeft,
+  ChevronDown,
+  ChevronUp,
+  Sparkles,
+  Trash2,
+} from "lucide-react-native";
 
 import { useAuthStore } from "@/stores/auth.store";
 import { useThemeStore } from "@/stores/theme.store";
@@ -11,6 +17,7 @@ import { useToastStore } from "@/stores/toast.store";
 import { NutritionDisclaimer } from "@/components/nutrition/NutritionDisclaimer";
 import { FoodRow } from "@/components/nutrition/FoodRow";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
 
 import {
@@ -19,7 +26,11 @@ import {
   deleteDietPlan,
 } from "@/lib/firestore/nutrition";
 import { generateDietPlan } from "@/lib/nutrition-ai";
-import { calculateDailyGoal, calculateTDEE, calculateCalorieTarget } from "@/lib/macro-calculator";
+import {
+  calculateDailyGoal,
+  calculateTDEE,
+  calculateCalorieTarget,
+} from "@/lib/macro-calculator";
 import { getApiKey } from "@/lib/api-key-store";
 import { spacing } from "@/constants/spacing";
 import { typography } from "@/constants/typography";
@@ -127,7 +138,10 @@ function PlanCard({
           {plan.meals.map((meal, mIndex) => (
             <View key={mIndex} style={{ gap: spacing.xs }}>
               <Text
-                style={[typography.smallMedium, { color: colors.mutedForeground }]}
+                style={[
+                  typography.smallMedium,
+                  { color: colors.mutedForeground },
+                ]}
               >
                 {MEAL_LABELS[meal.meal_type] ?? meal.meal_type}
               </Text>
@@ -136,7 +150,10 @@ function PlanCard({
               ))}
               {meal.notes ? (
                 <Text
-                  style={[typography.caption, { color: colors.mutedForeground }]}
+                  style={[
+                    typography.caption,
+                    { color: colors.mutedForeground },
+                  ]}
                 >
                   {meal.notes}
                 </Text>
@@ -163,6 +180,8 @@ export default function PlanScreen() {
   const [selectedGoal, setSelectedGoal] = useState<Goal>(
     (profile?.goal as Goal) ?? "maintain",
   );
+  const [mealsPerDay, setMealsPerDay] = useState<number>(4);
+  const [calorieOverride, setCalorieOverride] = useState<string>("");
 
   const loadPlans = useCallback(async () => {
     if (!user?.uid) return;
@@ -200,11 +219,17 @@ export default function PlanScreen() {
       const profileWithGoal = { ...profile, goal: selectedGoal as Goal };
       const tdee = calculateTDEE(profileWithGoal);
       const targetCalories = calculateCalorieTarget(tdee, selectedGoal);
+      const selectedCalories = Number(calorieOverride);
+      const finalCalories =
+        Number.isFinite(selectedCalories) && selectedCalories > 0
+          ? selectedCalories
+          : targetCalories;
 
       const meals = await generateDietPlan(
         provider,
         profileWithGoal,
-        targetCalories,
+        finalCalories,
+        mealsPerDay,
       );
 
       // Calculate macro targets
@@ -303,14 +328,18 @@ export default function PlanScreen() {
             <Text
               style={[typography.caption, { color: colors.mutedForeground }]}
             >
-              Choose your goal and let AI create a personalized daily plan.
+              Choose your goal, calories and meal frequency to generate a
+              practical plan.
             </Text>
           </View>
 
           {/* Goal selector */}
           <View style={{ gap: spacing.xs }}>
             <Text
-              style={[typography.smallMedium, { color: colors.mutedForeground }]}
+              style={[
+                typography.smallMedium,
+                { color: colors.mutedForeground },
+              ]}
             >
               Goal
             </Text>
@@ -331,9 +360,7 @@ export default function PlanScreen() {
                       borderRadius: radius.full,
                       borderWidth: 1,
                       backgroundColor: active ? colors.primary : colors.card,
-                      borderColor: active
-                        ? colors.primary
-                        : colors.cardBorder,
+                      borderColor: active ? colors.primary : colors.cardBorder,
                       minHeight: 44,
                       justifyContent: "center",
                     }}
@@ -354,12 +381,78 @@ export default function PlanScreen() {
             </ScrollView>
           </View>
 
+          <View style={{ gap: spacing.xs }}>
+            <Text
+              style={[
+                typography.smallMedium,
+                { color: colors.mutedForeground },
+              ]}
+            >
+              Target calories (optional override)
+            </Text>
+            <Input
+              keyboardType="numeric"
+              placeholder="Auto from profile goal"
+              value={calorieOverride}
+              onChangeText={setCalorieOverride}
+            />
+          </View>
+
+          <View style={{ gap: spacing.xs }}>
+            <Text
+              style={[
+                typography.smallMedium,
+                { color: colors.mutedForeground },
+              ]}
+            >
+              Meals per day
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: spacing.xs }}
+            >
+              {[3, 4, 5, 6].map((count) => {
+                const active = mealsPerDay === count;
+                return (
+                  <Pressable
+                    key={count}
+                    onPress={() => setMealsPerDay(count)}
+                    style={{
+                      paddingHorizontal: 14,
+                      paddingVertical: 8,
+                      borderRadius: radius.full,
+                      borderWidth: 1,
+                      backgroundColor: active ? colors.primary : colors.card,
+                      borderColor: active ? colors.primary : colors.cardBorder,
+                      minHeight: 44,
+                      justifyContent: "center",
+                    }}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                  >
+                    <Text
+                      style={[
+                        typography.smallMedium,
+                        { color: active ? "#fff" : colors.foreground },
+                      ]}
+                    >
+                      {count} meals
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+
           <Button
             onPress={handleGenerate}
             isLoading={generating}
             disabled={generating}
           >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+            >
               <Sparkles size={16} color="#fff" />
               <Text style={{ color: "#fff", fontWeight: "600" }}>
                 {generating ? "Generating…" : "Generate Plan"}
@@ -389,7 +482,10 @@ export default function PlanScreen() {
         ) : (
           <View style={{ gap: spacing.sm }}>
             <Text
-              style={[typography.smallMedium, { color: colors.mutedForeground }]}
+              style={[
+                typography.smallMedium,
+                { color: colors.mutedForeground },
+              ]}
             >
               Saved Plans ({plans.length})
             </Text>

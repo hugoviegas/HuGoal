@@ -1,7 +1,7 @@
 /**
  * MacroSummary -- Overview card with calorie ring + macro bars
  */
-import { View } from "react-native";
+import { View, useWindowDimensions } from "react-native";
 import { MacroRing } from "@/components/nutrition/MacroRing";
 import { MacroBar } from "@/components/nutrition/MacroBar";
 import { useThemeStore } from "@/stores/theme.store";
@@ -22,6 +22,8 @@ interface MacroSummaryProps {
 
 export function MacroSummary({ totals, goal }: MacroSummaryProps) {
   const colors = useThemeStore((s) => s.colors);
+  const { width } = useWindowDimensions();
+  const compact = width < 380;
 
   return (
     <View
@@ -40,9 +42,10 @@ export function MacroSummary({ totals, goal }: MacroSummaryProps) {
       {/* Rings row */}
       <View
         style={{
-          flexDirection: "row",
+          flexDirection: compact ? "column" : "row",
           justifyContent: "space-around",
           alignItems: "center",
+          gap: spacing.md,
         }}
       >
         <MacroRing
@@ -54,7 +57,14 @@ export function MacroSummary({ totals, goal }: MacroSummaryProps) {
           size={90}
           strokeWidth={7}
         />
-        <View style={{ gap: 8 }}>
+        <View
+          style={{
+            gap: 8,
+            flexDirection: compact ? "row" : "column",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
           <MacroRing
             current={totals.protein_g}
             target={goal.protein_g}

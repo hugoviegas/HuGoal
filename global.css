@@ -16,3 +16,28 @@ body,
 body {
   margin: 0;
 }
+
+/* Utility to hide scrollbars while preserving scrolling behavior */
+.hide-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+  height: 0;
+  width: 0;
+}
+
+/* Horizontal overflow helper (explicit for web) */
+.overflow-scroll-x {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Vertical overflow helper (explicit for web) */
+.overflow-scroll-y {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
