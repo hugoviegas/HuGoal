@@ -1,11 +1,11 @@
 Context
-Starting from scratch as a pure mobile app in the currently empty BetterU/ directory. The existing CoachAi web app serves as a reference for Firestore schema and feature logic only — no code is migrated from it. The goal is a single Expo React Native codebase that produces both an Android APK and an iOS IPA, with real-time device testing and OTA updates.
+Starting from scratch as a pure mobile app in the currently empty HuGoal/ directory. The existing CoachAi web app serves as a reference for Firestore schema and feature logic only — no code is migrated from it. The goal is a single Expo React Native codebase that produces both an Android APK and an iOS IPA, with real-time device testing and OTA updates.
 
 Tech Stack
 ConcernChoiceReasonFrameworkExpo SDK 52 (Managed Workflow)Single codebase → APK + IPA, Expo Go for instant device testing, no Xcode required during developmentLanguageTypeScriptType safety, matches existing Firebase schemaNavigationExpo Router v4File-based like Next.js, typed routes, deep linking built-inStylingNativeWind v4 (Tailwind v3)className props on RN components, most familiar authoring experienceGlass/Blur UIexpo-blur BlurViewNative iOS/Android backdrop blur (CSS backdrop-filter doesn't exist in RN)Animationsreact-native-reanimated v360fps native-thread animations, gesture integrationGesturesreact-native-gesture-handlerLong-press drag reorder, swipe actionsStateZustand v5Lightweight, works in RN without changesFormsReact Hook Form + ZodFamiliar validation patternBackendFirebase (Firestore + Auth + Storage)Real-time, scales, already designed schemaAIUser's own API key (Claude, Gemini, GPT-4)Stored in expo-secure-store, never in cloudOCRreact-native-vision-camera + ML KitOn-device, free, offline-capableVideoexpo-videoNative video playback for exercise demosSVG (muscle map)react-native-svgSame SVG path data from CoachAi, just different element namesi18ni18next + react-i18nextDevice language detection, easy to add languagesChartsvictory-nativeProgression charts on coach pageNotificationsexpo-notificationsLocal rest timer alerts when app is backgrounded
 
 Project Structure
-BetterU/
+HuGoal/
 ├── app/ ← Expo Router screens (file = route)
 │ ├── \_layout.tsx ← Root layout: auth guard, theme, i18n init
 │ ├── (auth)/

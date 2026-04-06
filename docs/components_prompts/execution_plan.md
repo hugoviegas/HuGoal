@@ -1,4 +1,4 @@
-# Plano de Execucao - Componentes de Interface BetterU
+# Plano de Execucao - Componentes de Interface HuGoal
 
 ## Objetivo
 
@@ -7,7 +7,7 @@ Transformar os prompts da pasta components_prompts em componentes e telas nativo
 ## Decisoes Arquiteturais
 
 - Os prompts sao web-first (shadcn, Radix, Portal CSS, framer-motion).
-- No BetterU mobile, o padrao sera React Native + NativeWind + Reanimated + Gesture Handler.
+- No HuGoal mobile, o padrao sera React Native + NativeWind + Reanimated + Gesture Handler.
 - Nao vamos fazer copy/paste literal dos prompts; vamos adaptar comportamento e API de props.
 - Sempre que possivel, componentes novos devem ser controlados por props, com variantes e estado externo.
 
@@ -173,6 +173,6 @@ Cada componente novo deve seguir:
 ## Entregavel Final Esperado
 
 - Todos os prompts analisados e mapeados para equivalente mobile.
-- Biblioteca de componentes editavel e personalizada para BetterU.
+- Biblioteca de componentes editavel e personalizada para HuGoal.
 - Fluxos principais construiveis sem retrabalho visual.
 - Base pronta para execucao por fases no projeto.

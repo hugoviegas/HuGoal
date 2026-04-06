@@ -1,5 +1,5 @@
 /**
- * BetterU Design System — Single import point
+ * HuGoal Design System — Single import point
  *
  * Usage:
  *   import * as DS from '@/constants/design-system';

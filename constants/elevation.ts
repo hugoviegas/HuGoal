@@ -1,7 +1,7 @@
 import { Platform, type ViewStyle } from 'react-native';
 
 /**
- * BetterU Design Tokens — Elevation
+ * HuGoal Design Tokens — Elevation
  * Cross-platform shadows for Android (elevation) and iOS (shadow*).
  */
 

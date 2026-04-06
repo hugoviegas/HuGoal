@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import type { AIProvider } from "@/types";
 
-const KEY_PREFIX = "betteru_ai_key_";
+const KEY_PREFIX = "hugoal_ai_key_";
 
 function storageKey(provider: AIProvider): string {
   return `${KEY_PREFIX}${provider}`;

@@ -1,7 +1,7 @@
 import { Easing } from 'react-native-reanimated';
 
 /**
- * BetterU Design Tokens — Animation
+ * HuGoal Design Tokens — Animation
  * Durations and easing functions for consistent motion.
  */
 export const duration = {

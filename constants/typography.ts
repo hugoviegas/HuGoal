@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import type { TextStyle } from 'react-native';
 
 /**
- * BetterU Design Tokens — Typography
+ * HuGoal Design Tokens — Typography
  * 5-level hierarchy: display, h1, h2, h3, body, small, caption
  * Font: Inter (sans) + SpaceMono (mono) — registered in app.json
  */

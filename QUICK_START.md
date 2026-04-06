@@ -2,7 +2,7 @@
 
 ## What Was Done ✅
 
-Your BetterU project now has a modern, interactive menu component that:
+Your HuGoal project now has a modern, interactive menu component that:
 
 - ✅ Replaces/enhances the existing TabBar
 - ✅ Works on iOS, Android, and Web (via Expo)

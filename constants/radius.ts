@@ -1,5 +1,5 @@
 /**
- * BetterU Design Tokens — Border Radius
+ * HuGoal Design Tokens — Border Radius
  */
 export const radius = {
   /** 4px — badges, small chips */

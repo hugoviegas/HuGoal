@@ -150,7 +150,8 @@ jobs:
             exit 1
           fi
 
-          APK_FILE="betteru-development-${GITHUB_SHA::7}.apk"
+          APK_FILE="hugoal-development-${GITHUB_SHA::7}.apk"
+                    APK_FILE="hugoal-development-${GITHUB_SHA::7}.apk"
           curl -fsSL "${APK_URL}" -o "${APK_FILE}"
 
           echo "apk_file=${APK_FILE}" >> "$GITHUB_OUTPUT"
@@ -160,7 +161,7 @@ jobs:
         if: steps.freshness.outputs.should_build == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: betteru-development-apk-${{ github.run_id }}
+          name: hugoal-development-apk-${{ github.run_id }}
           path: |
             ${{ steps.build.outputs.apk_file }}
             build.json
@@ -177,7 +178,7 @@ jobs:
           RELEASE_URL="https://github.com/${GITHUB_REPOSITORY}/releases/tag/${RELEASE_TAG}"
 
           if ! gh release view "${RELEASE_TAG}" > /dev/null 2>&1; then
-            gh release create "${RELEASE_TAG}" --title "BetterU Development APK (Latest)" --notes "Release automatica com o APK de development mais recente." --prerelease
+            gh release create "${RELEASE_TAG}" --title "HuGoal Development APK (Latest)" --notes "Release automatica com o APK de development mais recente." --prerelease
           fi
 
           gh release upload "${RELEASE_TAG}" "${{ steps.build.outputs.apk_file }}" build.json --clobber

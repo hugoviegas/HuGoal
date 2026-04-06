@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "BetterU",
-    "slug": "betteru",
-    "scheme": "betteru",
+    "name": "HuGoal",
+    "slug": "hugoal",
+    "scheme": "hugoal",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.betteru.app",
+      "bundleIdentifier": "com.hugoal.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -25,7 +25,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0a0a0a"
       },
-      "package": "com.betteru.app",
+      "package": "com.hugoal.app",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },

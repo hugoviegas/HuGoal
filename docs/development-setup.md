@@ -1,4 +1,4 @@
-# BetterU — Development Setup
+# HuGoal — Development Setup
 
 ## Prerequisites
 
@@ -18,8 +18,8 @@
 
 ```bash
 # 1. Clone and enter the project
-git clone https://github.com/hugoviegas/BetterU.git
-cd BetterU
+git clone https://github.com/hugoviegas/HuGoal.git
+cd HuGoal
 
 # 2. Install dependencies
 npm install --legacy-peer-deps
@@ -129,7 +129,7 @@ To configure a key for testing, use the AI Keys screen in Settings (Phase 6+), o
 ## Project Structure
 
 ```
-BetterU/
+HuGoal/
 ├── app/                    # Expo Router file-based routes
 │   ├── _layout.tsx         # Root layout (providers + bootstrap)
 │   ├── index.tsx           # Entry point (auth-based redirect)

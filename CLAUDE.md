@@ -1,4 +1,4 @@
-# BetterU - Regras Operacionais para Claude Code
+# HuGoal - Regras Operacionais para Claude Code
 
 Estas regras sao obrigatorias para qualquer agente Claude Code atuando neste repositorio.
 

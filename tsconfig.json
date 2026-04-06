@@ -25,4 +25,5 @@
     "global.css"
   ],
   "exclude": ["node_modules", "betteru", "pixel-agents", ".expo"]
+@@  "exclude": ["node_modules", "hugoal", "pixel-agents", ".expo"]
 }

@@ -1,7 +1,7 @@
 import { generateText, analyzeImage } from "@/lib/ai-provider";
 import type { AIProvider, NutritionItem, MealType, UserProfile } from "@/types";
 
-const SYSTEM_PROMPT_DIET_PLAN = `You are a certified sports nutritionist AI assistant for the BetterU fitness app.
+const SYSTEM_PROMPT_DIET_PLAN = `You are a certified sports nutritionist AI assistant for the HuGoal fitness app.
 Generate a daily meal plan based on the user's profile and goals.
 Return ONLY valid JSON with no markdown formatting.
 The JSON structure must be an array of meals:
@@ -55,7 +55,7 @@ Make the plan balanced and practical with common foods.`;
   }
 }
 
-const SYSTEM_PROMPT_MEAL_PHOTO = `You are a food recognition AI for the BetterU fitness app.
+const SYSTEM_PROMPT_MEAL_PHOTO = `You are a food recognition AI for the HuGoal fitness app.
 Analyze the meal photo and identify each food item with estimated quantities.
 Return ONLY valid JSON with no markdown formatting.
 The JSON structure must be an array of items:
@@ -100,7 +100,7 @@ export async function analyzeMealPhoto(
   }
 }
 
-const SYSTEM_PROMPT_OCR_PARSE = `You are a nutrition label parser for the BetterU fitness app.
+const SYSTEM_PROMPT_OCR_PARSE = `You are a nutrition label parser for the HuGoal fitness app.
 Parse the OCR text from a nutrition label and extract the food information.
 Return ONLY valid JSON with no markdown formatting.
 The JSON structure must be:

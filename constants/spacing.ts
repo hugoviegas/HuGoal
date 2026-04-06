@@ -1,5 +1,5 @@
 /**
- * BetterU Design Tokens — Spacing
+ * HuGoal Design Tokens — Spacing
  * 4px base unit. Used for padding, margin, gap across all components.
  */
 export const spacing = {

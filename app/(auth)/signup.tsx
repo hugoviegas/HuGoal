@@ -214,7 +214,7 @@ export default function SignupScreen() {
             marginBottom: 32,
           }}
         >
-          Create your BetterU account
+          Create your HuGoal account
         </Text>
 
         <View style={{ gap: 16 }}>

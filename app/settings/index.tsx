@@ -1,4 +1,10 @@
-import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  Pressable,
+  ActivityIndicator,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Constants from "expo-constants";
@@ -40,7 +46,10 @@ export default function SettingsScreen() {
     if (checkingForUpdate) return;
 
     if (__DEV__) {
-      showToast("OTA updates funcionam apenas em build de preview/producao.", "info");
+      showToast(
+        "OTA updates funcionam apenas em build de preview/producao.",
+        "info",
+      );
       return;
     }
 
@@ -221,7 +230,9 @@ export default function SettingsScreen() {
       >
         <Row
           icon={<RefreshCw size={18} color={colors.primary} />}
-          label={checkingForUpdate ? "Checking for updates..." : "Check for updates"}
+          label={
+            checkingForUpdate ? "Checking for updates..." : "Check for updates"
+          }
           onPress={handleCheckForUpdates}
           disabled={checkingForUpdate}
           right={
@@ -253,13 +264,15 @@ export default function SettingsScreen() {
         />
         <Row
           icon={<Info size={18} color={colors.foreground} />}
-          label="About BetterU"
+          label="About HuGoal"
           onPress={() => router.push("/settings/about")}
         />
         <Row
           icon={<Info size={18} color={colors.mutedForeground} />}
           label="App Version"
-          right={<Text style={{ color: colors.mutedForeground }}>{appVersion}</Text>}
+          right={
+            <Text style={{ color: colors.mutedForeground }}>{appVersion}</Text>
+          }
           disabled
         />
       </View>
