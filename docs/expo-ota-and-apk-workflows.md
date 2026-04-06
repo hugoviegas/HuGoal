@@ -62,6 +62,13 @@ Depois, salve no secret `EXPO_TOKEN` do GitHub.
 - Existe validacao explicita do `EXPO_TOKEN` no inicio do job para falhar cedo com mensagem clara quando o secret nao estiver disponivel.
 - Para reduzir tempo de execucao, os workflows usam:
   - cache de `~/.npm`, `~/.expo` e `~/.eas`
+  - cache de `node_modules` por hash do `package-lock.json`
+  - instalacao de dependencias apenas em cache miss
   - `npm ci --prefer-offline --no-audit`
   - filtro de `paths` para nao disparar build/update em commits que so alteram docs/arquivos nao relevantes para app.
   - skip de run obsoleto para builds (se existir commit mais novo na branch, o build antigo e ignorado).
+
+## Nota sobre warning de cache no Setup Expo
+
+Se aparecer `Failed to save: Our services aren't available right now` no step `Setup Expo and EAS`, esse warning e do cache interno do GitHub Actions no momento da execucao.
+Esse warning nao invalida os caches principais do workflow quando houver `Cache hit occurred` nos passos `Post Cache ...` e `Post Setup Node`.

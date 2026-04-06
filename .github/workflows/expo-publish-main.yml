@@ -75,6 +75,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-expo-publish-
 
+      - name: Cache node_modules
+        id: node-modules-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v8
         with:
@@ -82,8 +89,13 @@ jobs:
           expo-version: latest
           token: ${{ secrets['EXPO_TOKEN'] }}
 
-      - name: Install dependencies
+      - name: Install dependencies (cache miss)
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
         run: npm ci --prefer-offline --no-audit
+
+      - name: Use cached dependencies
+        if: steps.node-modules-cache.outputs.cache-hit == 'true'
+        run: echo "Using cached node_modules"
 
       - name: Validate required secrets
         shell: bash
