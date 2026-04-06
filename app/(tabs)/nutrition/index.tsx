@@ -18,6 +18,7 @@ import { NutritionDisclaimer } from "@/components/nutrition/NutritionDisclaimer"
 import { FloatingActionMenu } from "@/components/ui/FloatingActionMenu";
 import { Spinner } from "@/components/ui/Spinner";
 import { Button } from "@/components/ui/Button";
+import { SwipeableTabScene } from "@/components/ui/SwipeableTabScene";
 
 import {
   listNutritionLogs,
@@ -183,16 +184,17 @@ export default function NutritionScreen() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <ScrollView
-        contentContainerStyle={{
-          paddingTop: insets.top + spacing.sm,
-          paddingHorizontal: spacing.md,
-          paddingBottom: insets.bottom + 160,
-          gap: spacing.md,
-        }}
-        showsVerticalScrollIndicator={false}
-      >
+    <SwipeableTabScene tabIndex={2}>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <ScrollView
+          contentContainerStyle={{
+            paddingTop: insets.top + spacing.sm,
+            paddingHorizontal: spacing.md,
+            paddingBottom: insets.bottom + 160,
+            gap: spacing.md,
+          }}
+          showsVerticalScrollIndicator={false}
+        >
         {/* Header */}
         <View style={{ gap: 2 }}>
           <Text style={[typography.caption, { color: colors.mutedForeground }]}>
@@ -250,7 +252,7 @@ export default function NutritionScreen() {
             />
           );
         })}
-      </ScrollView>
+        </ScrollView>
 
       {/* Floating action menu */}
       <FloatingActionMenu
@@ -278,12 +280,13 @@ export default function NutritionScreen() {
         ]}
       />
 
-      {/* Add food modal */}
-      <AddFoodModal
-        visible={addModalVisible}
-        onClose={() => setAddModalVisible(false)}
-        onSave={handleAddItem}
-      />
-    </View>
+        {/* Add food modal */}
+        <AddFoodModal
+          visible={addModalVisible}
+          onClose={() => setAddModalVisible(false)}
+          onSave={handleAddItem}
+        />
+      </View>
+    </SwipeableTabScene>
   );
 }

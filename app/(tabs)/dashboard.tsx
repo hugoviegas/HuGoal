@@ -4,6 +4,7 @@ import { Flame, Hand, Zap } from "lucide-react-native";
 import { useThemeStore } from "@/stores/theme.store";
 import { useAuthStore } from "@/stores/auth.store";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { SwipeableTabScene } from "@/components/ui/SwipeableTabScene";
 
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
@@ -11,16 +12,17 @@ export default function DashboardScreen() {
   const profile = useAuthStore((s) => s.profile);
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: colors.background }}
-      contentContainerStyle={{
-        paddingTop: insets.top + 16,
-        paddingBottom: insets.bottom + 100,
-        paddingHorizontal: 16,
-        gap: 16,
-      }}
-      showsVerticalScrollIndicator={false}
-    >
+    <SwipeableTabScene tabIndex={0}>
+      <ScrollView
+        style={{ flex: 1, backgroundColor: colors.background }}
+        contentContainerStyle={{
+          paddingTop: insets.top + 16,
+          paddingBottom: insets.bottom + 100,
+          paddingHorizontal: 16,
+          gap: 16,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
       <View style={{ marginBottom: 8 }}>
         <Text style={{ fontSize: 13, color: colors.mutedForeground }}>
           Good morning,
@@ -117,6 +119,7 @@ export default function DashboardScreen() {
           Log your meals — Phase 5 coming soon.
         </Text>
       </GlassCard>
-    </ScrollView>
+      </ScrollView>
+    </SwipeableTabScene>
   );
 }

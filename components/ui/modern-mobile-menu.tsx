@@ -1,9 +1,10 @@
-import React, { useState, useRef, useEffect } from "react";
-import { View, Pressable, Animated, Platform } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 import { useThemeStore } from "@/stores/theme.store";
 import { useNavigationStore } from "@/stores/navigation.store";
+import { useTabSwipeContext } from "@/components/ui/tab-swipe-context";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import {
   LayoutDashboard,
@@ -12,6 +13,11 @@ import {
   Users,
   UserCircle,
 } from "lucide-react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
 type IconComponentType = React.ElementType<{ size?: number; color?: string }>;
 
@@ -41,65 +47,29 @@ const TAB_LABELS: Record<string, string> = {
   profile: "Profile",
 };
 
-/**
- * ModernMobileMenu - Modern animated bottom tab bar with smooth color transition
- * Features:
- * - Smooth animations with fluid color transitions
- * - Modern material design
- * - Dark/light theme support
- * - Accessible (ARIA labels)
- * - Icon-only layout with animated background
- */
 export function ModernMobileMenu({
   state,
-  descriptors,
   navigation,
-  items,
   accentColor,
 }: ModernMobileMenuProps) {
   const insets = useSafeAreaInsets();
   const colors = useThemeStore((s) => s.colors);
   const isDark = useThemeStore((s) => s.isDark);
   const navbarVisible = useNavigationStore((s) => s.navbarVisible);
+  const { progress } = useTabSwipeContext();
 
-  // Animation setup
-  const slideAnim = useRef(new Animated.Value(navbarVisible ? 0 : 120)).current;
-  const opacityAnim = useRef(new Animated.Value(navbarVisible ? 1 : 0)).current;
-  const activeIndexAnim = useRef(new Animated.Value(state.index)).current;
+  const slideAnim = useSharedValue(navbarVisible ? 0 : 120);
+  const opacityAnim = useSharedValue(navbarVisible ? 1 : 0);
+  const [containerWidth, setContainerWidth] = useState(0);
 
-  const [activeIndex, setActiveIndex] = useState(state.index);
-
-  // Handle navbar visibility
   useEffect(() => {
-    const shouldUseNativeDriver = Platform.OS !== "web";
-
-    Animated.parallel([
-      Animated.timing(slideAnim, {
-        toValue: navbarVisible ? 0 : 120,
-        duration: 300,
-        useNativeDriver: shouldUseNativeDriver,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: navbarVisible ? 1 : 0,
-        duration: 250,
-        useNativeDriver: shouldUseNativeDriver,
-      }),
-    ]).start();
+    slideAnim.value = withTiming(navbarVisible ? 0 : 120, { duration: 300 });
+    opacityAnim.value = withTiming(navbarVisible ? 1 : 0, { duration: 250 });
   }, [navbarVisible, opacityAnim, slideAnim]);
 
-  // Handle active tab changes with smooth animation
   useEffect(() => {
-    if (state.index !== activeIndex) {
-      setActiveIndex(state.index);
-      const shouldUseNativeDriver = Platform.OS !== "web";
-
-      Animated.timing(activeIndexAnim, {
-        toValue: state.index,
-        duration: 400,
-        useNativeDriver: shouldUseNativeDriver,
-      }).start();
-    }
-  }, [state.index, activeIndex, activeIndexAnim]);
+    progress.value = withTiming(state.index, { duration: 220 });
+  }, [progress, state.index]);
 
   const handleItemPress = (route: any, index: number) => {
     const isFocused = state.index === index;
@@ -108,6 +78,7 @@ export function ModernMobileMenu({
       target: route.key,
       canPreventDefault: true,
     });
+
     if (!isFocused && !event.defaultPrevented) {
       navigation.navigate(route.name, route.params);
     }
@@ -121,33 +92,39 @@ export function ModernMobileMenu({
   const inactiveColor = isDark ? "#888888" : "#666666";
   const activeColor = accentColor || colors.primary;
 
-  // Measure container to calculate exact tab width for animation alignment
-  const [containerWidth, setContainerWidth] = useState(0);
-  const containerPaddingHorizontal = 8; // matches View paddingHorizontal
-  const containerPaddingVertical = 8; // matches View paddingVertical
-  const indicatorHorizontalInset = 6; // inner inset inside each tab for indicator
+  const containerPaddingHorizontal = 8;
+  const containerPaddingVertical = 8;
 
   const contentWidth = Math.max(
     0,
     containerWidth - containerPaddingHorizontal * 2,
   );
   const tabWidth = contentWidth > 0 ? contentWidth / state.routes.length : 0;
-  const indicatorWidth =
-    tabWidth > 0 ? Math.max(28, tabWidth - indicatorHorizontalInset * 2) : 0;
+  const indicatorWidth = tabWidth > 0 ? Math.max(28, tabWidth - 12) : 0;
   const indicatorLeftBase =
     containerPaddingHorizontal + (tabWidth - indicatorWidth) / 2;
 
+  const containerStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: slideAnim.value }],
+    opacity: opacityAnim.value,
+  }));
+
+  const indicatorStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: progress.value * tabWidth }],
+  }));
+
   return (
     <Animated.View
-      style={{
-        position: "absolute",
-        bottom: insets.bottom + 12,
-        left: 16,
-        right: 16,
-        pointerEvents: navbarVisible ? "auto" : "none",
-        transform: [{ translateY: slideAnim }],
-        opacity: opacityAnim,
-      }}
+      style={[
+        {
+          position: "absolute",
+          bottom: insets.bottom + 12,
+          left: 16,
+          right: 16,
+          pointerEvents: navbarVisible ? "auto" : "none",
+        },
+        containerStyle,
+      ]}
     >
       <BlurView intensity={90} tint={isDark ? "dark" : "light"}>
         <View
@@ -170,35 +147,24 @@ export function ModernMobileMenu({
             shadowRadius: 12,
           }}
         >
-          {/* Animated background indicator (render after we measured the container) */}
           {containerWidth > 0 && (
             <Animated.View
               pointerEvents="none"
-              style={{
-                position: "absolute",
-                left: indicatorLeftBase,
-                top: containerPaddingVertical,
-                bottom: containerPaddingVertical,
-                borderRadius: 16,
-                backgroundColor: `${activeColor}12`,
-                width: indicatorWidth,
-                transform: [
-                  {
-                    translateX: activeIndexAnim.interpolate({
-                      inputRange: Array.from(
-                        { length: state.routes.length },
-                        (_, i) => i,
-                      ),
-                      outputRange: Array.from(
-                        { length: state.routes.length },
-                        (_, i) => i * tabWidth,
-                      ),
-                    }),
-                  },
-                ],
-              }}
+              style={[
+                {
+                  position: "absolute",
+                  left: indicatorLeftBase,
+                  top: containerPaddingVertical,
+                  bottom: containerPaddingVertical,
+                  borderRadius: 16,
+                  backgroundColor: `${activeColor}12`,
+                  width: indicatorWidth,
+                },
+                indicatorStyle,
+              ]}
             />
           )}
+
           {state.routes.map((route, index) => {
             const isFocused = state.index === index;
             const routeName = route.name.toLowerCase();
@@ -235,6 +201,5 @@ export function ModernMobileMenu({
   );
 }
 
-// Export as default for navigation config
 export { ModernMobileMenu as TabBar };
 export default ModernMobileMenu;

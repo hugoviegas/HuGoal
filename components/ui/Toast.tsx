@@ -196,18 +196,15 @@ export function ToastContainer() {
   );
 
   return (
-    <View
-      style={{ pointerEvents: "box-none" }}
-      className="absolute inset-0 z-50"
-    >
+    <View pointerEvents="box-none" className="absolute inset-0 z-50">
       {topToasts.length > 0 ? (
         <View
+          pointerEvents="box-none"
           style={{
             top: insets.top + 12,
             left: 16,
             right: 16,
             alignItems: "center",
-            pointerEvents: "box-none",
           }}
           className="absolute gap-3"
         >
@@ -227,12 +224,12 @@ export function ToastContainer() {
 
       {bottomToasts.length > 0 ? (
         <View
+          pointerEvents="box-none"
           style={{
             bottom: insets.bottom + 12,
             left: 16,
             right: 16,
             alignItems: "center",
-            pointerEvents: "box-none",
           }}
           className="absolute gap-3"
         >
@@ -252,3 +249,4 @@ export function ToastContainer() {
     </View>
   );
 }
+

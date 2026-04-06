@@ -8,6 +8,7 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { useAuthStore } from "@/stores/auth.store";
 import { useThemeStore } from "@/stores/theme.store";
 import { calculateAgeFromBirthDate, formatBirthDate } from "@/lib/profile-dates";
+import { SwipeableTabScene } from "@/components/ui/SwipeableTabScene";
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -18,16 +19,17 @@ export default function ProfileScreen() {
   const age = calculateAgeFromBirthDate(profile?.birth_date);
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: colors.background }}
-      contentContainerStyle={{
-        paddingTop: insets.top + 16,
-        paddingBottom: insets.bottom + 112,
-        paddingHorizontal: 16,
-        gap: 16,
-      }}
-      showsVerticalScrollIndicator={false}
-    >
+    <SwipeableTabScene tabIndex={4}>
+      <ScrollView
+        style={{ flex: 1, backgroundColor: colors.background }}
+        contentContainerStyle={{
+          paddingTop: insets.top + 16,
+          paddingBottom: insets.bottom + 112,
+          paddingHorizontal: 16,
+          gap: 16,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
         <View>
           <Text style={{ color: colors.foreground, fontSize: 24, fontWeight: "800" }}>
@@ -170,7 +172,8 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Pressable>
-    </ScrollView>
+      </ScrollView>
+    </SwipeableTabScene>
   );
 }
 
