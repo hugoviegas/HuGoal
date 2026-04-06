@@ -125,9 +125,9 @@ Deliver a secure, user-friendly AI key management system with SecureStore (devic
 ### Local SecureStore (Device-Only)
 
 ```
-betteru_ai_key_gemini: "AIzaS..."
-betteru_ai_key_claude: "sk-ant-..."
-betteru_ai_key_openai: "sk-..."
+hugoal_ai_key_gemini: "AIzaS..."
+hugoal_ai_key_claude: "sk-ant-..."
+hugoal_ai_key_openai: "sk-..."
 ```
 
 ### Local SQLite (Metadata)
@@ -323,7 +323,7 @@ Triggered at app start or lazy (when trying AI feature):
 
 ### Phase G - Multi-Account & Logout
 
-1. Update auth logic: delete `betteru_ai_key_*` on logout
+1. Update auth logic: delete `hugoal_ai_key_*` on logout
 2. Implement `deleteAllApiKeys()` function
 3. Test multi-account device scenarios
 

@@ -6,7 +6,7 @@ import {
   type NutritionVisionOutput,
 } from "@/lib/nutrition-vision";
 
-const SYSTEM_PROMPT_DIET_PLAN = `You are a certified sports nutritionist AI assistant for the BetterU fitness app.
+const SYSTEM_PROMPT_DIET_PLAN = `You are a certified sports nutritionist AI assistant for the HuGoal fitness app.
 Generate a daily meal plan based on the user's profile and goals.
 Return ONLY valid JSON with no markdown formatting.
 The JSON structure must be an array of meals:
@@ -127,7 +127,7 @@ export async function analyzeMealPhoto(
   }
 }
 
-const SYSTEM_PROMPT_OCR_PARSE = `You are a nutrition label parser for the BetterU fitness app.
+const SYSTEM_PROMPT_OCR_PARSE = `You are a nutrition label parser for the HuGoal fitness app.
 Parse the OCR text from a nutrition label and extract the food information.
 Return ONLY valid JSON with no markdown formatting.
 The JSON structure must be:

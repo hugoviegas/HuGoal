@@ -41,7 +41,7 @@ export default function AboutScreen() {
         <Text
           style={{ fontSize: 22, fontWeight: "800", color: colors.foreground }}
         >
-          About BetterU
+          About HuGoal
         </Text>
       </View>
 
@@ -51,7 +51,7 @@ export default function AboutScreen() {
         <Text
           style={{ fontSize: 28, fontWeight: "900", color: colors.foreground }}
         >
-          BetterU
+          HuGoal
         </Text>
         <Text
           style={{ fontSize: 14, color: colors.mutedForeground, marginTop: 4 }}
@@ -65,7 +65,7 @@ export default function AboutScreen() {
         <Text
           style={{ fontSize: 15, color: colors.foreground, lineHeight: 22 }}
         >
-          BetterU is your AI-powered fitness companion — helping you train
+          HuGoal is your AI-powered fitness companion — helping you train
           smarter, eat better, and track your progress with the power of Claude,
           Gemini, and GPT-4.
         </Text>

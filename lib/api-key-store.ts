@@ -3,6 +3,7 @@ import * as SecureStore from "expo-secure-store";
 import type { AIProvider } from "@/types";
 
 const KEY_PREFIX = "betteru_ai_key_";
+const PROVIDERS: AIProvider[] = ["gemini", "claude", "openai"];
 
 function storageKey(provider: AIProvider): string {
   return `${KEY_PREFIX}${provider}`;
@@ -55,13 +56,15 @@ export async function getApiKey(provider: AIProvider): Promise<string | null> {
 }
 
 function previewKeyByProvider(provider: AIProvider): string | null {
+  // Do NOT use EXPO_PUBLIC_* variables here to avoid exposing secret keys
+  // in client builds. Prefer non-public env vars which should be injected
+  // at build time in native builds or provided via a secure server.
   const env =
     provider === "gemini"
-      ? (process.env.EXPO_PUBLIC_GEMINI_API_KEY ?? process.env.GEMINI_API_KEY)
+      ? (process.env.GEMINI_API_KEY ?? null)
       : provider === "claude"
-        ? (process.env.EXPO_PUBLIC_CLAUDE_API_KEY ?? process.env.CLAUDE_API_KEY)
-        : (process.env.EXPO_PUBLIC_OPENAI_API_KEY ??
-          process.env.OPENAI_API_KEY);
+        ? (process.env.CLAUDE_API_KEY ?? null)
+        : (process.env.OPENAI_API_KEY ?? null);
 
   if (!env || !env.trim()) return null;
   return env.trim();
@@ -99,6 +102,26 @@ export async function deleteApiKey(provider: AIProvider): Promise<void> {
   } catch {
     // Best-effort cleanup.
   }
+}
+
+export async function deleteAllApiKeys(): Promise<void> {
+  await Promise.all(PROVIDERS.map((provider) => deleteApiKey(provider)));
+}
+
+export async function listApiKeySources(): Promise<
+  Record<AIProvider, "user" | "preview" | "none">
+> {
+  const entries = await Promise.all(
+    PROVIDERS.map(async (provider) => {
+      const resolved = await getResolvedApiKey(provider);
+      return [provider, resolved.source] as const;
+    }),
+  );
+
+  return Object.fromEntries(entries) as Record<
+    AIProvider,
+    "user" | "preview" | "none"
+  >;
 }
 
 export function maskApiKey(key: string): string {

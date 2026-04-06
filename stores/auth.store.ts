@@ -3,6 +3,7 @@ import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { auth } from "@/lib/firebase";
 import { getDocument, updateDocument } from "@/lib/firestore";
+import { deleteAllApiKeys } from "@/lib/api-key-store";
 import type { UserProfile } from "@/types";
 
 interface AuthState {
@@ -61,6 +62,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     const uid = get().user?.uid;
     await signOut(auth);
+    await deleteAllApiKeys();
     if (uid) {
       await AsyncStorage.removeItem(`onboarding_draft:${uid}`);
     }

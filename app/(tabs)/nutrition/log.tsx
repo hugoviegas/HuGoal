@@ -41,6 +41,7 @@ export default function LogFoodScreen() {
   }>();
 
   const user = useAuthStore((s) => s.user);
+  const profile = useAuthStore((s) => s.profile);
   const showToast = useToastStore((s) => s.show);
   const colors = useThemeStore((s) => s.colors);
   const addLog = useNutritionStore((s) => s.addLog);
@@ -100,8 +101,11 @@ export default function LogFoodScreen() {
       addLog(log);
       showToast("Meal logged successfully", "success");
       router.back();
-    } catch {
-      showToast("Failed to save meal", "error");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to save meal";
+      console.error("[nutrition/log] save failed", error);
+      showToast(message || "Failed to save meal", "error");
     } finally {
       setSaving(false);
     }
@@ -131,7 +135,8 @@ export default function LogFoodScreen() {
 
     try {
       setAnalyzingAI(true);
-      const detected = await analyzeMealPhoto("gemini", image.base64);
+      const provider = profile?.preferred_ai_provider ?? "gemini";
+      const detected = await analyzeMealPhoto(provider, image.base64);
 
       if (!detected.length) {
         showToast("No foods detected in image", "info");
@@ -146,6 +151,13 @@ export default function LogFoodScreen() {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to analyze meal image";
+
+      if (message.toLowerCase().includes("no api key configured")) {
+        showToast("Add your AI key in Settings > AI Provider Keys", "info");
+        router.push("/settings/ai-keys");
+        return;
+      }
+
       showToast(message, "error");
     } finally {
       setAnalyzingAI(false);
