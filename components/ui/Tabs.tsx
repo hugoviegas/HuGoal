@@ -1,5 +1,11 @@
 import React, { useState } from "react";
-import { View, Pressable, Text, type ViewProps } from "react-native";
+import {
+  View,
+  Pressable,
+  Text,
+  ScrollView,
+  type ViewProps,
+} from "react-native";
 import { SafeView } from "@/components/ui/SafeView";
 import { cn } from "@/lib/utils";
 
@@ -76,7 +82,7 @@ export function Tabs({
   const tabListClass = cn(
     "flex-row",
     variant === "default" && "bg-gray-100 dark:bg-gray-800 p-1 rounded-lg",
-    variant === "line" && "border-b border-gray-200 dark:border-gray-700",
+    variant === "line" && "",
     variant === "button" && "",
     gapMap[size],
   );
@@ -100,18 +106,41 @@ export function Tabs({
 
   return (
     <View className={className} {...props}>
-      {/* Tabs header (horizontally scrollable) */}
-      <View className="overflow-x-auto whitespace-nowrap hide-scrollbar">
-        <View className={tabListClass}>
-          {items.map((item) => (
-            <Pressable
-              key={item.id}
-              onPress={() => handleTabChange(item.id)}
-              className={tabTriggerClass(activeTab === item.id)}
-            >
-              {item.icon ? (
-                <View className="flex-row items-center gap-1.5">
-                  {item.icon}
+      {/* Tabs header (horizontally scrollable, fixed baseline) */}
+      <View
+        className={cn(
+          variant === "line" && "border-b border-gray-200 dark:border-gray-700",
+        )}
+      >
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingRight: 8 }}
+          className="hide-scrollbar"
+        >
+          <View className={tabListClass}>
+            {items.map((item) => (
+              <Pressable
+                key={item.id}
+                onPress={() => handleTabChange(item.id)}
+                className={tabTriggerClass(activeTab === item.id)}
+              >
+                {item.icon ? (
+                  <View className="flex-row items-center gap-1.5">
+                    {item.icon}
+                    <Text
+                      className={cn(
+                        textSizeMap[size],
+                        "font-medium",
+                        activeTab === item.id
+                          ? "text-cyan-600 dark:text-cyan-400"
+                          : "text-gray-600 dark:text-gray-400",
+                      )}
+                    >
+                      {item.label}
+                    </Text>
+                  </View>
+                ) : (
                   <Text
                     className={cn(
                       textSizeMap[size],
@@ -123,23 +152,11 @@ export function Tabs({
                   >
                     {item.label}
                   </Text>
-                </View>
-              ) : (
-                <Text
-                  className={cn(
-                    textSizeMap[size],
-                    "font-medium",
-                    activeTab === item.id
-                      ? "text-cyan-600 dark:text-cyan-400"
-                      : "text-gray-600 dark:text-gray-400",
-                  )}
-                >
-                  {item.label}
-                </Text>
-              )}
-            </Pressable>
-          ))}
-        </View>
+                )}
+              </Pressable>
+            ))}
+          </View>
+        </ScrollView>
       </View>
 
       {/* Tabs content */}
