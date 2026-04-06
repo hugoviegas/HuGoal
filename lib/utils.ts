@@ -27,3 +27,36 @@ export function formatNumber(n: number): string {
 export function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
 }
+
+/**
+ * Blur the currently focused element on web to avoid hiding a focused element
+ * when an ancestor is marked `aria-hidden` (e.g. when opening a modal).
+ */
+export function blurActiveElementOnWeb(): void {
+  try {
+    if (typeof document === "undefined") return;
+    const el = document.activeElement as HTMLElement | null;
+    if (el && typeof el.blur === "function") {
+      el.blur();
+    }
+  } catch (e) {
+    // swallow errors, this is a best-effort accessibility helper
+    // eslint-disable-next-line no-console
+    console.warn("[a11y] blurActiveElementOnWeb failed", e);
+  }
+}
+
+/**
+ * Try to restore focus to a previously focused element on web.
+ */
+export function restoreFocusOnWeb(prev?: HTMLElement | null): void {
+  try {
+    if (typeof document === "undefined") return;
+    if (prev && typeof prev.focus === "function") {
+      prev.focus();
+    }
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn("[a11y] restoreFocusOnWeb failed", e);
+  }
+}

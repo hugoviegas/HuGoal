@@ -1,18 +1,12 @@
 import React, { useState, useEffect, useCallback } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  Pressable,
-  ActivityIndicator,
-  TextInput,
-} from "react-native";
+import { View, Text, FlatList, Pressable, TextInput } from "react-native";
 import { Search, SearchX, X } from "lucide-react-native";
 import { useThemeStore } from "@/stores/theme.store";
 import { useToastStore } from "@/stores/toast.store";
 import { Tabs, TabContent } from "@/components/ui/Tabs";
 import { ExerciseCard } from "@/components/workouts/ExerciseCard";
 import { Badge } from "@/components/ui/Badge";
+import { Spinner } from "@/components/ui/Spinner";
 import type { Exercise } from "@/types";
 
 /**
@@ -262,7 +256,7 @@ export default function ExploreScreen() {
       {/* Content */}
       {loading ? (
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#06b6d4" />
+          <Spinner size="lg" color="#06b6d4" />
         </View>
       ) : (
         <View className="flex-1">

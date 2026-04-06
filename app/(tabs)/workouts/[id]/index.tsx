@@ -24,40 +24,26 @@ import {
   type PausedWorkoutSessionRecord,
 } from "@/lib/firestore/workouts";
 
-// Mock data - replace with Firestore fetch
-const MOCK_WORKOUT_DETAIL = {
-  id: "1",
-  name: "Full Body Strength",
-  description:
-    "A comprehensive full-body workout focusing on compound movements and strength building.",
-  difficulty: "intermediate",
-  is_ai_generated: true,
-  estimated_duration_minutes: 45,
-  exercises: [
-    {
-      id: "ex1",
-      name: "Push-ups",
-      sets: 3,
-      reps: "10-12",
-      muscleGroups: ["Chest", "Shoulders", "Triceps"],
-    },
-    {
-      id: "ex2",
-      name: "Squats",
-      sets: 3,
-      reps: "15-20",
-      muscleGroups: ["Quads", "Glutes", "Hamstrings"],
-    },
-    {
-      id: "ex3",
-      name: "Rows",
-      sets: 2,
-      reps: "10-12",
-      muscleGroups: ["Back", "Biceps"],
-    },
-  ],
-  created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
-  tags: ["Strength", "Full Body", "Home"],
+type WorkoutDetailRawModel = {
+  id: string;
+  name: string;
+  description?: string;
+  difficulty: string;
+  is_ai_generated: boolean;
+  estimated_duration_minutes: number;
+  exercises: {
+    id: string;
+    name: string;
+    sets: number;
+    reps: string;
+    muscleGroups: string[];
+  }[];
+  created_at: Date | string;
+  tags: string[];
+};
+
+type WorkoutDetailModel = Omit<WorkoutDetailRawModel, "created_at"> & {
+  created_at: Date;
 };
 
 const DIFFICULTY_CONFIG = {
@@ -66,7 +52,9 @@ const DIFFICULTY_CONFIG = {
   advanced: { label: "Advanced", color: "destructive" },
 } as const;
 
-function normalizeWorkoutDetail(record: typeof MOCK_WORKOUT_DETAIL) {
+function normalizeWorkoutDetail(
+  record: WorkoutDetailRawModel,
+): WorkoutDetailModel {
   return {
     ...record,
     created_at:
@@ -86,33 +74,47 @@ export default function WorkoutDetailScreen() {
   const tabBarClearance = insets.bottom + 76;
 
   const [isExpanded, setIsExpanded] = useState(false);
-  const [workout, setWorkout] = useState(MOCK_WORKOUT_DETAIL);
-  const [isDemo, setIsDemo] = useState(true);
+  const [workout, setWorkout] = useState<WorkoutDetailModel | null>(null);
+  const [loadingWorkout, setLoadingWorkout] = useState(true);
+  const [workoutLoadError, setWorkoutLoadError] = useState<string | null>(null);
   const [pausedSession, setPausedSession] =
     useState<PausedWorkoutSessionRecord | null>(null);
   const [loadingPausedSession, setLoadingPausedSession] = useState(true);
-  const diffConfig =
-    DIFFICULTY_CONFIG[workout.difficulty as keyof typeof DIFFICULTY_CONFIG];
 
   useEffect(() => {
     let mounted = true;
 
     (async () => {
-      const workoutRecord = await getWorkoutTemplate(String(id));
-      if (!mounted) return;
+      setLoadingWorkout(true);
+      setWorkoutLoadError(null);
 
-      if (workoutRecord) {
-        setWorkout(
-          normalizeWorkoutDetail(
-            workoutRecord as unknown as typeof MOCK_WORKOUT_DETAIL,
-          ),
-        );
-        setIsDemo(false);
-        return;
+      try {
+        const workoutRecord = await getWorkoutTemplate(String(id));
+        if (!mounted) return;
+
+        if (workoutRecord) {
+          setWorkout(
+            normalizeWorkoutDetail(
+              workoutRecord as unknown as WorkoutDetailRawModel,
+            ),
+          );
+          return;
+        }
+
+        setWorkout(null);
+        setWorkoutLoadError("Workout not found.");
+      } catch (error) {
+        console.error("[workoutDetail] failed to load workout", {
+          workoutId: String(id),
+          error,
+        });
+        if (!mounted) return;
+        setWorkout(null);
+        setWorkoutLoadError("Could not load workout.");
+      } finally {
+        if (!mounted) return;
+        setLoadingWorkout(false);
       }
-
-      setWorkout(normalizeWorkoutDetail(MOCK_WORKOUT_DETAIL));
-      setIsDemo(true);
     })();
 
     return () => {
@@ -136,7 +138,12 @@ export default function WorkoutDetailScreen() {
         const session = await getPausedWorkoutSession(user.uid, String(id));
         if (!mounted) return;
         setPausedSession(session);
-      } catch {
+      } catch (error) {
+        console.error("[workoutDetail] failed to load paused session", {
+          workoutId: String(id),
+          uid: user?.uid,
+          error,
+        });
         if (!mounted) return;
         setPausedSession(null);
       } finally {
@@ -151,14 +158,29 @@ export default function WorkoutDetailScreen() {
   }, [id, user?.uid]);
 
   const handleStartWorkout = async () => {
-    try {
-      if (user?.uid && id) {
+    if (user?.uid && id) {
+      try {
         await clearPausedWorkoutSession(user.uid, String(id));
         setPausedSession(null);
+      } catch (error) {
+        console.error("[workoutDetail] failed to clear paused session", {
+          workoutId: String(id),
+          uid: user?.uid,
+          error,
+        });
       }
+    }
+
+    try {
       router.push(`/workouts/${id}/run`);
-    } catch {
-      showToast("Could not start workout right now.", "error");
+    } catch (error: any) {
+      console.error("[workoutDetail] failed to start workout", {
+        workoutId: String(id),
+        uid: user?.uid,
+        error,
+      });
+      const reason = error?.code ? ` (${error.code})` : "";
+      showToast(`Could not start workout right now${reason}.`, "error");
     }
   };
 
@@ -177,6 +199,8 @@ export default function WorkoutDetailScreen() {
   };
 
   const handleShare = async () => {
+    if (!workout) return;
+
     try {
       await Share.share({
         message: `Check out my workout: ${workout.name}\n${workout.description}`,
@@ -209,6 +233,49 @@ export default function WorkoutDetailScreen() {
     ]);
   };
 
+  if (loadingWorkout) {
+    return (
+      <View className={cn("flex-1", isDark ? "bg-dark-bg" : "bg-light-bg")}>
+        <View className="flex-1 p-4">
+          <View className="h-10 w-3/4 rounded-xl bg-gray-200 dark:bg-gray-800 mb-3" />
+          <View className="h-4 w-1/3 rounded bg-gray-200 dark:bg-gray-800 mb-6" />
+
+          <View className="flex-row gap-3 mb-6">
+            <View className="flex-1 h-20 rounded-lg bg-gray-200 dark:bg-gray-800" />
+            <View className="flex-1 h-20 rounded-lg bg-gray-200 dark:bg-gray-800" />
+            <View className="flex-1 h-20 rounded-lg bg-gray-200 dark:bg-gray-800" />
+          </View>
+
+          <View className="h-5 w-1/3 rounded bg-gray-200 dark:bg-gray-800 mb-3" />
+          <View className="h-16 rounded-lg bg-gray-200 dark:bg-gray-800 mb-3" />
+          <View className="h-16 rounded-lg bg-gray-200 dark:bg-gray-800 mb-3" />
+          <View className="h-16 rounded-lg bg-gray-200 dark:bg-gray-800" />
+        </View>
+      </View>
+    );
+  }
+
+  if (!workout) {
+    return (
+      <View
+        className={cn(
+          "flex-1 items-center justify-center px-6",
+          isDark ? "bg-dark-bg" : "bg-light-bg",
+        )}
+      >
+        <Text className="text-base font-semibold text-gray-900 dark:text-gray-100">
+          {workoutLoadError ?? "Workout unavailable."}
+        </Text>
+        <Button onPress={() => router.back()} className="mt-4">
+          Go Back
+        </Button>
+      </View>
+    );
+  }
+
+  const diffConfig =
+    DIFFICULTY_CONFIG[workout.difficulty as keyof typeof DIFFICULTY_CONFIG];
+
   const formattedDate = workout.created_at.toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
@@ -228,7 +295,13 @@ export default function WorkoutDetailScreen() {
 
   return (
     <View className={cn("flex-1", isDark ? "bg-dark-bg" : "bg-light-bg")}>
-      <ScrollView className="flex-1 p-4" showsVerticalScrollIndicator={false}>
+      {/* Scrollable Content */}
+      <ScrollView
+        className="flex-1 p-4"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ flexGrow: 0 }}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Header */}
         <View className="flex-row justify-between items-start mb-4">
           <View className="flex-1">
@@ -238,11 +311,6 @@ export default function WorkoutDetailScreen() {
             <Text className="text-sm text-gray-600 dark:text-gray-400 mt-1">
               Created {formattedDate}
             </Text>
-            {isDemo ? (
-              <Badge variant="secondary" size="sm" className="mt-2 self-start">
-                Demo data
-              </Badge>
-            ) : null}
           </View>
           <DropdownMenu
             items={[
@@ -459,7 +527,7 @@ export default function WorkoutDetailScreen() {
         )}
       </ScrollView>
 
-      {/* Action Buttons */}
+      {/* Fixed Action Buttons - NOT scrollable */}
       <View
         className={cn(
           "p-4 border-t gap-3",
@@ -467,17 +535,9 @@ export default function WorkoutDetailScreen() {
             ? "bg-dark-surface border-dark-border"
             : "bg-light-surface border-light-border",
         )}
-        style={{ paddingBottom: tabBarClearance }}
+        // raise buttons a bit above the tab bar
+        style={{ paddingBottom: tabBarClearance + 24 }}
       >
-        <View className="flex-row items-center justify-between">
-          <Text className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-            Session Actions
-          </Text>
-          <Text className="text-xs text-gray-600 dark:text-gray-400">
-            Quick start and resume
-          </Text>
-        </View>
-
         {loadingPausedSession ? null : hasPausedSession ? (
           <View
             className={cn(
@@ -538,36 +598,6 @@ export default function WorkoutDetailScreen() {
             </View>
           </Button>
         )}
-
-        <View className="flex-row gap-2">
-          <Button
-            onPress={handleEdit}
-            variant="secondary"
-            size="md"
-            className="flex-1"
-          >
-            Edit Workout
-          </Button>
-          <Button
-            onPress={handleDuplicate}
-            variant="secondary"
-            size="md"
-            className="flex-1"
-          >
-            Duplicate
-          </Button>
-        </View>
-
-        <View className="flex-row gap-2">
-          <Button
-            onPress={handleShare}
-            variant="secondary"
-            size="md"
-            className="flex-1"
-          >
-            Share
-          </Button>
-        </View>
       </View>
     </View>
   );

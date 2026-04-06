@@ -3,6 +3,20 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function isOwner(data) {
+      return request.auth != null
+        && (
+          data.user_id == request.auth.uid
+          || data.uid == request.auth.uid
+          || data.userId == request.auth.uid
+        );
+    }
+
+    function sessionIdOwned(sessionId) {
+      return request.auth != null
+        && sessionId.matches('^' + request.auth.uid + '_.*$');
+    }
+
     // ── Profiles ──────────────────────────────────────────────────────
     // Users can only read/write their own profile document.
     match /profiles/{userId} {
@@ -43,14 +57,14 @@ service cloud.firestore {
     // ── Workout Templates ─────────────────────────────────────────────
     // User-owned templates.
     match /workout_templates/{templateId} {
-      allow read:   if request.auth != null
-                       && resource.data.user_id == request.auth.uid;
+      allow read:   if isOwner(resource.data);
       allow create: if request.auth != null
-                       && request.resource.data.user_id == request.auth.uid;
-      allow update: if request.auth != null
-                       && resource.data.user_id == request.auth.uid;
-      allow delete: if request.auth != null
-                       && resource.data.user_id == request.auth.uid;
+                       && (
+                            request.resource.data.user_id == request.auth.uid
+                            || request.resource.data.userId == request.auth.uid
+                          );
+      allow update: if isOwner(resource.data);
+      allow delete: if isOwner(resource.data);
     }
 
     // ── Workout Sessions ──────────────────────────────────────────────
@@ -58,18 +72,31 @@ service cloud.firestore {
       allow read: if request.auth != null
                      && (
                           resource == null
-                          || resource.data.user_id == request.auth.uid
+                          || isOwner(resource.data)
+                          || sessionIdOwned(sessionId)
                         );
       allow create: if request.auth != null
-                       && request.resource.data.user_id == request.auth.uid;
+                       && (
+                            request.resource.data.user_id == request.auth.uid
+                            || request.resource.data.uid == request.auth.uid
+                            || request.resource.data.userId == request.auth.uid
+                          );
       allow update: if request.auth != null
                        && resource != null
-                       && resource.data.user_id == request.auth.uid
-                       && request.resource.data.user_id == request.auth.uid;
+                       && (
+                            isOwner(resource.data)
+                            || sessionIdOwned(sessionId)
+                          )
+                       && (
+                            request.resource.data.user_id == request.auth.uid
+                            || request.resource.data.uid == request.auth.uid
+                            || request.resource.data.userId == request.auth.uid
+                          );
       allow delete: if request.auth != null
                        && (
                             resource == null
-                            || resource.data.user_id == request.auth.uid
+                            || isOwner(resource.data)
+                            || sessionIdOwned(sessionId)
                           );
     }
 

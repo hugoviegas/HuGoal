@@ -60,9 +60,12 @@ export function ExerciseCard({
       <Pressable
         onPress={onPress}
         className={cn(
-          "bg-light-card dark:bg-dark-card rounded-2xl overflow-hidden border border-light-border dark:border-dark-border shadow-sm",
+          "bg-light-card dark:bg-dark-card rounded-2xl overflow-hidden border border-light-border dark:border-dark-border",
           className,
         )}
+        style={{
+          boxShadow: "0px 2px 8px rgba(0, 0, 0, 0.08)",
+        }}
         {...props}
       >
         {showImage && imageUrl && (

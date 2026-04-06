@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { View, Pressable, Text, type ViewProps } from "react-native";
+import { SafeView } from "@/components/ui/SafeView";
 import { cn } from "@/lib/utils";
 
 interface TabItem {
@@ -88,9 +89,7 @@ export function Tabs({
       variant === "button" && "rounded-md",
       variant === "line" && "rounded-none border-b-2",
       variant === "default" &&
-        (isActive
-          ? "bg-white dark:bg-gray-900"
-          : "bg-transparent"),
+        (isActive ? "bg-white dark:bg-gray-900" : "bg-transparent"),
       variant === "button" &&
         (isActive ? "bg-gray-100 dark:bg-gray-800" : "bg-transparent"),
       variant === "line" &&
@@ -142,7 +141,7 @@ export function Tabs({
       </View>
 
       {/* Tabs content */}
-      <View className={contentClassName}>
+      <View className={cn(contentClassName, "flex-1")} style={{ minHeight: 0 }}>
         {childArray.map((child) => {
           if (!React.isValidElement(child)) return null;
           const childProps = (child as React.ReactElement<any>).props;
@@ -157,5 +156,9 @@ export function Tabs({
  * TabContent - Wrapper for tab content
  */
 export function TabContent({ value, children }: TabContentProps) {
-  return <View>{children}</View>;
+  return (
+    <SafeView className="flex-1" style={{ minHeight: 0 }}>
+      {children}
+    </SafeView>
+  );
 }

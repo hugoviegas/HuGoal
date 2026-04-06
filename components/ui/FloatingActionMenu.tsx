@@ -63,7 +63,10 @@ export function FloatingActionMenu({ options = [] }: FloatingActionMenuProps) {
 
   return (
     <View
-      style={[styles.wrapper, { bottom: insets.bottom + 96, pointerEvents: 'box-none' }]}
+      style={[
+        styles.wrapper,
+        { bottom: insets.bottom + 96, pointerEvents: "box-none" },
+      ]}
     >
       {/* Options stacked above the FAB */}
       {options.map((opt, i) => {
@@ -79,7 +82,14 @@ export function FloatingActionMenu({ options = [] }: FloatingActionMenuProps) {
         return (
           <Animated.View
             key={`${opt.label}-${i}`}
-            style={[styles.option, { transform: [{ translateY }], opacity, pointerEvents: open ? 'auto' : 'none' }]}
+            style={[
+              styles.option,
+              {
+                transform: [{ translateY }],
+                opacity,
+                pointerEvents: open ? "auto" : "none",
+              },
+            ]}
           >
             <Pressable
               onPress={() => handleOptionPress(opt.onPress)}
@@ -133,10 +143,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.16,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 4 },
+    boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.16)",
     elevation: 6,
   },
   optionLabel: {
@@ -161,10 +168,7 @@ const styles = StyleSheet.create({
     backgroundColor: Platform.OS === "ios" ? "rgba(17,17,17,0.95)" : "#111",
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.22,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 6 },
+    boxShadow: "0px 6px 8px rgba(0, 0, 0, 0.22)",
     elevation: 8,
   },
 });

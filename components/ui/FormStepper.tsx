@@ -1,4 +1,5 @@
 import { View, Text } from "react-native";
+import { SafeView } from "@/components/ui/SafeView";
 import { Button } from "@/components/ui/Button";
 import { useThemeStore } from "@/stores/theme.store";
 
@@ -92,7 +93,7 @@ export function FormStepper({
       </View>
 
       {/* Content */}
-      <View style={{ flex: 1 }}>{children}</View>
+      <SafeView style={{ flex: 1 }}>{children}</SafeView>
 
       {/* Actions */}
       <View style={{ gap: 10, marginTop: 16 }}>

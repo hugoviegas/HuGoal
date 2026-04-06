@@ -41,6 +41,7 @@
     "expo-video": "~3.0.16",
     "firebase": "^10.14.1",
     "i18next": "^26.0.3",
+    "lucide-react": "^0.462.0",
     "lucide-react-native": "^1.7.0",
     "nativewind": "^4.2.3",
     "openai": "^6.33.0",

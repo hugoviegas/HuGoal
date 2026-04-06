@@ -1,6 +1,7 @@
 import { BlurView } from 'expo-blur';
 import { StyleSheet, type ViewProps } from 'react-native';
 import { useThemeStore } from '@/stores/theme.store';
+import { SafeView } from '@/components/ui/SafeView';
 
 interface GlassCardProps extends ViewProps {
   intensity?: number;
@@ -17,7 +18,7 @@ export function GlassCard({ intensity = 60, style, children, ...props }: GlassCa
       style={[styles.container, style]}
       {...props}
     >
-      {children}
+      <SafeView>{children}</SafeView>
     </BlurView>
   );
 }

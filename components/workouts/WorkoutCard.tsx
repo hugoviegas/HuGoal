@@ -14,6 +14,7 @@ interface WorkoutCardProps {
   template: Partial<WorkoutTemplate>;
   onPress?: () => void;
   onMenuPress?: () => void;
+  menu?: React.ReactNode;
   showDifficulty?: boolean;
   variant?: "compact" | "expanded";
   className?: string;
@@ -41,6 +42,7 @@ export function WorkoutCard({
   template,
   onPress,
   onMenuPress,
+  menu,
   showDifficulty = true,
   variant = "expanded",
   className,
@@ -86,9 +88,14 @@ export function WorkoutCard({
     <Pressable
       onPress={onPress}
       className={cn(
-        "bg-light-card dark:bg-dark-card rounded-2xl p-4 gap-3 border border-light-border dark:border-dark-border shadow-sm",
+        "bg-light-card dark:bg-dark-card rounded-2xl p-4 gap-3 border border-light-border dark:border-dark-border",
         className,
       )}
+      style={{
+        boxShadow: isDark
+          ? "0px 2px 8px rgba(0, 0, 0, 0.28)"
+          : "0px 2px 8px rgba(0, 0, 0, 0.08)",
+      }}
       {...props}
     >
       {/* Header */}
@@ -106,11 +113,13 @@ export function WorkoutCard({
             </Text>
           )}
         </View>
-        {onMenuPress && (
+        {menu ? (
+          menu
+        ) : onMenuPress ? (
           <Pressable onPress={onMenuPress} className="p-2">
             <MoreHorizontal size={18} color={mutedColor} />
           </Pressable>
-        )}
+        ) : null}
       </View>
 
       <View className="flex-row items-center gap-4">

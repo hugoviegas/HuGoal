@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { View, Pressable, Text, Animated } from "react-native";
+import { View, Pressable, Text, Animated, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 import { useThemeStore } from "@/stores/theme.store";
@@ -38,34 +38,35 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const opacityAnim = useRef(new Animated.Value(navbarVisible ? 1 : 0)).current;
 
   useEffect(() => {
+    const shouldUseNativeDriver = Platform.OS !== "web";
+
     Animated.parallel([
       Animated.timing(slideAnim, {
         toValue: navbarVisible ? 0 : 110,
         duration: 260,
-        useNativeDriver: true,
+        useNativeDriver: shouldUseNativeDriver,
       }),
       Animated.timing(opacityAnim, {
         toValue: navbarVisible ? 1 : 0,
         duration: 220,
-        useNativeDriver: true,
+        useNativeDriver: shouldUseNativeDriver,
       }),
     ]).start();
   }, [navbarVisible, opacityAnim, slideAnim]);
 
   return (
     <Animated.View
-      pointerEvents={navbarVisible ? "auto" : "none"}
       style={{
+        pointerEvents: navbarVisible ? "auto" : "none",
         position: "absolute",
         bottom: insets.bottom + 12,
         left: 16,
         right: 16,
         borderRadius: 24,
         overflow: "hidden",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: isDark ? 0.4 : 0.12,
-        shadowRadius: 12,
+        boxShadow: isDark
+          ? "0px 4px 12px rgba(0, 0, 0, 0.4)"
+          : "0px 4px 12px rgba(0, 0, 0, 0.12)",
         elevation: 8,
         transform: [{ translateY: slideAnim }],
         opacity: opacityAnim,

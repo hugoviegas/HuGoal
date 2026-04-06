@@ -1,13 +1,17 @@
+import React, { useEffect, useRef, useState } from "react";
 import {
   Modal as RNModal,
   Pressable,
   Text,
-  useWindowDimensions,
   View,
+  useWindowDimensions,
+  type ViewStyle,
 } from "react-native";
+import { SafeView } from "@/components/ui/SafeView";
 import { BlurView } from "expo-blur";
 import { cn } from "@/lib/utils";
 import { useThemeStore } from "@/stores/theme.store";
+import { blurActiveElementOnWeb, restoreFocusOnWeb } from "@/lib/utils";
 
 interface ResponsiveModalProps {
   open: boolean;
@@ -30,42 +34,78 @@ export function ResponsiveModal({
   const isMobile = width < 768;
   const colors = useThemeStore((s) => s.colors);
 
-  const contentStyle = {
-    overflow: 'hidden' as const,
+  const prevFocusRef = useRef<HTMLElement | null>(null);
+  const [internalOpen, setInternalOpen] = useState<boolean>(false);
+
+  const contentStyle: ViewStyle = {
+    overflow: "hidden" as const,
     borderWidth: 1,
-    borderColor: isDark ? colors.border : colors.border,
-    backgroundColor: isDark ? colors.card : colors.card,
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.card,
     borderRadius: isMobile ? 24 : 16,
     marginHorizontal: isMobile ? 0 : 24,
-    width: '100%',
+    width: "100%",
     maxWidth: isMobile ? undefined : 448,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: isDark ? 0.35 : 0.15,
-    shadowRadius: 24,
+    boxShadow: isDark
+      ? "0px 10px 24px rgba(0, 0, 0, 0.35)"
+      : "0px 10px 24px rgba(0, 0, 0, 0.15)",
     elevation: 8,
   };
+
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      setInternalOpen(Boolean(open));
+      return;
+    }
+
+    if (open) {
+      try {
+        prevFocusRef.current = document.activeElement as HTMLElement | null;
+      } catch (e) {
+        prevFocusRef.current = null;
+      }
+
+      try {
+        blurActiveElementOnWeb();
+      } catch (e) {
+        // ignore
+      }
+
+      setInternalOpen(true);
+      return;
+    }
+
+    setInternalOpen(false);
+    if (prevFocusRef.current) {
+      try {
+        restoreFocusOnWeb(prevFocusRef.current);
+      } catch (e) {
+        // ignore
+      }
+      prevFocusRef.current = null;
+    }
+  }, [open]);
 
   return (
     <RNModal
       transparent
-      animationType={isMobile ? 'slide' : 'fade'}
-      visible={open}
+      animationType={isMobile ? "slide" : "fade"}
+      visible={internalOpen}
       onRequestClose={() => onOpenChange(false)}
     >
       <Pressable
         style={{
           flex: 1,
-          justifyContent: isMobile ? 'flex-end' : 'center',
-          alignItems: isMobile ? 'center' : 'center',
+          justifyContent: isMobile ? "flex-end" : "center",
+          alignItems: isMobile ? "center" : "center",
         }}
         onPress={() => onOpenChange(false)}
       >
         <BlurView
           intensity={45}
-          tint={isDark ? 'dark' : 'light'}
+          tint={isDark ? "dark" : "light"}
           style={{
-            position: 'absolute',
+            position: "absolute",
             top: 0,
             left: 0,
             right: 0,
@@ -74,7 +114,7 @@ export function ResponsiveModal({
         />
 
         <Pressable onPress={(event) => event.stopPropagation()}>
-          <View style={contentStyle}>{children}</View>
+          <SafeView style={contentStyle}>{children}</SafeView>
         </Pressable>
       </Pressable>
     </RNModal>
@@ -132,7 +172,9 @@ export function ResponsiveModalBody({
   className,
   children,
 }: ResponsiveBlockProps) {
-  return <View className={cn("px-5 py-4", className)}>{children}</View>;
+  return (
+    <SafeView className={cn("px-5 py-4", className)}>{children}</SafeView>
+  );
 }
 
 export function ResponsiveModalFooter({

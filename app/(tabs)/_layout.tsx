@@ -1,11 +1,11 @@
 import { Tabs } from "expo-router";
-import { TabBar } from "@/components/ui/TabBar";
+import { ModernMobileMenu } from "@/components/ui/modern-mobile-menu";
 
 export default function TabsLayout() {
   return (
     <Tabs
       backBehavior="history"
-      tabBar={(props) => <TabBar {...props} />}
+      tabBar={(props) => <ModernMobileMenu {...props} />}
       screenOptions={{ headerShown: false }}
     >
       <Tabs.Screen name="dashboard" />

@@ -5,13 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import {
-  Pressable,
-  SafeAreaView,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Pressable, SafeAreaView, Text, TextInput, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Clock3,
@@ -193,9 +187,9 @@ export default function RunWorkoutScreen() {
   const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
   const [editReps, setEditReps] = useState("");
   const [editWeight, setEditWeight] = useState("");
-  const [completedSets, setCompletedSets] = useState<CompletedExerciseSetRecord[]>(
-    [],
-  );
+  const [completedSets, setCompletedSets] = useState<
+    CompletedExerciseSetRecord[]
+  >([]);
   const [sessionHydrated, setSessionHydrated] = useState(false);
   const [hydratingSession, setHydratingSession] = useState(true);
   const restCountdownStartedRef = useRef(false);
@@ -219,11 +213,16 @@ export default function RunWorkoutScreen() {
       }
 
       try {
-        const pausedSession = await getPausedWorkoutSession(user.uid, templateId);
+        const pausedSession = await getPausedWorkoutSession(
+          user.uid,
+          templateId,
+        );
         if (!mounted) return;
 
         if (pausedSession) {
-          setSessionStartedAt(pausedSession.started_at || new Date().toISOString());
+          setSessionStartedAt(
+            pausedSession.started_at || new Date().toISOString(),
+          );
           setCurrentStepIndex(
             Math.min(
               Math.max(pausedSession.current_step_index ?? 0, 0),
@@ -238,7 +237,12 @@ export default function RunWorkoutScreen() {
           setTimedRemainingSeconds(pausedSession.timed_remaining_seconds ?? -1);
           setCompletedSets(pausedSession.completed_sets ?? []);
         }
-      } catch {
+      } catch (error) {
+        console.error("[runWorkout] failed to restore paused session", {
+          templateId,
+          uid: user?.uid,
+          error,
+        });
         if (!mounted) return;
         showToast("Could not restore paused session.", "error");
       }
@@ -420,8 +424,15 @@ export default function RunWorkoutScreen() {
     setSessionPaused(true);
     try {
       await persistPausedSession();
-    } catch {
-      showToast("Could not pause session.", "error");
+    } catch (error: any) {
+      console.error("[runWorkout] failed to pause session", {
+        templateId,
+        uid: user?.uid,
+        currentStepIndex,
+        error,
+      });
+      const reason = error?.code ? ` (${error.code})` : "";
+      showToast(`Could not pause session${reason}.`, "error");
       setSessionPaused(false);
       return;
     }
@@ -495,14 +506,14 @@ export default function RunWorkoutScreen() {
       style={{
         flex: 1,
         backgroundColor: colors.background,
-        position: 'relative',
+        position: "relative",
       }}
     >
       <View
         style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
           paddingHorizontal: 16,
           paddingTop: 8,
           paddingBottom: 8,
@@ -514,8 +525,8 @@ export default function RunWorkoutScreen() {
           style={{
             width: 40,
             height: 40,
-            alignItems: 'center',
-            justifyContent: 'center',
+            alignItems: "center",
+            justifyContent: "center",
             borderRadius: 20,
             backgroundColor: isDark ? colors.secondary : colors.surface,
           }}
@@ -523,12 +534,12 @@ export default function RunWorkoutScreen() {
           <X size={18} color={colors.foreground} />
         </Pressable>
 
-        <View style={{ alignItems: 'center' }}>
+        <View style={{ alignItems: "center" }}>
           <Text
             style={{
               fontSize: 12,
               color: colors.muted,
-              fontWeight: '600',
+              fontWeight: "600",
               letterSpacing: 0.5,
             }}
           >
@@ -537,7 +548,7 @@ export default function RunWorkoutScreen() {
           <Text
             style={{
               fontSize: 14,
-              fontWeight: '600',
+              fontWeight: "600",
               color: colors.foreground,
               marginTop: 4,
             }}
@@ -552,8 +563,8 @@ export default function RunWorkoutScreen() {
           style={{
             width: 40,
             height: 40,
-            alignItems: 'center',
-            justifyContent: 'center',
+            alignItems: "center",
+            justifyContent: "center",
             borderRadius: 20,
             backgroundColor: isDark ? colors.secondary : colors.surface,
           }}
@@ -724,7 +735,7 @@ export default function RunWorkoutScreen() {
 
       <View
         style={{
-          position: 'absolute',
+          position: "absolute",
           left: 0,
           right: 0,
           bottom: 0,

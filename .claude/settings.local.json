@@ -9,7 +9,15 @@
       "Bash(npm install:*)",
       "Bash(ls \"C:/Users/hugov/OneDrive/Documentos/GitHub/BetterU/app/\\(auth\\)\")",
       "Bash(ls \"C:/Users/hugov/OneDrive/Documentos/GitHub/BetterU/app/\\(tabs\\)\")",
-      "Bash(ls \"C:/Users/hugov/OneDrive/Documentos/GitHub/BetterU/app/\\(auth\\)/onboarding\")"
+      "Bash(ls \"C:/Users/hugov/OneDrive/Documentos/GitHub/BetterU/app/\\(auth\\)/onboarding\")",
+      "Bash(Start-Sleep -Seconds 15)",
+      "Bash(Write-Host \"waited\")",
+      "Bash(find /c/Users/hugov/OneDrive/Documentos/GitHub/BetterU -name nutrition.* -o -name *nutrition*)",
+      "Bash(ls -la /c/Users/hugov/OneDrive/Documentos/GitHub/BetterU/app/\\\\\\(tabs\\\\\\)/)",
+      "Bash(ls -la /c/Users/hugov/OneDrive/Documentos/GitHub/BetterU/app/\\\\\\(tabs\\\\\\)/nutrition/)",
+      "Bash(npx tsc:*)",
+      "Bash(node -e \"const r = require\\(''''./node_modules/expo-router/build/routes-manifest.js''''\\); console.log\\(Object.keys\\(r\\)\\)\")",
+      "Bash(ls \"/c/Users/hugov/OneDrive/Documentos/GitHub/BetterU/app/\\(tabs\\)/\")"
     ]
   }
 }

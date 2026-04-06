@@ -17,6 +17,23 @@ function stripUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> {
   ) as Partial<T>;
 }
 
+function sanitizeFirestoreValue<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => sanitizeFirestoreValue(item))
+      .filter((item) => item !== undefined) as T;
+  }
+
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, fieldValue]) => fieldValue !== undefined)
+      .map(([key, fieldValue]) => [key, sanitizeFirestoreValue(fieldValue)]);
+    return Object.fromEntries(entries) as T;
+  }
+
+  return value;
+}
+
 export type WorkoutDifficulty = "beginner" | "intermediate" | "advanced";
 
 export interface WorkoutTemplateExerciseRecord {
@@ -179,7 +196,11 @@ export async function getPausedWorkoutSession(
   uid: string,
   templateId: string,
 ): Promise<PausedWorkoutSessionRecord | null> {
-  const reference = doc(db, "workout_sessions", workoutSessionDocId(uid, templateId));
+  const reference = doc(
+    db,
+    "workout_sessions",
+    workoutSessionDocId(uid, templateId),
+  );
   const snapshot = await getDoc(reference);
   if (!snapshot.exists()) {
     return null;
@@ -193,7 +214,18 @@ export async function getPausedWorkoutSession(
     new Date(session.expires_at).getTime() <= Date.now();
 
   if (hasExpired) {
-    await deleteDoc(reference);
+    try {
+      await deleteDoc(reference);
+    } catch (error) {
+      console.error(
+        "[getPausedWorkoutSession] failed to cleanup expired session",
+        {
+          uid,
+          templateId,
+          error,
+        },
+      );
+    }
     return null;
   }
 
@@ -207,7 +239,9 @@ export async function savePausedWorkoutSession(
 ): Promise<PausedWorkoutSessionRecord> {
   const now = new Date();
   const nowIso = now.toISOString();
-  const expiresAtIso = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
+  const expiresAtIso = new Date(
+    now.getTime() + 24 * 60 * 60 * 1000,
+  ).toISOString();
   const sessionId = workoutSessionDocId(uid, templateId);
   const payload: PausedWorkoutSessionRecord = {
     id: sessionId,
@@ -226,7 +260,10 @@ export async function savePausedWorkoutSession(
     updated_at: nowIso,
   };
 
-  await setDoc(doc(db, "workout_sessions", sessionId), payload, { merge: true });
+  const sanitizedPayload = sanitizeFirestoreValue(payload);
+  await setDoc(doc(db, "workout_sessions", sessionId), sanitizedPayload, {
+    merge: true,
+  });
   return payload;
 }
 
@@ -234,5 +271,7 @@ export async function clearPausedWorkoutSession(
   uid: string,
   templateId: string,
 ): Promise<void> {
-  await deleteDoc(doc(db, "workout_sessions", workoutSessionDocId(uid, templateId)));
+  await deleteDoc(
+    doc(db, "workout_sessions", workoutSessionDocId(uid, templateId)),
+  );
 }

@@ -40,7 +40,7 @@ import Animated, {
 import { BlurView } from "expo-blur";
 import { Button } from "@/components/ui/Button";
 import { useThemeStore } from "@/stores/theme.store";
-import { cn } from "@/lib/utils";
+import { cn, blurActiveElementOnWeb } from "@/lib/utils";
 import { toBirthDateValue } from "@/lib/profile-dates";
 
 interface CalendarLumeProps {
@@ -164,6 +164,9 @@ export function CalendarLume({
     setSelectedYear(referenceDate.getFullYear());
     setSelectedMonth(referenceDate.getMonth());
     setStep("year");
+    // Blur any focused element on web before opening modal so aria-hidden
+    // won't hide a focused descendant.
+    blurActiveElementOnWeb();
     setIsOpen(true);
   };
 
@@ -251,9 +254,7 @@ export function CalendarLume({
             )}
             style={
               {
-                shadowColor: "#000",
-                shadowOpacity: 0.18,
-                shadowRadius: 24,
+                boxShadow: "0px 10px 24px rgba(0, 0, 0, 0.18)",
                 elevation: 8,
               } as ViewStyle
             }
