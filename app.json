@@ -1,20 +1,20 @@
 {
   "expo": {
     "name": "HuGoal",
-    "slug": "hugoal",
+    "slug": "betteru",
     "cli": {
       "appVersionSource": "app.json"
     },
-    "scheme": "hugoal",
+    "scheme": "betteru",
     "version": "1.0.10",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "name": "HuGoal",
-      "slug": "betteru",
-      "scheme": "betteru"
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a0a0a"
     },
     "ios": {
       "supportsTablet": false,
