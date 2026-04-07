@@ -156,10 +156,15 @@ jobs:
 
           CHANNEL="${{ steps.target.outputs.eas_branch }}"
 
-          if npx --yes eas-cli@latest channel:view "${CHANNEL}" --non-interactive > /dev/null 2>&1; then
-            npx --yes eas-cli@latest channel:edit "${CHANNEL}" --branch "${CHANNEL}" --non-interactive
+          # Prefer the `eas` binary installed by expo action; fallback to npx
+          if command -v eas >/dev/null 2>&1 && eas channel:view "${CHANNEL}" --non-interactive > /dev/null 2>&1; then
+            eas channel:edit "${CHANNEL}" --non-interactive || true
           else
-            npx --yes eas-cli@latest channel:create "${CHANNEL}" --branch "${CHANNEL}" --non-interactive
+            if command -v eas >/dev/null 2>&1; then
+              eas channel:create "${CHANNEL}" --non-interactive || true
+            else
+              npx --yes eas-cli@latest channel:create "${CHANNEL}" --non-interactive || true
+            fi
           fi
 
       - name: Publish OTA update
