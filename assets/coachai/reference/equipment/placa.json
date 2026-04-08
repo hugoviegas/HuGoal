@@ -1,0 +1,7 @@
+{
+  "kind": "equipment",
+  "name": "Placa",
+  "output": "assets\\coachai\\reference\\equipment\\placa.png",
+  "status": "dry-run",
+  "seed": 1308384355
+}

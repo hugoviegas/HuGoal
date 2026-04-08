@@ -1,0 +1,7 @@
+{
+  "kind": "equipment",
+  "name": "Paralelas",
+  "output": "assets\\coachai\\reference\\equipment\\paralelas.png",
+  "status": "dry-run",
+  "seed": 2060188813
+}

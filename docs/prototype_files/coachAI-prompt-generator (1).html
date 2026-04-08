@@ -1,0 +1,2490 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CoachAI Prompt Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root,
+      [data-theme="light"] {
+        --bg: #f5f4f1;
+        --surface: #ffffff;
+        --surface-2: #f0eeeb;
+        --surface-3: #e8e6e2;
+        --border: #dbd9d4;
+        --text: #1a1916;
+        --muted: #6b6963;
+        --faint: #b0aea9;
+        --accent: #01696f;
+        --accent-bg: rgba(1, 105, 111, 0.1);
+        --accent-hover: #0c4e54;
+        --radius-xs: 4px;
+        --radius-sm: 6px;
+        --radius-md: 8px;
+        --radius-lg: 12px;
+        --font-display: "Inter", sans-serif;
+        --font-mono: "JetBrains Mono", monospace;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.09);
+      }
+      [data-theme="dark"] {
+        --bg: #111110;
+        --surface: #1a1917;
+        --surface-2: #211f1c;
+        --surface-3: #2a2825;
+        --border: #333230;
+        --text: #d4d2cf;
+        --muted: #7a7875;
+        --faint: #4a4845;
+        --accent: #4f98a3;
+        --accent-bg: rgba(79, 152, 163, 0.12);
+        --accent-hover: #3d8a96;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html {
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
+      body {
+        font-family: var(--font-display);
+        font-size: 13px;
+        color: var(--text);
+        background: var(--bg);
+        height: 100vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      button {
+        cursor: pointer;
+        font-family: inherit;
+        border: none;
+        background: none;
+      }
+      input,
+      textarea,
+      select {
+        font-family: inherit;
+      }
+      /* ── HEADER ── */
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 16px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+        gap: 12px;
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 700;
+        font-size: 14px;
+        letter-spacing: -0.02em;
+      }
+      .logo svg {
+        color: var(--accent);
+      }
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .theme-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border);
+        background: var(--surface-2);
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s;
+      }
+      .theme-btn:hover {
+        color: var(--text);
+        border-color: var(--accent);
+      }
+      /* ── LAYOUT ── */
+      .app {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+      }
+      .sidebar {
+        width: 300px;
+        min-width: 300px;
+        background: var(--surface);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background: var(--bg);
+      }
+      /* ── TABS ── */
+      .tabs {
+        display: flex;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+        flex-shrink: 0;
+        padding: 0 8px;
+        gap: 2px;
+      }
+      .tab-btn {
+        padding: 9px 12px;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--muted);
+        border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+        transition: all 0.15s;
+        position: relative;
+        white-space: nowrap;
+      }
+      .tab-btn:hover {
+        color: var(--text);
+      }
+      .tab-btn.active {
+        color: var(--accent);
+        font-weight: 600;
+      }
+      .tab-btn.active::after {
+        content: "";
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: var(--accent);
+        border-radius: 2px 2px 0 0;
+      }
+      .tab-content {
+        display: none;
+        flex: 1;
+        overflow-y: auto;
+        padding: 14px;
+      }
+      .tab-content.active {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      /* ── EXERCISE LIST ── */
+      .search-wrap {
+        position: relative;
+      }
+      .search-input {
+        width: 100%;
+        padding: 8px 10px 8px 32px;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        color: var(--text);
+        font-size: 12px;
+        outline: none;
+        transition: border-color 0.15s;
+      }
+      .search-input:focus {
+        border-color: var(--accent);
+      }
+      .search-icon {
+        position: absolute;
+        left: 9px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--muted);
+        pointer-events: none;
+      }
+      .filter-row {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .filter-chip {
+        padding: 3px 9px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 500;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        color: var(--muted);
+        transition: all 0.15s;
+        cursor: pointer;
+      }
+      .filter-chip:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .filter-chip.active {
+        background: var(--accent-bg);
+        border-color: var(--accent);
+        color: var(--accent);
+        font-weight: 600;
+      }
+      .ex-list {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .ex-item {
+        padding: 8px 10px;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: background 0.12s;
+        border: 1px solid transparent;
+      }
+      .ex-item:hover {
+        background: var(--surface-2);
+      }
+      .ex-item.active {
+        background: var(--accent-bg);
+        border-color: var(--accent);
+      }
+      .ex-item-name {
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 1px;
+      }
+      .ex-item-sub {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .ex-count {
+        font-size: 11px;
+        color: var(--muted);
+        text-align: right;
+        padding: 4px 2px;
+      }
+      /* ── MAIN PANEL TABS ── */
+      .main-tabs {
+        display: flex;
+        padding: 0 16px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        gap: 2px;
+        flex-shrink: 0;
+      }
+      .main-tab-btn {
+        padding: 10px 14px;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--muted);
+        transition: all 0.15s;
+        position: relative;
+      }
+      .main-tab-btn:hover {
+        color: var(--text);
+      }
+      .main-tab-btn.active {
+        color: var(--accent);
+        font-weight: 600;
+      }
+      .main-tab-btn.active::after {
+        content: "";
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: var(--accent);
+      }
+      .main-panel {
+        flex: 1;
+        overflow-y: auto;
+        padding: 18px;
+      }
+      .main-tab-panel {
+        display: none;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .main-tab-panel.active {
+        display: flex;
+      }
+      /* ── SECTION LABELS ── */
+      .section-label {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--muted);
+        margin-bottom: 6px;
+        display: block;
+      }
+      /* ── CHARACTER SELECTOR ── */
+      .char-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .char-card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 12px;
+        cursor: pointer;
+        transition: all 0.15s;
+        background: var(--surface-2);
+        text-align: center;
+      }
+      .char-card:hover {
+        border-color: var(--accent);
+      }
+      .char-card.active {
+        border-color: var(--accent);
+        background: var(--accent-bg);
+      }
+      .char-icon {
+        font-size: 28px;
+        margin-bottom: 4px;
+      }
+      .char-name {
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .char-desc {
+        font-size: 10px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      /* ── ANGLES ── */
+      .angle-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .angle-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border);
+        cursor: pointer;
+        transition: all 0.15s;
+        background: var(--surface-2);
+      }
+      .angle-item:hover {
+        border-color: var(--accent);
+      }
+      .angle-item.active {
+        border-color: var(--accent);
+        background: var(--accent-bg);
+      }
+      .angle-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--border);
+        flex-shrink: 0;
+        transition: background 0.15s;
+      }
+      .angle-item.active .angle-dot {
+        background: var(--accent);
+      }
+      .angle-name {
+        font-size: 12px;
+        font-weight: 600;
+        flex: 1;
+      }
+      .angle-desc {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      /* ── PROMPT OUTPUT ── */
+      .prompt-box {
+        position: relative;
+      }
+      .prompt-output {
+        width: 100%;
+        min-height: 120px;
+        padding: 12px;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        color: var(--text);
+        font-size: 12px;
+        line-height: 1.7;
+        resize: vertical;
+        outline: none;
+        transition: border-color 0.15s;
+        font-family: var(--font-display);
+      }
+      .prompt-output:focus {
+        border-color: var(--accent);
+      }
+      .prompt-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+        flex-wrap: wrap;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 14px;
+        border-radius: var(--radius-sm);
+        font-size: 12px;
+        font-weight: 600;
+        transition: all 0.15s;
+        cursor: pointer;
+      }
+      .btn-primary {
+        background: var(--accent);
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: var(--accent-hover);
+      }
+      .btn-outline {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        color: var(--text);
+      }
+      .btn-outline:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .btn-sm {
+        padding: 5px 10px;
+        font-size: 11px;
+      }
+      /* ── EXERCISE DETAIL ── */
+      .ex-detail-header {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 14px;
+      }
+      .ex-detail-name {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 2px;
+      }
+      .ex-detail-en {
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 10px;
+      }
+      .tag-row {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+      }
+      .tag {
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .tag-cat {
+        background: var(--accent-bg);
+        color: var(--accent);
+      }
+      .tag-type {
+        background: var(--surface-3);
+        color: var(--muted);
+      }
+      .muscle-row {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .muscle-badge {
+        padding: 3px 8px;
+        border-radius: var(--radius-xs);
+        font-size: 11px;
+        background: var(--surface-3);
+        color: var(--muted);
+        border: 1px solid var(--border);
+      }
+      .muscle-badge.primary {
+        background: rgba(1, 105, 111, 0.08);
+        color: var(--accent);
+        border-color: rgba(1, 105, 111, 0.2);
+      }
+      /* ── PHASE SELECTOR ── */
+      .phase-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+      .phase-card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 9px 10px;
+        cursor: pointer;
+        transition: all 0.15s;
+        background: var(--surface-2);
+      }
+      .phase-card:hover {
+        border-color: var(--accent);
+      }
+      .phase-card.active {
+        border-color: var(--accent);
+        background: var(--accent-bg);
+      }
+      .phase-name {
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .phase-en {
+        font-size: 10px;
+        color: var(--muted);
+        margin-top: 1px;
+      }
+      /* ── AUTOMATION TAB ── */
+      .auto-section {
+        margin-bottom: 16px;
+      }
+      .auto-label {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--muted);
+        margin-bottom: 7px;
+        display: block;
+      }
+      .auto-input {
+        width: 100%;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 8px 11px;
+        color: var(--text);
+        font-size: 13px;
+        outline: none;
+        transition: border-color 0.15s;
+      }
+      .auto-input:focus {
+        border-color: var(--accent);
+      }
+      .api-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 9px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+      .badge-free {
+        background: rgba(80, 200, 80, 0.12);
+        color: #3a3;
+        border: 1px solid rgba(80, 200, 80, 0.25);
+      }
+      .badge-paid {
+        background: rgba(240, 140, 0, 0.12);
+        color: #b07000;
+        border: 1px solid rgba(240, 140, 0, 0.25);
+      }
+      [data-theme="dark"] .badge-free {
+        color: #6de06d;
+      }
+      [data-theme="dark"] .badge-paid {
+        color: #ffb020;
+      }
+      .ref-upload-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .ref-upload-box {
+        border: 1px dashed var(--border);
+        border-radius: var(--radius-sm);
+        padding: 10px;
+        text-align: center;
+        cursor: pointer;
+        transition: border-color 0.15s;
+        background: var(--surface-2);
+        position: relative;
+        overflow: hidden;
+      }
+      .ref-upload-box:hover {
+        border-color: var(--accent);
+      }
+      .ref-upload-box input[type="file"] {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+        width: 100%;
+        height: 100%;
+      }
+      .ref-upload-box .ru-icon {
+        font-size: 18px;
+        margin-bottom: 3px;
+      }
+      .ref-upload-box .ru-name {
+        font-size: 10px;
+        color: var(--muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-top: 2px;
+      }
+      .ref-upload-box .ru-label {
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .ref-preview {
+        width: 100%;
+        height: 65px;
+        object-fit: cover;
+        border-radius: 4px;
+        margin-top: 5px;
+        display: none;
+      }
+      .option-row {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-top: 5px;
+      }
+      .opt-btn {
+        padding: 4px 10px;
+        border-radius: var(--radius-xs);
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--muted);
+        transition: all 0.15s;
+        cursor: pointer;
+      }
+      .opt-btn:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .opt-btn.active {
+        background: var(--accent-bg);
+        border-color: var(--accent);
+        color: var(--accent);
+        font-weight: 700;
+      }
+      .py-preview {
+        background: var(--surface-3);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 11px;
+        font-family: var(--font-mono);
+        font-size: 10.5px;
+        color: var(--muted);
+        max-height: 155px;
+        overflow-y: auto;
+        line-height: 1.55;
+        white-space: pre;
+        margin-top: 8px;
+      }
+      .auto-grid-info {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 7px;
+        margin: 8px 0;
+      }
+      .auto-info-card {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 9px;
+        text-align: center;
+      }
+      .auto-info-card .val {
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--accent);
+        font-family: var(--font-display);
+      }
+      .auto-info-card .lbl {
+        font-size: 10px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-top: 2px;
+      }
+      .api-info-box {
+        font-size: 11px;
+        color: var(--muted);
+        background: var(--surface-3);
+        border-radius: var(--radius-sm);
+        padding: 8px 10px;
+        line-height: 1.5;
+        margin-top: 6px;
+      }
+      .api-info-box a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .api-info-box a:hover {
+        text-decoration: underline;
+      }
+      .auto-step {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 6px 0;
+      }
+      .step-num {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: var(--accent-bg);
+        border: 1px solid var(--accent);
+        color: var(--accent);
+        font-size: 10px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      .step-text {
+        font-size: 11px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      .step-text code {
+        background: var(--surface-3);
+        padding: 1px 5px;
+        border-radius: 3px;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--text);
+      }
+      .divider {
+        height: 1px;
+        background: var(--border);
+        margin: 4px 0;
+      }
+      /* ── EMPTY STATE ── */
+      .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 48px 24px;
+        text-align: center;
+        color: var(--muted);
+        gap: 10px;
+      }
+      .empty-icon {
+        font-size: 36px;
+        opacity: 0.4;
+      }
+      .empty-text {
+        font-size: 13px;
+      }
+      /* ── SCROLLBAR ── */
+      ::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <header class="header">
+      <div class="logo">
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M17 11h1a3 3 0 0 1 0 6h-1" />
+          <path d="M6 11h1" />
+          <path d="M13 11v9" />
+          <path d="M6 11V7a6 6 0 0 1 12 0v4" />
+          <rect x="2" y="11" width="5" height="9" rx="2" />
+          <rect x="17" y="11" width="5" height="5" rx="2" />
+        </svg>
+        CoachAI
+        <span style="font-weight: 300; color: var(--muted)"
+          >Prompt Generator</span
+        >
+      </div>
+      <div class="header-right">
+        <span
+          id="exCountBadge"
+          style="font-size: 11px; color: var(--muted)"
+        ></span>
+        <button
+          class="theme-btn"
+          data-theme-toggle
+          title="Alternar tema"
+          aria-label="Alternar tema"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="app">
+      <!-- SIDEBAR: Exercise List -->
+      <aside class="sidebar">
+        <div
+          style="
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex-shrink: 0;
+          "
+        >
+          <div class="search-wrap">
+            <svg
+              class="search-icon"
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+            <input
+              class="search-input"
+              id="searchInput"
+              type="text"
+              placeholder="Buscar exercício..."
+              oninput="filterExercises()"
+            />
+          </div>
+          <div class="filter-row" id="filterRow">
+            <button class="filter-chip active" onclick="setFilter(this, 'all')">
+              Todos
+            </button>
+            <button class="filter-chip" onclick="setFilter(this, 'Peito')">
+              Peito
+            </button>
+            <button class="filter-chip" onclick="setFilter(this, 'Costas')">
+              Costas
+            </button>
+            <button class="filter-chip" onclick="setFilter(this, 'Ombros')">
+              Ombros
+            </button>
+            <button class="filter-chip" onclick="setFilter(this, 'Bíceps')">
+              Bíceps
+            </button>
+            <button class="filter-chip" onclick="setFilter(this, 'Tríceps')">
+              Tríceps
+            </button>
+            <button class="filter-chip" onclick="setFilter(this, 'Pernas')">
+              Pernas
+            </button>
+            <button class="filter-chip" onclick="setFilter(this, 'Glúteos')">
+              Glúteos
+            </button>
+            <button class="filter-chip" onclick="setFilter(this, 'Core')">
+              Core
+            </button>
+          </div>
+        </div>
+        <div style="flex: 1; overflow-y: auto; padding: 8px">
+          <div class="ex-count" id="exCount"></div>
+          <div class="ex-list" id="exList"></div>
+        </div>
+      </aside>
+
+      <!-- MAIN PANEL -->
+      <main class="main">
+        <div class="main-tabs">
+          <button
+            class="main-tab-btn active"
+            onclick="setMainTab(this, 'tabPrompt')"
+          >
+            ⚡ Prompt
+          </button>
+          <button class="main-tab-btn" onclick="setMainTab(this, 'tabChars')">
+            👤 Personagem
+          </button>
+          <button class="main-tab-btn" onclick="setMainTab(this, 'tabAngles')">
+            📷 Ângulos
+          </button>
+          <button class="main-tab-btn" onclick="setMainTab(this, 'tabAuto')">
+            🤖 Automação
+          </button>
+        </div>
+
+        <div class="main-panel" id="mainPanel">
+          <!-- TAB: PROMPT -->
+          <div class="main-tab-panel active" id="tabPrompt">
+            <div id="exDetailArea">
+              <div class="empty-state">
+                <div class="empty-icon">🏋️</div>
+                <div class="empty-text">
+                  Selecione um exercício na lista para gerar o prompt
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB: PERSONAGEM -->
+          <div class="main-tab-panel" id="tabChars">
+            <span class="section-label">Avatar</span>
+            <div class="char-grid">
+              <div
+                class="char-card active"
+                id="charMale"
+                onclick="setChar('male', this)"
+              >
+                <div class="char-icon">🧑‍💪</div>
+                <div class="char-name">Masculino</div>
+                <div class="char-desc">Atleta masculino</div>
+              </div>
+              <div
+                class="char-card"
+                id="charFemale"
+                onclick="setChar('female', this)"
+              >
+                <div class="char-icon">👩‍💪</div>
+                <div class="char-name">Feminino</div>
+                <div class="char-desc">Atleta feminina</div>
+              </div>
+            </div>
+            <span class="section-label" style="margin-top: 4px"
+              >Descrição do personagem</span
+            >
+            <div
+              style="
+                background: var(--surface-2);
+                border: 1px solid var(--border);
+                border-radius: var(--radius-md);
+                padding: 12px;
+                font-size: 12px;
+                color: var(--muted);
+                line-height: 1.7;
+              "
+              id="charPreview"
+            ></div>
+          </div>
+
+          <!-- TAB: ÂNGULOS -->
+          <div class="main-tab-panel" id="tabAngles">
+            <span class="section-label">Ângulo da câmera</span>
+            <div class="angle-list" id="angleList"></div>
+          </div>
+
+          <!-- TAB: AUTOMAÇÃO -->
+          <div class="main-tab-panel" id="tabAuto">
+            <div class="auto-section">
+              <span class="auto-label">API de geração de imagens</span>
+              <div style="display: flex; gap: 8px; margin-bottom: 6px">
+                <button
+                  class="opt-btn active"
+                  id="apiBtnFal"
+                  onclick="setApi(this, 'fal')"
+                >
+                  <span
+                    class="api-badge badge-free"
+                    style="margin: 0; padding: 1px 6px; font-size: 10px"
+                    >GRÁTIS</span
+                  >
+                  fal.ai
+                </button>
+                <button
+                  class="opt-btn"
+                  id="apiBtnReplicate"
+                  onclick="setApi(this, 'replicate')"
+                >
+                  <span
+                    class="api-badge badge-paid"
+                    style="margin: 0; padding: 1px 6px; font-size: 10px"
+                    >PAGO</span
+                  >
+                  Replicate
+                </button>
+              </div>
+              <div class="api-info-box" id="apiInfoBox">
+                fal.ai — Free credits no signup (~$10). Depois ~$0.012/imagem.
+                Modelo InstantCharacter aceita imagem de referência para
+                consistência de personagem.
+                <a href="https://fal.ai" target="_blank" rel="noopener"
+                  >Obter API Key →</a
+                >
+              </div>
+            </div>
+
+            <div class="auto-section">
+              <span class="auto-label">API Key</span>
+              <input
+                class="auto-input"
+                id="autoApiKey"
+                type="password"
+                placeholder="Cole sua API Key aqui..."
+                oninput="updateScript()"
+              />
+            </div>
+
+            <div class="auto-section">
+              <span class="auto-label">Imagens de referência</span>
+              <div class="ref-upload-row">
+                <div class="ref-upload-box">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onchange="loadRef(this, 'male')"
+                  />
+                  <div class="ru-icon">🧑</div>
+                  <div class="ru-label">Masculino</div>
+                  <div class="ru-name" id="maleRefName">Clique para upload</div>
+                  <img class="ref-preview" id="maleRefPreview" alt="" />
+                </div>
+                <div class="ref-upload-box">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onchange="loadRef(this, 'female')"
+                  />
+                  <div class="ru-icon">👩</div>
+                  <div class="ru-label">Feminino</div>
+                  <div class="ru-name" id="femaleRefName">
+                    Clique para upload
+                  </div>
+                  <img class="ref-preview" id="femaleRefPreview" alt="" />
+                </div>
+              </div>
+            </div>
+
+            <div class="auto-section">
+              <span class="auto-label">Avatar</span>
+              <div class="option-row">
+                <button
+                  class="opt-btn active"
+                  onclick="setGenOpt(this, 'avatar', 'male')"
+                >
+                  Masculino
+                </button>
+                <button
+                  class="opt-btn"
+                  onclick="setGenOpt(this, 'avatar', 'female')"
+                >
+                  Feminino
+                </button>
+                <button
+                  class="opt-btn"
+                  onclick="setGenOpt(this, 'avatar', 'both')"
+                >
+                  Ambos
+                </button>
+              </div>
+            </div>
+
+            <div class="auto-section">
+              <span class="auto-label">Fase do movimento</span>
+              <div class="option-row">
+                <button
+                  class="opt-btn active"
+                  onclick="setGenOpt(this, 'phase', 'start')"
+                >
+                  Fase inicial
+                </button>
+                <button
+                  class="opt-btn"
+                  onclick="setGenOpt(this, 'phase', 'all')"
+                >
+                  Todas as fases
+                </button>
+              </div>
+            </div>
+
+            <div class="auto-section">
+              <span class="auto-label">Delay entre imagens (segundos)</span>
+              <input
+                class="auto-input"
+                id="autoDelay"
+                type="number"
+                min="1"
+                max="30"
+                value="3"
+                oninput="
+                  updateStats();
+                  updateScript();
+                "
+              />
+            </div>
+
+            <div class="auto-grid-info">
+              <div class="auto-info-card">
+                <div class="val" id="statImages">0</div>
+                <div class="lbl">Imagens</div>
+              </div>
+              <div class="auto-info-card">
+                <div class="val" id="statTime">0m</div>
+                <div class="lbl">Tempo est.</div>
+              </div>
+              <div class="auto-info-card">
+                <div class="val" id="statCost">$0.00</div>
+                <div class="lbl">Custo est.</div>
+              </div>
+            </div>
+
+            <div class="auto-section">
+              <span class="auto-label">Preview do script gerado</span>
+              <pre class="py-preview" id="pyPreview">Configurando...</pre>
+            </div>
+
+            <div style="display: flex; gap: 8px; flex-wrap: wrap">
+              <button
+                class="btn btn-primary btn-sm"
+                onclick="downloadPyScript()"
+              >
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Baixar Script Python
+              </button>
+              <button
+                class="btn btn-outline btn-sm"
+                onclick="downloadRequirements()"
+              >
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                requirements.txt
+              </button>
+            </div>
+
+            <div class="divider"></div>
+            <span class="auto-label">Como usar</span>
+            <div class="auto-step">
+              <div class="step-num">1</div>
+              <div class="step-text">
+                Baixe o script e coloque junto com as imagens de referência
+              </div>
+            </div>
+            <div class="auto-step">
+              <div class="step-num">2</div>
+              <div class="step-text">
+                Instale as dependências:
+                <code>pip install -r requirements.txt</code>
+              </div>
+            </div>
+            <div class="auto-step">
+              <div class="step-num">3</div>
+              <div class="step-text">
+                Execute: <code>python generate_exercises.py</code>
+              </div>
+            </div>
+            <div class="auto-step">
+              <div class="step-num">4</div>
+              <div class="step-text">
+                As imagens serão salvas na pasta <code>exercise_images/</code>
+              </div>
+            </div>
+          </div>
+          <!-- end tabAuto -->
+        </div>
+        <!-- end main-panel -->
+      </main>
+    </div>
+    <!-- end app -->
+
+    <script>
+      // ══ DATA ══
+      const EXERCISES = [
+        // PEITO
+        {
+          id: 1,
+          name: "Supino Reto",
+          nameen: "Flat Bench Press",
+          category: "Peito",
+          type: "Composto",
+          equipment: "Barra",
+          muscleprimary: "Peitoral maior",
+          musclesecondary: ["Tríceps", "Deltoide anterior"],
+          positions: {
+            start:
+              "Deitado no banco, barra acima do peito com braços estendidos, pegada pronada à altura dos ombros",
+            end: "Barra descida ao nível do peito, cotovelos em ~75°, tensão total no peitoral",
+          },
+        },
+        {
+          id: 2,
+          name: "Supino Inclinado",
+          nameen: "Incline Bench Press",
+          category: "Peito",
+          type: "Composto",
+          equipment: "Barra",
+          muscleprimary: "Peitoral superior",
+          musclesecondary: ["Tríceps", "Deltoide anterior"],
+          positions: {
+            start: "Banco inclinado 30-45°, barra acima com braços estendidos",
+            end: "Barra descida ao nível da clavícula, ativando o peitoral superior",
+          },
+        },
+        {
+          id: 3,
+          name: "Supino com Halteres",
+          nameen: "Dumbbell Bench Press",
+          category: "Peito",
+          type: "Composto",
+          equipment: "Halteres",
+          muscleprimary: "Peitoral maior",
+          musclesecondary: ["Tríceps", "Deltoide anterior"],
+          positions: {
+            start: "Deitado, halteres acima do peito com braços estendidos",
+            end: "Halteres descidos lateralmente, cotovelos dobrados em 90°",
+          },
+        },
+        {
+          id: 4,
+          name: "Crucifixo",
+          nameen: "Dumbbell Fly",
+          category: "Peito",
+          type: "Isolado",
+          equipment: "Halteres",
+          muscleprimary: "Peitoral maior",
+          musclesecondary: ["Deltoide anterior"],
+          positions: {
+            start:
+              "Deitado, halteres abertos lateralmente em arco, leve flexão do cotovelo",
+            end: "Halteres juntos acima do peito em contração máxima",
+          },
+        },
+        {
+          id: 5,
+          name: "Crossover",
+          nameen: "Cable Crossover",
+          category: "Peito",
+          type: "Isolado",
+          equipment: "Cabos",
+          muscleprimary: "Peitoral maior",
+          musclesecondary: ["Deltoide anterior"],
+          positions: {
+            start: "Em pé entre duas torres, cabos altos, braços abertos em T",
+            end: "Mãos cruzadas à frente da cintura, contração total do peitoral",
+          },
+        },
+        {
+          id: 6,
+          name: "Flexão de Braços",
+          nameen: "Push-Up",
+          category: "Peito",
+          type: "Composto",
+          equipment: "Peso Corporal",
+          muscleprimary: "Peitoral maior",
+          musclesecondary: ["Tríceps", "Deltoide anterior", "Core"],
+          positions: {
+            start: "Prancha alta, mãos à largura dos ombros, corpo rígido",
+            end: "Peito quase tocando o chão, cotovelos a 45° do tronco",
+          },
+        },
+        // COSTAS
+        {
+          id: 7,
+          name: "Levantamento Terra",
+          nameen: "Deadlift",
+          category: "Costas",
+          type: "Composto",
+          equipment: "Barra",
+          muscleprimary: "Eretor espinhal",
+          musclesecondary: ["Glúteos", "Isquiotibiais", "Trapézio", "Bíceps"],
+          positions: {
+            start:
+              "Em pé atrás da barra, joelhos flexionados, quadril para trás, segurando a barra",
+            end: "Em pé ereto com barra ao longo das coxas, glúteos contraídos",
+          },
+        },
+        {
+          id: 8,
+          name: "Remada Curvada",
+          nameen: "Bent-Over Row",
+          category: "Costas",
+          type: "Composto",
+          equipment: "Barra",
+          muscleprimary: "Latíssimo do dorso",
+          musclesecondary: ["Romboides", "Bíceps", "Eretores"],
+          positions: {
+            start: "Inclinado ~45°, barra pendurada com braços estendidos",
+            end: "Barra puxada ao abdômen, cotovelos para trás, escápulas retraídas",
+          },
+        },
+        {
+          id: 9,
+          name: "Puxada Alta",
+          nameen: "Lat Pulldown",
+          category: "Costas",
+          type: "Composto",
+          equipment: "Polia",
+          muscleprimary: "Latíssimo do dorso",
+          musclesecondary: ["Bíceps", "Romboides"],
+          positions: {
+            start: "Sentado, braços estendidos segurando a barra acima",
+            end: "Barra puxada ao peito, cotovelos apontando para baixo, lat contraído",
+          },
+        },
+        {
+          id: 10,
+          name: "Remada Unilateral",
+          nameen: "Single-Arm Dumbbell Row",
+          category: "Costas",
+          type: "Composto",
+          equipment: "Halteres",
+          muscleprimary: "Latíssimo do dorso",
+          musclesecondary: ["Romboides", "Bíceps", "Trapézio médio"],
+          positions: {
+            start: "Apoiado no banco, halter pendendo com braço estendido",
+            end: "Halter puxado ao quadril, cotovelo alto, lat totalmente contraído",
+          },
+        },
+        {
+          id: 11,
+          name: "Pulldown no Cabo",
+          nameen: "Straight-Arm Pulldown",
+          category: "Costas",
+          type: "Isolado",
+          equipment: "Cabos",
+          muscleprimary: "Latíssimo do dorso",
+          musclesecondary: ["Serrátil anterior"],
+          positions: {
+            start:
+              "Em pé à frente da polia, braços levemente estendidos para cima",
+            end: "Braços puxados para baixo ao nível do quadril, lat totalmente contraído",
+          },
+        },
+        {
+          id: 12,
+          name: "Barra Fixa",
+          nameen: "Pull-Up",
+          category: "Costas",
+          type: "Composto",
+          equipment: "Peso Corporal",
+          muscleprimary: "Latíssimo do dorso",
+          musclesecondary: ["Bíceps", "Romboides", "Core"],
+          positions: {
+            start: "Pendurado na barra com braços totalmente estendidos",
+            end: "Queixo acima da barra, cotovelos puxados para baixo, lat contraído",
+          },
+        },
+        // OMBROS
+        {
+          id: 13,
+          name: "Desenvolvimento com Barra",
+          nameen: "Overhead Press",
+          category: "Ombros",
+          type: "Composto",
+          equipment: "Barra",
+          muscleprimary: "Deltoide médio",
+          musclesecondary: ["Deltoide anterior", "Tríceps", "Trapézio"],
+          positions: {
+            start: "Barra ao nível do queixo, cotovelos levemente à frente",
+            end: "Barra acima da cabeça com braços estendidos, ombros contraídos",
+          },
+        },
+        {
+          id: 14,
+          name: "Elevação Lateral",
+          nameen: "Lateral Raise",
+          category: "Ombros",
+          type: "Isolado",
+          equipment: "Halteres",
+          muscleprimary: "Deltoide médio",
+          musclesecondary: [],
+          positions: {
+            start: "Em pé, halteres ao longo do corpo, leve flexão do cotovelo",
+            end: "Braços elevados lateralmente até a altura dos ombros em T",
+          },
+        },
+        {
+          id: 15,
+          name: "Desenvolvimento Arnold",
+          nameen: "Arnold Press",
+          category: "Ombros",
+          type: "Composto",
+          equipment: "Halteres",
+          muscleprimary: "Deltoide anterior e médio",
+          musclesecondary: ["Tríceps"],
+          positions: {
+            start: "Halteres à altura dos ombros, palmas voltadas para o rosto",
+            end: "Braços estendidos acima com rotação, palmas para frente, ombros elevados",
+          },
+        },
+        {
+          id: 16,
+          name: "Elevação Frontal",
+          nameen: "Front Raise",
+          category: "Ombros",
+          type: "Isolado",
+          equipment: "Halteres",
+          muscleprimary: "Deltoide anterior",
+          musclesecondary: [],
+          positions: {
+            start: "Em pé, halteres à frente das coxas",
+            end: "Braços elevados à frente até a altura dos ombros, paralelos ao chão",
+          },
+        },
+        {
+          id: 17,
+          name: "Encolhimento de Ombros",
+          nameen: "Shoulder Shrug",
+          category: "Ombros",
+          type: "Isolado",
+          equipment: "Barra",
+          muscleprimary: "Trapézio superior",
+          musclesecondary: [],
+          positions: {
+            start: "Em pé, barra ao longo das coxas com braços estendidos",
+            end: "Ombros elevados ao máximo em direção às orelhas, trapézio contraído",
+          },
+        },
+        // BÍCEPS
+        {
+          id: 18,
+          name: "Rosca Direta",
+          nameen: "Barbell Curl",
+          category: "Bíceps",
+          type: "Isolado",
+          equipment: "Barra",
+          muscleprimary: "Bíceps braquial",
+          musclesecondary: ["Braquial", "Braquiorradial"],
+          positions: {
+            start: "Em pé, barra com pegada supinada, braços estendidos",
+            end: "Barra puxada até o nível dos ombros, bíceps totalmente contraído",
+          },
+        },
+        {
+          id: 19,
+          name: "Rosca com Halteres",
+          nameen: "Dumbbell Curl",
+          category: "Bíceps",
+          type: "Isolado",
+          equipment: "Halteres",
+          muscleprimary: "Bíceps braquial",
+          musclesecondary: ["Braquial"],
+          positions: {
+            start: "Em pé, halteres ao longo do corpo com pegada neutra",
+            end: "Halteres elevados até o peito com supinação, pico do bíceps contraído",
+          },
+        },
+        {
+          id: 20,
+          name: "Rosca Concentrada",
+          nameen: "Concentration Curl",
+          category: "Bíceps",
+          type: "Isolado",
+          equipment: "Halteres",
+          muscleprimary: "Bíceps braquial (pico)",
+          musclesecondary: [],
+          positions: {
+            start:
+              "Sentado, cotovelo apoiado na coxa interna, halter pendurado",
+            end: "Halter elevado ao máximo, contração pico do bíceps",
+          },
+        },
+        {
+          id: 21,
+          name: "Rosca Martelo",
+          nameen: "Hammer Curl",
+          category: "Bíceps",
+          type: "Isolado",
+          equipment: "Halteres",
+          muscleprimary: "Braquiorradial",
+          musclesecondary: ["Bíceps", "Braquial"],
+          positions: {
+            start: "Em pé, halteres com pegada neutra (polegar para cima)",
+            end: "Halteres elevados com pegada neutra mantida, antebraços em contração",
+          },
+        },
+        {
+          id: 22,
+          name: "Rosca no Cabo",
+          nameen: "Cable Curl",
+          category: "Bíceps",
+          type: "Isolado",
+          equipment: "Cabos",
+          muscleprimary: "Bíceps braquial",
+          musclesecondary: ["Braquial"],
+          positions: {
+            start: "Em pé, segurando a barra do cabo baixo com pegada supinada",
+            end: "Barra puxada ao nível do ombro, bíceps totalmente contraído",
+          },
+        },
+        // TRÍCEPS
+        {
+          id: 23,
+          name: "Tríceps Testa",
+          nameen: "Skull Crusher",
+          category: "Tríceps",
+          type: "Isolado",
+          equipment: "Barra",
+          muscleprimary: "Cabeça longa do tríceps",
+          musclesecondary: ["Cabeça lateral", "Cabeça medial"],
+          positions: {
+            start: "Deitado, barra acima com braços estendidos",
+            end: "Barra descida até a testa, cotovelos dobrados 90°",
+          },
+        },
+        {
+          id: 24,
+          name: "Tríceps Pulley",
+          nameen: "Triceps Pushdown",
+          category: "Tríceps",
+          type: "Isolado",
+          equipment: "Cabos",
+          muscleprimary: "Cabeça lateral do tríceps",
+          musclesecondary: ["Cabeça medial"],
+          positions: {
+            start: "Em pé, cotovelos a 90° segurando a barra do cabo alto",
+            end: "Braços estendidos para baixo, tríceps totalmente contraído",
+          },
+        },
+        {
+          id: 25,
+          name: "Mergulho no Banco",
+          nameen: "Bench Dip",
+          category: "Tríceps",
+          type: "Composto",
+          equipment: "Peso Corporal",
+          muscleprimary: "Tríceps braquial",
+          musclesecondary: ["Peitoral", "Deltoide anterior"],
+          positions: {
+            start: "Mãos apoiadas no banco atrás, pernas estendidas à frente",
+            end: "Cotovelos dobrados 90°, quadril descido próximo ao chão",
+          },
+        },
+        {
+          id: 26,
+          name: "Extensão de Tríceps",
+          nameen: "Overhead Triceps Extension",
+          category: "Tríceps",
+          type: "Isolado",
+          equipment: "Halteres",
+          muscleprimary: "Cabeça longa do tríceps",
+          musclesecondary: [],
+          positions: {
+            start:
+              "Em pé ou sentado, halter acima da cabeça com braços estendidos",
+            end: "Halter descido atrás da cabeça, cotovelos apontando para cima",
+          },
+        },
+        // PERNAS
+        {
+          id: 27,
+          name: "Agachamento",
+          nameen: "Back Squat",
+          category: "Pernas",
+          type: "Composto",
+          equipment: "Barra",
+          muscleprimary: "Quadríceps",
+          musclesecondary: ["Glúteos", "Isquiotibiais", "Adutores", "Core"],
+          positions: {
+            start: "Barra nos trapézios, pés à largura dos ombros, em pé ereto",
+            end: "Coxa paralela ao chão, joelhos alinhados, costas retas",
+          },
+        },
+        {
+          id: 28,
+          name: "Leg Press",
+          nameen: "Leg Press",
+          category: "Pernas",
+          type: "Composto",
+          equipment: "Máquina",
+          muscleprimary: "Quadríceps",
+          musclesecondary: ["Glúteos", "Isquiotibiais"],
+          positions: {
+            start:
+              "Sentado no leg press, pés na plataforma, joelhos dobrados ~90°",
+            end: "Pernas quase estendidas na plataforma, quadríceps em contração",
+          },
+        },
+        {
+          id: 29,
+          name: "Cadeira Extensora",
+          nameen: "Leg Extension",
+          category: "Pernas",
+          type: "Isolado",
+          equipment: "Máquina",
+          muscleprimary: "Quadríceps",
+          musclesecondary: [],
+          positions: {
+            start:
+              "Sentado na cadeira, joelhos dobrados 90°, tornozelo sob o rolo",
+            end: "Joelhos totalmente estendidos, quadríceps em contração máxima",
+          },
+        },
+        {
+          id: 30,
+          name: "Mesa Flexora",
+          nameen: "Leg Curl",
+          category: "Pernas",
+          type: "Isolado",
+          equipment: "Máquina",
+          muscleprimary: "Isquiotibiais",
+          musclesecondary: ["Gastrocnêmio"],
+          positions: {
+            start:
+              "Deitado de bruços na máquina, pernas estendidas, tornozelo sob rolo",
+            end: "Joelhos dobrados ao máximo, isquiotibiais em contração",
+          },
+        },
+        {
+          id: 31,
+          name: "Avanço com Halteres",
+          nameen: "Dumbbell Lunge",
+          category: "Pernas",
+          type: "Composto",
+          equipment: "Halteres",
+          muscleprimary: "Quadríceps",
+          musclesecondary: ["Glúteos", "Isquiotibiais"],
+          positions: {
+            start:
+              "Em pé, halteres ao lado do corpo, perna avançada para frente",
+            end: "Joelho traseiro próximo ao chão, joelho dianteiro a 90°",
+          },
+        },
+        {
+          id: 32,
+          name: "Panturrilha em Pé",
+          nameen: "Standing Calf Raise",
+          category: "Pernas",
+          type: "Isolado",
+          equipment: "Máquina",
+          muscleprimary: "Gastrocnêmio",
+          musclesecondary: ["Sóleo"],
+          positions: {
+            start: "Em pé na máquina, calcanhar abaixado abaixo do degrau",
+            end: "Na ponta dos pés no ponto máximo, panturrilha totalmente contraída",
+          },
+        },
+        // GLÚTEOS
+        {
+          id: 33,
+          name: "Hip Thrust",
+          nameen: "Hip Thrust",
+          category: "Glúteos",
+          type: "Composto",
+          equipment: "Barra",
+          muscleprimary: "Glúteo máximo",
+          musclesecondary: ["Isquiotibiais", "Abdutores"],
+          positions: {
+            start:
+              "Costas apoiadas no banco, barra sobre o quadril, quadril abaixado",
+            end: "Quadril elevado, glúteos contraídos, tronco paralelo ao chão",
+          },
+        },
+        {
+          id: 34,
+          name: "Stiff",
+          nameen: "Romanian Deadlift",
+          category: "Glúteos",
+          type: "Composto",
+          equipment: "Barra",
+          muscleprimary: "Isquiotibiais",
+          musclesecondary: ["Glúteos", "Eretor espinhal"],
+          positions: {
+            start: "Em pé, barra ao longo das coxas, leve flexão dos joelhos",
+            end: "Tronco inclinado ~45°, barra próxima às pernas, tensão nos isquiotibiais",
+          },
+        },
+        {
+          id: 35,
+          name: "Abdução no Cabo",
+          nameen: "Cable Hip Abduction",
+          category: "Glúteos",
+          type: "Isolado",
+          equipment: "Cabos",
+          muscleprimary: "Glúteo médio",
+          musclesecondary: ["Glúteo mínimo", "TFL"],
+          positions: {
+            start:
+              "De lado ao cabo, tornozelo preso ao cabo baixo, perna próxima ao suporte",
+            end: "Perna elevada lateralmente a ~45°, glúteo médio contraído",
+          },
+        },
+        {
+          id: 36,
+          name: "Agachamento Sumô",
+          nameen: "Sumo Squat",
+          category: "Glúteos",
+          type: "Composto",
+          equipment: "Halteres",
+          muscleprimary: "Glúteos e Adutores",
+          musclesecondary: ["Quadríceps"],
+          positions: {
+            start:
+              "Pés afastados além dos ombros com bico para fora, halter no centro",
+            end: "Coxa paralela ao chão, joelhos alinhados com os pés, glúteos contraídos",
+          },
+        },
+        // CORE
+        {
+          id: 37,
+          name: "Prancha",
+          nameen: "Plank",
+          category: "Core",
+          type: "Isométrico",
+          equipment: "Peso Corporal",
+          muscleprimary: "Core (transverso abdominal)",
+          musclesecondary: ["Reto abdominal", "Glúteos", "Eretores"],
+          positions: {
+            start: "Posição de prancha nos antebraços, corpo em linha reta",
+            end: "Posição mantida: corpo rígido como uma tábua, sem arqueamento",
+          },
+        },
+        {
+          id: 38,
+          name: "Abdominal Crunch",
+          nameen: "Crunch",
+          category: "Core",
+          type: "Isolado",
+          equipment: "Peso Corporal",
+          muscleprimary: "Reto abdominal",
+          musclesecondary: ["Oblíquos"],
+          positions: {
+            start:
+              "Deitado, joelhos dobrados, mãos atrás da cabeça ou cruzadas no peito",
+            end: "Ombros elevados do chão, abdômen contraído em crunch",
+          },
+        },
+        {
+          id: 39,
+          name: "Elevação de Pernas",
+          nameen: "Leg Raise",
+          category: "Core",
+          type: "Isolado",
+          equipment: "Peso Corporal",
+          muscleprimary: "Reto abdominal (inferior)",
+          musclesecondary: ["Flexores do quadril"],
+          positions: {
+            start: "Deitado, pernas estendidas no chão, mãos ao longo do corpo",
+            end: "Pernas elevadas a 90°, lombar pressionada no chão",
+          },
+        },
+        {
+          id: 40,
+          name: "Russian Twist",
+          nameen: "Russian Twist",
+          category: "Core",
+          type: "Isolado",
+          equipment: "Peso Corporal",
+          muscleprimary: "Oblíquos",
+          musclesecondary: ["Reto abdominal"],
+          positions: {
+            start:
+              "Sentado com tronco inclinado ~45°, joelhos dobrados, mãos à frente",
+            end: "Tronco rotacionado para o lado, oblíquo em contração máxima",
+          },
+        },
+      ];
+
+      const CHARS = {
+        male: {
+          base: "ATHLETE: Athletic male fitness model, 28-32 years old, muscular physique with visible muscle definition, short hair, wearing fitted gym shorts and athletic tank top or compression shirt. Neutral expression, focused.",
+          consistency:
+            "Same athletic male model throughout all images. Consistent facial features, build, and athletic wear.",
+        },
+        female: {
+          base: "ATHLETE: Athletic female fitness model, 25-30 years old, toned and fit physique with lean muscle definition, hair tied back in a ponytail, wearing fitted gym leggings and a sports bra or athletic top. Neutral expression, focused.",
+          consistency:
+            "Same athletic female model throughout all images. Consistent facial features, build, and athletic wear.",
+        },
+      };
+
+      const PHASEMAP = {
+        Composto: [
+          {
+            key: "start",
+            name: "Fase Inicial",
+            en: "Starting position — muscles under tension, ready to lift",
+          },
+          {
+            key: "end",
+            name: "Fase Final",
+            en: "Peak contraction — full range of motion completed",
+          },
+        ],
+        Isolado: [
+          {
+            key: "start",
+            name: "Posição Inicial",
+            en: "Arms/legs extended, muscle at full stretch",
+          },
+          {
+            key: "end",
+            name: "Contração Máxima",
+            en: "Peak contraction of the target muscle",
+          },
+        ],
+        Isométrico: [
+          {
+            key: "start",
+            name: "Posição Estática",
+            en: "Holding static position with maximum body tension",
+          },
+          {
+            key: "end",
+            name: "Posição Mantida",
+            en: "Sustained position, full core engagement visible",
+          },
+        ],
+      };
+
+      const ANGLES = [
+        {
+          key: "side",
+          name: "Lateral 45°",
+          desc: "Perfil ¾ — ideal para demonstrar forma e amplitude",
+          prompt:
+            "CAMERA ANGLE: 3/4 side view at 45 degrees, eye-level, showing the full body with clear view of movement mechanics and muscle activation. Professional fitness photography composition.",
+        },
+        {
+          key: "front",
+          name: "Frontal",
+          desc: "Visão frontal — mostra simetria e postura",
+          prompt:
+            "CAMERA ANGLE: Front-facing view, slightly below eye-level, showing the athlete symmetrically. Clear view of chest, shoulders and facial expression. Clean fitness studio shot.",
+        },
+        {
+          key: "back",
+          name: "Posterior",
+          desc: "Vista traseira — destaca costas e glúteos",
+          prompt:
+            "CAMERA ANGLE: Rear view, eye-level, showing the back muscles, glutes and posterior chain in full detail. Clean athletic photography.",
+        },
+        {
+          key: "low",
+          name: "Baixo ângulo",
+          desc: "Câmera baixa — transmite poder e tamanho",
+          prompt:
+            "CAMERA ANGLE: Low angle shot, looking up at the athlete from below waist level, creating a powerful and imposing composition. Dynamic fitness photography.",
+        },
+        {
+          key: "top",
+          name: "Aéreo ¾",
+          desc: "Vista ¾ de cima — ótimo para exercícios de chão",
+          prompt:
+            "CAMERA ANGLE: Overhead 3/4 angle from above and to the side, showing the full exercise form clearly from an elevated perspective. Clean overhead fitness photography.",
+        },
+      ];
+
+      const ENV =
+        "Modern commercial gym with clean equipment, subtle natural lighting from windows supplemented by professional studio lighting. Bright, white walls with minimal distractions. Polished wood or rubber flooring. Slightly blurred background to keep focus on the athlete.";
+
+      // ══ STATE ══
+      let state = {
+        exercise: null,
+        char: "male",
+        angle: ANGLES[0],
+        phase: null,
+        filter: "all",
+        search: "",
+      };
+
+      const autoState = {
+        api: "fal",
+        avatar: "male",
+        phase: "start",
+        maleRef: "male_reference.jpg",
+        femaleRef: "female_reference.jpg",
+      };
+      const API_INFO = {
+        fal: {
+          text: 'fal.ai — Free credits no signup (~$10). Depois ~$0.012/imagem. Modelo InstantCharacter aceita imagem de referência para consistência de personagem. <a href="https://fal.ai" target="_blank" rel="noopener">Obter API Key →</a>',
+          cost: 0.012,
+        },
+        replicate: {
+          text: 'Replicate — ~$0.004/imagem. Modelo consistent-character com SDXL. <a href="https://replicate.com" target="_blank" rel="noopener">Obter API Key →</a>',
+          cost: 0.004,
+        },
+      };
+
+      // ══ INIT ══
+      function init() {
+        renderExList();
+        renderAngles();
+        updateCharPreview();
+        updateStats();
+        updateScript();
+        document.getElementById("exCountBadge").textContent =
+          EXERCISES.length + " exercícios";
+        // theme toggle
+        const t = document.querySelector("[data-theme-toggle]");
+        const r = document.documentElement;
+        t &&
+          t.addEventListener("click", () => {
+            const d =
+              r.getAttribute("data-theme") === "dark" ? "light" : "dark";
+            r.setAttribute("data-theme", d);
+            t.innerHTML =
+              d === "dark"
+                ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'
+                : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>';
+          });
+      }
+
+      function renderExList() {
+        const list = document.getElementById("exList");
+        const count = document.getElementById("exCount");
+        let filtered = EXERCISES.filter((e) => {
+          const matchCat =
+            state.filter === "all" || e.category === state.filter;
+          const q = state.search.toLowerCase();
+          const matchSearch =
+            !q ||
+            e.name.toLowerCase().includes(q) ||
+            (e.nameen && e.nameen.toLowerCase().includes(q)) ||
+            e.muscleprimary.toLowerCase().includes(q);
+          return matchCat && matchSearch;
+        });
+        count.textContent =
+          filtered.length + " exercício" + (filtered.length !== 1 ? "s" : "");
+        list.innerHTML = filtered
+          .map(
+            (e) => `
+    <div class="ex-item${state.exercise && state.exercise.id === e.id ? " active" : ""}" onclick="selectExercise(${e.id})">
+      <div class="ex-item-name">${e.name}</div>
+      <div class="ex-item-sub">${e.nameen} · ${e.category}</div>
+    </div>
+  `,
+          )
+          .join("");
+      }
+
+      function renderAngles() {
+        document.getElementById("angleList").innerHTML = ANGLES.map(
+          (a, i) => `
+    <div class="angle-item${i === 0 ? " active" : ""}" onclick="setAngle(${i},this)">
+      <div class="angle-dot"></div>
+      <div style="flex:1">
+        <div class="angle-name">${a.name}</div>
+        <div class="angle-desc">${a.desc}</div>
+      </div>
+    </div>
+  `,
+        ).join("");
+      }
+
+      function selectExercise(id) {
+        state.exercise = EXERCISES.find((e) => e.id === id);
+        const phases = PHASEMAP[state.exercise.type] || PHASEMAP["Composto"];
+        state.phase = phases[0];
+        renderExList();
+        renderExDetail();
+        setMainTab(document.querySelector(".main-tab-btn"), "tabPrompt");
+        updateStats();
+        updateScript();
+      }
+
+      function renderExDetail() {
+        if (!state.exercise) {
+          return;
+        }
+        const ex = state.exercise;
+        const phases = PHASEMAP[ex.type] || PHASEMAP["Composto"];
+        document.getElementById("exDetailArea").innerHTML = `
+    <div class="ex-detail-header">
+      <div class="ex-detail-name">${ex.name}</div>
+      <div class="ex-detail-en">${ex.nameen}</div>
+      <div class="tag-row">
+        <span class="tag tag-cat">${ex.category}</span>
+        <span class="tag tag-type">${ex.type}</span>
+        <span class="tag tag-type">${ex.equipment}</span>
+      </div>
+      <span class="section-label">Músculos</span>
+      <div class="muscle-row">
+        <span class="muscle-badge primary">🎯 ${ex.muscleprimary}</span>
+        ${(ex.musclesecondary || []).map((m) => `<span class="muscle-badge">${m}</span>`).join("")}
+      </div>
+    </div>
+    <div>
+      <span class="section-label">Fase do movimento</span>
+      <div class="phase-grid" id="phaseGrid">
+        ${phases
+          .map(
+            (ph, i) => `
+          <div class="phase-card${i === 0 ? " active" : ""}" onclick="setPhase('${ph.key}',this)" data-phase="${ph.key}">
+            <div class="phase-name">${ph.name}</div>
+            <div class="phase-en">${ph.en}</div>
+          </div>
+        `,
+          )
+          .join("")}
+      </div>
+    </div>
+    <div class="prompt-box">
+      <span class="section-label">Prompt gerado</span>
+      <textarea class="prompt-output" id="promptOutput" rows="6" readonly></textarea>
+      <div class="prompt-actions">
+        <button class="btn btn-primary btn-sm" onclick="copyPrompt()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copiar Prompt
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="regenerate()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Regenerar
+        </button>
+      </div>
+    </div>
+  `;
+        generatePrompt();
+      }
+
+      function setPhase(key, el) {
+        document
+          .querySelectorAll(".phase-card")
+          .forEach((c) => c.classList.remove("active"));
+        el.classList.add("active");
+        const phases = PHASEMAP[state.exercise.type] || PHASEMAP["Composto"];
+        state.phase = phases.find((p) => p.key === key);
+        generatePrompt();
+      }
+
+      function generatePrompt() {
+        if (!state.exercise || !state.phase) return;
+        const ex = state.exercise;
+        const char = CHARS[state.char];
+        const angle = state.angle;
+        const ph = state.phase;
+        const eqDesc = getEquipmentDesc(ex.equipment);
+        const bodyPos = getExerciseBodyPosition(ex, ph.key) || ph.en;
+        const prompt = `${char.base} EXERCISE: Performing the ${ex.nameen || ex.name} (${ex.name}) exercise. TARGET MUSCLES: Primary ${ex.muscleprimary}. Secondary ${(ex.musclesecondary || []).join(", ") || "none"}. EQUIPMENT: ${eqDesc}. MOVEMENT PHASE: ${ph.name} - ${bodyPos}. ${angle.prompt} ENVIRONMENT & LIGHTING: ${ENV} CHARACTER CONSISTENCY: ${char.consistency} STYLE: Fitness app reference photo, clean and instructional. No text overlays, no watermarks.`;
+        const out = document.getElementById("promptOutput");
+        if (out) out.value = prompt;
+      }
+
+      function getEquipmentDesc(eq) {
+        const map = {
+          Barra: "Olympic barbell with appropriate weight plates",
+          Halteres: "A pair of dumbbells appropriate to the exercise",
+          Cabos: "Cable machine with standard attachments",
+          Máquina: "Gym machine specifically designed for this exercise",
+          "Peso Corporal": "No equipment, using only bodyweight",
+          Polia: "Pulley/cable system",
+        };
+        return map[eq] || eq;
+      }
+
+      function getExerciseBodyPosition(ex, phaseKey) {
+        if (!ex.positions) return null;
+        return phaseKey === "start" ? ex.positions.start : ex.positions.end;
+      }
+
+      function copyPrompt() {
+        const out = document.getElementById("promptOutput");
+        if (!out || !out.value) return;
+        navigator.clipboard.writeText(out.value).then(() => {
+          const btn = event.target.closest("button");
+          const orig = btn.innerHTML;
+          btn.innerHTML =
+            '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copiado!';
+          setTimeout(() => {
+            btn.innerHTML = orig;
+          }, 1800);
+        });
+      }
+
+      function regenerate() {
+        generatePrompt();
+      }
+
+      function setChar(key, el) {
+        state.char = key;
+        document
+          .querySelectorAll(".char-card")
+          .forEach((c) => c.classList.remove("active"));
+        el.classList.add("active");
+        updateCharPreview();
+        generatePrompt();
+      }
+
+      function updateCharPreview() {
+        document.getElementById("charPreview").textContent =
+          CHARS[state.char].base;
+      }
+
+      function setAngle(idx, el) {
+        state.angle = ANGLES[idx];
+        document
+          .querySelectorAll(".angle-item")
+          .forEach((a) => a.classList.remove("active"));
+        el.classList.add("active");
+        generatePrompt();
+      }
+
+      function setFilter(el, cat) {
+        state.filter = cat;
+        document
+          .querySelectorAll(".filter-chip")
+          .forEach((c) => c.classList.remove("active"));
+        el.classList.add("active");
+        renderExList();
+      }
+
+      function filterExercises() {
+        state.search = document.getElementById("searchInput").value;
+        renderExList();
+      }
+
+      function setMainTab(btn, tabId) {
+        document
+          .querySelectorAll(".main-tab-btn")
+          .forEach((b) => b.classList.remove("active"));
+        document
+          .querySelectorAll(".main-tab-panel")
+          .forEach((p) => p.classList.remove("active"));
+        // Find the tab button by panel id
+        const allBtns = document.querySelectorAll(".main-tab-btn");
+        allBtns.forEach((b) => {
+          const attr = b.getAttribute("onclick");
+          if (attr && attr.includes(tabId)) b.classList.add("active");
+        });
+        document.getElementById(tabId).classList.add("active");
+      }
+
+      // ── AUTOMATION ──
+      function setApi(btn, api) {
+        document
+          .querySelectorAll('[id^="apiBtn"]')
+          .forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        autoState.api = api;
+        document.getElementById("apiInfoBox").innerHTML = API_INFO[api].text;
+        updateStats();
+        updateScript();
+      }
+
+      function setGenOpt(btn, key, val) {
+        btn
+          .closest(".option-row")
+          .querySelectorAll(".opt-btn")
+          .forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        autoState[key] = val;
+        updateStats();
+        updateScript();
+      }
+
+      function loadRef(input, gender) {
+        const file = input.files[0];
+        if (!file) return;
+        const preview = document.getElementById(gender + "RefPreview");
+        const name = document.getElementById(gender + "RefName");
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          preview.src = e.target.result;
+          preview.style.display = "block";
+          name.textContent = file.name;
+          autoState[gender + "Ref"] = file.name;
+          updateScript();
+        };
+        reader.readAsDataURL(file);
+      }
+
+      function getImgCount() {
+        const am = autoState.avatar === "both" ? 2 : 1;
+        const pm = autoState.phase === "all" ? 2 : 1;
+        return EXERCISES.length * am * pm;
+      }
+
+      function updateStats() {
+        const count = getImgCount();
+        const delay = parseInt(document.getElementById("autoDelay").value) || 3;
+        const mins = Math.ceil((count * (delay + 4)) / 60);
+        const cost = (count * (API_INFO[autoState.api]?.cost || 0.01)).toFixed(
+          2,
+        );
+        document.getElementById("statImages").textContent = count;
+        document.getElementById("statTime").textContent = mins + "m";
+        document.getElementById("statCost").textContent = "$" + cost;
+      }
+
+      function buildBatchForAuto() {
+        const items = [];
+        const avatars =
+          autoState.avatar === "both" ? ["male", "female"] : [autoState.avatar];
+        avatars.forEach((ak) => {
+          EXERCISES.forEach((ex) => {
+            const phases = PHASEMAP[ex.type] || PHASEMAP["Composto"];
+            const phList = autoState.phase === "all" ? phases : [phases[0]];
+            phList.forEach((ph) => {
+              const char = CHARS[ak];
+              const angle = ANGLES[0];
+              const eqDesc = getEquipmentDesc(ex.equipment);
+              const bodyPos = getExerciseBodyPosition(ex, ph.key) || ph.en;
+              const prompt =
+                char.base +
+                " EXERCISE: Performing the " +
+                (ex.nameen || ex.name) +
+                " (" +
+                (ex.name || "") +
+                ") exercise. TARGET MUSCLES: Primary " +
+                ex.muscleprimary +
+                ". Secondary " +
+                ((ex.musclesecondary || []).join(", ") || "none") +
+                ". EQUIPMENT: " +
+                eqDesc +
+                ". MOVEMENT PHASE: " +
+                ph.name +
+                " - " +
+                bodyPos +
+                ". " +
+                angle.prompt +
+                " ENVIRONMENT & LIGHTING: " +
+                ENV +
+                " CHARACTER CONSISTENCY: " +
+                char.consistency +
+                " STYLE: Fitness app reference photo, clean and instructional. No text overlays, no watermarks.";
+              items.push({
+                id: ex.id,
+                name: ex.name,
+                nameen: ex.nameen || ex.name,
+                category: ex.category,
+                avatar: ak,
+                phase: ph.key,
+                phase_name: ph.name,
+                prompt: prompt,
+              });
+            });
+          });
+        });
+        return items;
+      }
+
+      function buildFalScript(data, apiKey, delay, maleRef, femaleRef) {
+        const dataJson = JSON.stringify(data, null, 2);
+        return `#!/usr/bin/env python3
+"""
+CoachAI Exercise Image Generator
+API: fal.ai - InstantCharacter
+Generated by CoachAI Prompt Generator
+"""
+import os, json, time, requests
+from pathlib import Path
+
+# ══ CONFIGURATION ══
+FAL_API_KEY = "${apiKey || "YOUR_FAL_API_KEY_HERE"}"
+MALE_REF_IMAGE = "${maleRef}"
+FEMALE_REF_IMAGE = "${femaleRef}"
+OUTPUT_DIR = "exercise_images"
+DELAY_SECONDS = ${delay}
+# ═══════════════════
+
+import fal_client
+os.environ["FAL_KEY"] = FAL_API_KEY
+Path(OUTPUT_DIR).mkdir(exist_ok=True)
+
+BATCH = ${dataJson}
+
+def upload_image(path):
+    print(f"  Uploading {path}...")
+    with open(path, "rb") as f:
+        return fal_client.upload(f.read(), "image/jpeg")
+
+def generate(prompt, ref_url, filename):
+    result = fal_client.run(
+        "fal-ai/instant-character",
+        arguments={
+            "prompt": prompt,
+            "reference_image_url": ref_url,
+            "num_inference_steps": 28,
+            "guidance_scale": 3.5,
+            "image_size": "portrait_4_3",
+        }
+    )
+    img_data = requests.get(result["images"][0]["url"]).content
+    out = f"{OUTPUT_DIR}/{filename}"
+    with open(out, "wb") as f:
+        f.write(img_data)
+    return out
+
+def main():
+    print(f"CoachAI Image Generator | {len(BATCH)} imagens | fal.ai")
+    refs = {}
+    if any(i["avatar"]=="male" for i in BATCH):
+        refs["male"] = upload_image(MALE_REF_IMAGE)
+    if any(i["avatar"]=="female" for i in BATCH):
+        refs["female"] = upload_image(FEMALE_REF_IMAGE)
+    errors = []
+    for i, item in enumerate(BATCH, 1):
+        nm = item["nameen"].replace(" ","_").replace("/","-")[:35]
+        fn = f"{i:03d}_{nm}_{item['avatar']}_{item['phase']}.png"
+        try:
+            ref = refs.get(item["avatar"], list(refs.values())[0])
+            out = generate(item["prompt"], ref, fn)
+            print(f"  OK [{i:>3}/{len(BATCH)}] {item['name']} ({item['avatar']}) -> {out}")
+        except Exception as e:
+            print(f"  ERR [{i:>3}/{len(BATCH)}] {item['name']} -- {e}")
+            errors.append({"exercise": item["name"], "error": str(e)})
+        time.sleep(DELAY_SECONDS)
+    print(f"Done: {len(BATCH)-len(errors)}/{len(BATCH)}")
+    if errors:
+        with open(f"{OUTPUT_DIR}/_errors.json","w",encoding="utf-8") as f:
+            json.dump(errors,f,indent=2,ensure_ascii=False)
+
+if __name__ == "__main__":
+    main()
+`;
+      }
+
+      function buildReplicateScript(data, apiKey, delay, maleRef, femaleRef) {
+        const dataJson = JSON.stringify(data, null, 2);
+        return `#!/usr/bin/env python3
+"""
+CoachAI Exercise Image Generator
+API: Replicate - Consistent Character
+Generated by CoachAI Prompt Generator
+"""
+import os, json, time, requests
+from pathlib import Path
+
+REPLICATE_API_KEY = "${apiKey || "YOUR_REPLICATE_API_KEY_HERE"}"
+MALE_REF_IMAGE = "${maleRef}"
+FEMALE_REF_IMAGE = "${femaleRef}"
+OUTPUT_DIR = "exercise_images"
+DELAY_SECONDS = ${delay}
+
+import replicate
+os.environ["REPLICATE_API_TOKEN"] = REPLICATE_API_KEY
+Path(OUTPUT_DIR).mkdir(exist_ok=True)
+
+BATCH = ${dataJson}
+
+def generate(prompt, ref_path, filename):
+    output = replicate.run(
+        "fofr/consistent-character:9c77a3c2f884193fcee4d89645f02a0b9def9434f9e03cb98460f37679",
+        input={"prompt": prompt, "subject": open(ref_path,"rb"), "num_outputs": 1}
+    )
+    img_data = requests.get(output[0]).content
+    out = f"{OUTPUT_DIR}/{filename}"
+    with open(out,"wb") as f: f.write(img_data)
+    return out
+
+def main():
+    print(f"CoachAI | {len(BATCH)} imagens | Replicate")
+    errors = []
+    for i,item in enumerate(BATCH,1):
+        nm = item["nameen"].replace(" ","_")[:35]
+        fn = f"{i:03d}_{nm}_{item['avatar']}_{item['phase']}.png"
+        ref = MALE_REF_IMAGE if item["avatar"]=="male" else FEMALE_REF_IMAGE
+        try:
+            out = generate(item["prompt"], ref, fn)
+            print(f"  OK [{i:>3}/{len(BATCH)}] {item['name']} -> {out}")
+        except Exception as e:
+            print(f"  ERR {item['name']} -- {e}")
+            errors.append({"exercise": item["name"], "error": str(e)})
+        time.sleep(DELAY_SECONDS)
+    print(f"Done: {len(BATCH)-len(errors)}/{len(BATCH)}")
+
+if __name__ == "__main__": main()
+`;
+      }
+
+      function buildPythonScript(data, apiKey, delay) {
+        const m = autoState.maleRef,
+          f = autoState.femaleRef;
+        return autoState.api === "fal"
+          ? buildFalScript(data, apiKey, delay, m, f)
+          : buildReplicateScript(data, apiKey, delay, m, f);
+      }
+
+      function updateScript() {
+        const apiKey = document.getElementById("autoApiKey").value;
+        const delay = document.getElementById("autoDelay").value || 3;
+        const data = buildBatchForAuto();
+        const script = buildPythonScript(data, apiKey, delay);
+        const lines = script.split("\n").slice(0, 35).join("\n");
+        document.getElementById("pyPreview").textContent = lines + "\n...";
+        updateStats();
+      }
+
+      function downloadPyScript() {
+        const apiKey = document.getElementById("autoApiKey").value;
+        const delay = document.getElementById("autoDelay").value || 3;
+        const data = buildBatchForAuto();
+        if (!data.length) {
+          alert("Nenhum exercício!");
+          return;
+        }
+        const script = buildPythonScript(data, apiKey, delay);
+        const blob = new Blob([script], { type: "text/plain" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "generate_exercises.py";
+        a.click();
+      }
+
+      function downloadRequirements() {
+        const content =
+          autoState.api === "fal"
+            ? "fal-client\nrequests\n"
+            : "replicate\nrequests\n";
+        const blob = new Blob([content], { type: "text/plain" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "requirements.txt";
+        a.click();
+      }
+
+      init();
+    </script>
+  </body>
+</html>

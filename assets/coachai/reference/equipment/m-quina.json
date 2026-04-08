@@ -1,0 +1,7 @@
+{
+  "kind": "equipment",
+  "name": "Máquina",
+  "output": "assets\\coachai\\reference\\equipment\\m-quina.png",
+  "status": "skipped-existing",
+  "seed": 2976764970
+}

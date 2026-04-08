@@ -1,0 +1,7 @@
+{
+  "kind": "equipment",
+  "name": "Escada de Agilidade",
+  "output": "assets\\coachai\\reference\\equipment\\escada-de-agilidade.png",
+  "status": "dry-run",
+  "seed": 2401795699
+}

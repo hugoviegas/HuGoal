@@ -1,0 +1,7 @@
+{
+  "kind": "equipment",
+  "name": "Rolo de Espuma",
+  "output": "assets\\coachai\\reference\\equipment\\rolo-de-espuma.png",
+  "status": "dry-run",
+  "seed": 143282474
+}

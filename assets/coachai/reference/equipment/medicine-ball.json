@@ -1,0 +1,7 @@
+{
+  "kind": "equipment",
+  "name": "Medicine Ball",
+  "output": "assets\\coachai\\reference\\equipment\\medicine-ball.png",
+  "status": "dry-run",
+  "seed": 3280411848
+}

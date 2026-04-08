@@ -1,0 +1,7 @@
+{
+  "kind": "equipment",
+  "name": "Bicicleta Ergométrica",
+  "output": "assets\\coachai\\reference\\equipment\\bicicleta-ergom-trica.png",
+  "status": "dry-run",
+  "seed": 2652648283
+}

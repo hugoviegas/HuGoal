@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CoachAI Pipeline Dashboard</title>
+    <style>
+      :root {
+        --bg: #0f1115;
+        --panel: #171a21;
+        --panel-2: #1d2230;
+        --text: #e8ecf1;
+        --muted: #9aa3af;
+        --accent: #2ec8b0;
+        --border: #2a3142;
+        --ok: #48c774;
+        --warn: #f2c14e;
+        --err: #ef5d60;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 24px;
+        font-family: Inter, system-ui, sans-serif;
+        background: radial-gradient(
+          circle at top right,
+          #1a2030 0%,
+          var(--bg) 45%
+        );
+        color: var(--text);
+      }
+      h1,
+      h2,
+      h3 {
+        margin: 0 0 12px 0;
+      }
+      .layout {
+        max-width: 1400px;
+        margin: 0 auto;
+        display: grid;
+        gap: 16px;
+      }
+      .panel {
+        background: linear-gradient(180deg, var(--panel), var(--panel-2));
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+      }
+      .top {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 12px;
+        align-items: center;
+      }
+      .btn {
+        background: #243047;
+        color: var(--text);
+        border: 1px solid #3a4660;
+        border-radius: 8px;
+        padding: 8px 12px;
+        cursor: pointer;
+      }
+      .btn:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .muted {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .kpis {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(120px, 1fr));
+        gap: 10px;
+      }
+      .kpi {
+        background: #151a25;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 12px;
+      }
+      .kpi .v {
+        font-size: 22px;
+        font-weight: 700;
+      }
+      .kpi .l {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .commands {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .generator-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 12px;
+      }
+      .controls {
+        display: grid;
+        gap: 10px;
+      }
+      .control-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .field {
+        display: grid;
+        gap: 6px;
+      }
+      .field label {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .field select,
+      .field input[type="checkbox"] {
+        accent-color: var(--accent);
+      }
+      .field select {
+        width: 100%;
+        background: #0f1320;
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 8px;
+        padding: 10px 12px;
+      }
+      .check-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .status-line {
+        min-height: 20px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .preview-shell {
+        display: grid;
+        gap: 10px;
+      }
+      .preview-image {
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        object-fit: contain;
+        background: #0f1320;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      pre {
+        margin: 0;
+        background: #0f1320;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px;
+        overflow-x: auto;
+        font-size: 12px;
+      }
+      .gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 10px;
+      }
+      .card {
+        background: #121724;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .thumb {
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        object-fit: cover;
+        background: #0f1320;
+      }
+      .meta {
+        padding: 8px;
+        font-size: 12px;
+      }
+      .status-ok {
+        color: var(--ok);
+      }
+      .status-warn {
+        color: var(--warn);
+      }
+      .status-err {
+        color: var(--err);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      th,
+      td {
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+        padding: 6px;
+      }
+      @media (max-width: 980px) {
+        .kpis {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .commands {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <section class="panel top">
+        <div>
+          <h1>CoachAI Pipeline Dashboard</h1>
+          <div class="muted">
+            Visualizacao de referencias, outputs e status dos manifests.
+          </div>
+        </div>
+        <button class="btn" id="refreshBtn">Atualizar</button>
+      </section>
+
+      <section class="panel">
+        <h2>Status Geral</h2>
+        <div class="kpis">
+          <div class="kpi">
+            <div class="v" id="kModel">0</div>
+            <div class="l">Model refs</div>
+          </div>
+          <div class="kpi">
+            <div class="v" id="kEquip">0</div>
+            <div class="l">Equip refs</div>
+          </div>
+          <div class="kpi">
+            <div class="v" id="kImages">0</div>
+            <div class="l">Exercise images</div>
+          </div>
+          <div class="kpi">
+            <div class="v" id="kGenerated">0</div>
+            <div class="l">Generated</div>
+          </div>
+          <div class="kpi">
+            <div class="v" id="kErrors">0</div>
+            <div class="l">Errors</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Gerar Imagem Direto</h2>
+        <div class="generator-grid">
+          <div class="controls">
+            <div class="control-row">
+              <div class="field">
+                <label for="exerciseSelect">Exercício</label>
+                <select id="exerciseSelect"></select>
+              </div>
+              <div class="field">
+                <label for="avatarSelect">Avatar</label>
+                <select id="avatarSelect">
+                  <option value="male">Masculino</option>
+                  <option value="female">Feminino</option>
+                  <option value="all">Ambos</option>
+                </select>
+              </div>
+            </div>
+            <div class="control-row">
+              <div class="field">
+                <label for="stageSelect">Fase</label>
+                <select id="stageSelect">
+                  <option value="start">Start</option>
+                  <option value="end">End</option>
+                  <option value="both">Start + End</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="overwriteSelect">Regerar</label>
+                <select id="overwriteSelect">
+                  <option value="false">Pular se existir</option>
+                  <option value="true">Sobrescrever</option>
+                </select>
+              </div>
+            </div>
+            <div class="control-row">
+              <div class="field">
+                <label for="equipmentSelect">Equipamento</label>
+                <select id="equipmentSelect">
+                  <option value="">Selecione um equipamento (opcional)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>&nbsp;</label>
+                <button class="btn" id="generateEquipmentBtn">
+                  Gerar equipamento
+                </button>
+              </div>
+            </div>
+            <div class="check-row">
+              <label
+                ><input type="checkbox" id="prepareRefsCheck" checked />
+                preparar referências automaticamente</label
+              >
+              <label
+                ><input type="checkbox" id="dryRunCheck" /> modo teste sem
+                API</label
+              >
+            </div>
+            <div class="actions" style="margin-bottom: 0">
+              <button class="btn" id="generateBtn">Gerar agora</button>
+              <button class="btn" id="prepareBtn">Preparar refs</button>
+              <button class="btn" id="refreshDataBtn">Recarregar dados</button>
+            </div>
+            <div class="status-line" id="generationStatus">
+              Pronto para gerar.
+            </div>
+          </div>
+          <div class="preview-shell">
+            <img
+              id="generatedPreview"
+              class="preview-image"
+              alt="Pré-visualização da imagem gerada"
+            />
+            <div class="muted" id="generatedMeta">
+              A imagem gerada vai aparecer aqui.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Comandos Utiles</h2>
+        <div class="actions">
+          <button
+            class="btn"
+            data-cmd="python scripts/coachai_dashboard_server.py"
+          >
+            Abrir servidor local
+          </button>
+          <button
+            class="btn"
+            data-cmd="python scripts/generate_exercises.py --prepare-only"
+          >
+            Gerar modelos e referencias
+          </button>
+          <button
+            class="btn"
+            data-cmd="python scripts/generate_exercises.py --limit 1 --avatar male --stage both"
+          >
+            Gerar 1 exercicio masculino
+          </button>
+          <button
+            class="btn"
+            data-cmd="python scripts/generate_exercises.py --limit 1 --avatar female --stage both"
+          >
+            Gerar 1 exercicio feminino
+          </button>
+          <button
+            class="btn"
+            data-cmd="python scripts/generate_exercises.py --stage both"
+          >
+            Gerar todos os exercicios
+          </button>
+        </div>
+        <div class="commands">
+          <pre>
+python -m pip install -r scripts/requirements.txt
+python scripts/generate_exercises.py --prepare-only</pre
+          >
+          <pre>
+python scripts/generate_exercises.py --limit 1 --avatar male --stage both
+python scripts/generate_exercises.py --limit 1 --avatar female --stage both</pre
+          >
+        </div>
+        <div class="muted" style="margin-top: 8px">
+          Dica: sirva o repositorio com
+          <code>python -m http.server 8787</code> e abra
+          <code>http://localhost:8787/assets/coachai/dashboard.html</code>.
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Referencias de Modelo</h2>
+        <div class="gallery" id="modelGallery"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Referencias de Equipamento</h2>
+        <div class="gallery" id="equipmentGallery"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Imagens Geradas de Exercicios</h2>
+        <div class="gallery" id="imageGallery"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Erros Recentes</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Quando</th>
+              <th>Exercicio</th>
+              <th>Avatar</th>
+              <th>Stage</th>
+              <th>Erro</th>
+            </tr>
+          </thead>
+          <tbody id="errorBody"></tbody>
+        </table>
+      </section>
+    </div>
+
+    <script>
+      const stateFiles = {
+        library: "/api/library",
+        models: "/assets/coachai/state/model_manifest.json",
+        equipment: "/assets/coachai/state/equipment_manifest.json",
+        images: "/assets/coachai/state/image_manifest.json",
+        errors: "/assets/coachai/state/errors.json",
+      };
+
+      const appState = {
+        library: null,
+      };
+
+      function populateEquipmentSelect(equipment) {
+        const select = document.getElementById("equipmentSelect");
+        if (!select) return;
+        const options = equipment.length
+          ? [
+              '<option value="">Selecione um equipamento (opcional)</option>',
+              ...equipment.map(
+                (e) => `<option value="${e.name}">${e.name}</option>`,
+              ),
+            ].join("")
+          : `<option value="">Nenhum equipamento</option>`;
+        select.innerHTML = options;
+      }
+
+      function toUrl(path) {
+        if (!path) return "";
+        const normalized = String(path)
+          .replaceAll("\\\\", "/")
+          .replaceAll("\\", "/");
+        return normalized.startsWith("/") ? normalized : `/${normalized}`;
+      }
+
+      async function loadJson(url) {
+        try {
+          const res = await fetch(url, { cache: "no-store" });
+          if (!res.ok) return [];
+          const data = await res.json();
+          return Array.isArray(data) ? data : [];
+        } catch {
+          return [];
+        }
+      }
+
+      async function loadLibrary() {
+        try {
+          const res = await fetch(stateFiles.library, { cache: "no-store" });
+          if (!res.ok) throw new Error("library fetch failed");
+          return await res.json();
+        } catch {
+          const [models, equipment, images, errors] = await Promise.all([
+            loadJson(stateFiles.models),
+            loadJson(stateFiles.equipment),
+            loadJson(stateFiles.images),
+            loadJson(stateFiles.errors),
+          ]);
+          return {
+            exercises: [],
+            manifests: { models, equipment, images, errors },
+            config: { apiTokenPresent: false },
+          };
+        }
+      }
+
+      function populateExerciseSelect(exercises) {
+        const select = document.getElementById("exerciseSelect");
+        if (!select) return;
+        const options = exercises.length
+          ? exercises
+              .map(
+                (exercise) =>
+                  `<option value="${exercise.id}">${String(exercise.id).padStart(3, "0")} - ${exercise.name_en || exercise.name || "Exercise"}</option>`,
+              )
+              .join("")
+          : `<option value="">Nenhum exercício encontrado</option>`;
+        select.innerHTML = options;
+      }
+
+      function updateGenerationStatus(message, tone = "muted") {
+        const status = document.getElementById("generationStatus");
+        if (!status) return;
+        status.textContent = message;
+        status.style.color =
+          tone === "ok"
+            ? "var(--ok)"
+            : tone === "err"
+              ? "var(--err)"
+              : "var(--muted)";
+      }
+
+      function showGeneratedPreview(imageUrl, title, subtitle) {
+        const preview = document.getElementById("generatedPreview");
+        const meta = document.getElementById("generatedMeta");
+        if (preview) {
+          preview.src = imageUrl
+            ? `${imageUrl}${imageUrl.includes("?") ? "&" : "?"}t=${Date.now()}`
+            : "";
+        }
+        if (meta) {
+          meta.textContent =
+            [title, subtitle].filter(Boolean).join(" · ") ||
+            "Sem preview ainda.";
+        }
+      }
+
+      async function refreshLibrary() {
+        const library = await loadLibrary();
+        appState.library = library;
+        populateExerciseSelect(library.exercises || []);
+        populateEquipmentSelect(library.manifests?.equipment || []);
+        updateKpis(
+          library.manifests?.models || [],
+          library.manifests?.equipment || [],
+          library.manifests?.images || [],
+          library.manifests?.errors || [],
+        );
+
+        renderGallery(
+          "modelGallery",
+          library.manifests?.models || [],
+          (item) => `${item.avatar || "model"} base`,
+          (item) => item.output || "",
+        );
+        renderGallery(
+          "equipmentGallery",
+          library.manifests?.equipment || [],
+          (item) => item.name || "equipment",
+          (item) => item.output || "",
+        );
+        renderGallery(
+          "imageGallery",
+          library.manifests?.images || [],
+          (item) =>
+            `${item.name || "exercise"} | ${item.avatar || "-"} | ${item.stage || "-"}`,
+          (item) => `${item.angle || "-"}`,
+        );
+        renderErrors(library.manifests?.errors || []);
+
+        const apiReady = Boolean(library.config?.apiTokenPresent);
+        updateGenerationStatus(
+          apiReady
+            ? "API pronta. Escolhe um exercício e gera a imagem direto do dashboard."
+            : "Sem REPLICATE_API_TOKEN no ambiente. O dashboard funciona, mas a geração ficará em dry-run até definir a chave.",
+          apiReady ? "ok" : "muted",
+        );
+      }
+
+      async function postJson(url, payload) {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.ok === false) {
+          throw new Error(data.error || `Request failed: ${res.status}`);
+        }
+        return data;
+      }
+
+      async function handlePrepare() {
+        const avatar = document.getElementById("avatarSelect").value;
+        const dryRun = document.getElementById("dryRunCheck").checked;
+        updateGenerationStatus("Preparando referências...");
+        try {
+          const result = await postJson("/api/prepare", {
+            avatar,
+            dryRun,
+            skipModels: false,
+            skipEquipment: false,
+          });
+          updateGenerationStatus(
+            `Referências prontas em modo ${result.mode}.`,
+            "ok",
+          );
+          await refreshLibrary();
+        } catch (error) {
+          updateGenerationStatus(
+            error.message || "Falha ao preparar referências.",
+            "err",
+          );
+        }
+      }
+
+      function latestRenderableResult(results) {
+        return [...results].reverse().find((item) => item && item.output);
+      }
+
+      async function handleGenerate() {
+        const exerciseId = Number(
+          document.getElementById("exerciseSelect").value,
+        );
+        const avatar = document.getElementById("avatarSelect").value;
+        const stage = document.getElementById("stageSelect").value;
+        const overwrite =
+          document.getElementById("overwriteSelect").value === "true";
+        const prepareRefs = document.getElementById("prepareRefsCheck").checked;
+        const dryRun = document.getElementById("dryRunCheck").checked;
+
+        if (!exerciseId) {
+          updateGenerationStatus("Escolhe um exercício antes de gerar.", "err");
+          return;
+        }
+
+        const button = document.getElementById("generateBtn");
+        button.disabled = true;
+        updateGenerationStatus(
+          "Gerando imagem... isso pode levar alguns segundos.",
+        );
+
+        try {
+          const result = await postJson("/api/generate", {
+            exerciseId,
+            avatar,
+            stage,
+            overwrite,
+            prepareRefs,
+            dryRun,
+          });
+
+          const latest =
+            result.latestImageUrl ||
+            toUrl(latestRenderableResult(result.results || [])?.output);
+          const exercise = result.exercise || {};
+          const title = `${exercise.name_en || exercise.name || `Exercício ${exerciseId}`}`;
+          const subtitle = `${avatar} · ${stage} · ${result.mode}`;
+
+          if (latest) {
+            showGeneratedPreview(latest, title, subtitle);
+          } else {
+            showGeneratedPreview(
+              "",
+              title,
+              `${subtitle} · sem imagem disponível`,
+            );
+          }
+
+          updateGenerationStatus(
+            result.mode === "replicate"
+              ? `Imagem gerada com sucesso para ${title}.`
+              : `Dry-run concluído para ${title}. Defina REPLICATE_API_TOKEN para gerar a imagem real.`,
+            result.mode === "replicate" ? "ok" : "muted",
+          );
+          await refreshLibrary();
+        } catch (error) {
+          updateGenerationStatus(
+            error.message || "Falha ao gerar imagem.",
+            "err",
+          );
+        } finally {
+          button.disabled = false;
+        }
+      }
+
+      async function handleGenerateEquipment() {
+        const equipmentName = document.getElementById("equipmentSelect").value;
+        const overwrite =
+          document.getElementById("overwriteSelect").value === "true";
+        const dryRun = document.getElementById("dryRunCheck").checked;
+
+        if (!equipmentName) {
+          updateGenerationStatus("Escolha um equipamento para gerar.", "err");
+          return;
+        }
+
+        const btn = document.getElementById("generateEquipmentBtn");
+        btn.disabled = true;
+        updateGenerationStatus("Gerando equipamento...");
+
+        try {
+          const result = await postJson("/api/generate-equipment", {
+            equipmentName,
+            overwrite,
+            dryRun,
+          });
+
+          const latest =
+            result.latestImageUrl || toUrl(result.result?.output || "");
+          if (latest)
+            showGeneratedPreview(latest, equipmentName, result.mode || "");
+
+          updateGenerationStatus(
+            result.mode === "replicate"
+              ? `Equipamento ${equipmentName} gerado com sucesso.`
+              : `Dry-run concluído para ${equipmentName}.`,
+            result.mode === "replicate" ? "ok" : "muted",
+          );
+          await refreshLibrary();
+        } catch (err) {
+          updateGenerationStatus(
+            err.message || "Falha ao gerar equipamento.",
+            "err",
+          );
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      function statusClass(status) {
+        if (status === "generated") return "status-ok";
+        if (status === "skipped-existing") return "status-warn";
+        if (status === "dry-run") return "status-warn";
+        return "status-err";
+      }
+
+      function cardHtml(item, title, subtitle) {
+        const imageUrl = toUrl(item.output);
+        return `
+          <article class="card">
+            <img class="thumb" src="${imageUrl}" alt="${title}" loading="lazy" onerror="this.style.display='none'" />
+            <div class="meta">
+              <div><strong>${title}</strong></div>
+              <div class="muted">${subtitle}</div>
+              <div class="${statusClass(item.status)}">${item.status || "unknown"}</div>
+            </div>
+          </article>
+        `;
+      }
+
+      function renderGallery(targetId, items, getTitle, getSubtitle) {
+        const el = document.getElementById(targetId);
+        if (!items.length) {
+          el.innerHTML = `<div class="muted">Sem itens ainda.</div>`;
+          return;
+        }
+        el.innerHTML = items
+          .map((item) => cardHtml(item, getTitle(item), getSubtitle(item)))
+          .join("");
+      }
+
+      function renderErrors(errors) {
+        const body = document.getElementById("errorBody");
+        if (!errors.length) {
+          body.innerHTML = `<tr><td colspan="5" class="muted">Sem erros.</td></tr>`;
+          return;
+        }
+        body.innerHTML = errors
+          .slice(-30)
+          .reverse()
+          .map(
+            (err) => `
+          <tr>
+            <td>${err.timestamp || "-"}</td>
+            <td>${err.name || "-"}</td>
+            <td>${err.avatar || "-"}</td>
+            <td>${err.stage || "-"}</td>
+            <td>${err.error || "-"}</td>
+          </tr>
+        `,
+          )
+          .join("");
+      }
+
+      function updateKpis(models, equipment, images, errors) {
+        document.getElementById("kModel").textContent = models.length;
+        document.getElementById("kEquip").textContent = equipment.length;
+        document.getElementById("kImages").textContent = images.length;
+        document.getElementById("kGenerated").textContent = images.filter(
+          (i) => i.status === "generated",
+        ).length;
+        document.getElementById("kErrors").textContent = errors.length;
+      }
+
+      async function refreshAll() {
+        await refreshLibrary();
+      }
+
+      document
+        .getElementById("refreshBtn")
+        .addEventListener("click", refreshAll);
+      document
+        .getElementById("refreshDataBtn")
+        .addEventListener("click", refreshAll);
+      document
+        .getElementById("generateBtn")
+        .addEventListener("click", handleGenerate);
+      document
+        .getElementById("prepareBtn")
+        .addEventListener("click", handlePrepare);
+      document
+        .getElementById("generateEquipmentBtn")
+        .addEventListener("click", handleGenerateEquipment);
+
+      document.querySelectorAll("[data-cmd]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          const command = button.getAttribute("data-cmd") || "";
+          try {
+            await navigator.clipboard.writeText(command);
+            const original = button.textContent;
+            button.textContent = "Copiado";
+            setTimeout(() => {
+              button.textContent = original;
+            }, 1200);
+          } catch {
+            alert(command);
+          }
+        });
+      });
+
+      refreshAll();
+    </script>
+  </body>
+</html>

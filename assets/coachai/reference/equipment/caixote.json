@@ -1,0 +1,7 @@
+{
+  "kind": "equipment",
+  "name": "Caixote",
+  "output": "assets\\coachai\\reference\\equipment\\caixote.png",
+  "status": "dry-run",
+  "seed": 2849095485
+}

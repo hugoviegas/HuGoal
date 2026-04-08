@@ -1,0 +1,17 @@
+{
+  "kind": "exercise",
+  "id": 1,
+  "name": "Barbell Bench Press",
+  "avatar": "male",
+  "stage": "start",
+  "angle": "diag-front",
+  "output": "assets\\coachai\\output\\male\\001-barbell-bench-press\\001-barbell-bench-press__diag-front__male__start.png",
+  "status": "generated",
+  "seed": 3678424642,
+  "image_url": "https://replicate.delivery/xezq/VKFoFfb8yerXNETLf4ex6TCnllkbdhS4bFmnTIGuPdxShSjZB/tmp1pkxo5bj.webp",
+  "references": [
+    "assets\\coachai\\reference\\models\\male\\male_base_reference.png",
+    "assets\\coachai\\reference\\equipment\\barra.png",
+    "assets\\coachai\\reference\\equipment\\banco.png"
+  ]
+}

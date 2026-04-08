@@ -1,12 +1,9 @@
 {
   "expo": {
     "name": "HuGoal",
-    "slug": "betteru",
-    "cli": {
-      "appVersionSource": "app.json"
-    },
-    "scheme": "betteru",
-    "version": "1.0.10",
+    "slug": "hugoal",
+    "scheme": "hugoal",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",

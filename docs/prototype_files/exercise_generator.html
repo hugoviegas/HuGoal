@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CoachAI — Exercise Image Generator</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1d27;
+    --card2: #21263a;
+    --accent: #6c63ff;
+    --accent2: #ff6584;
+    --green: #2ecc71;
+    --red: #e74c3c;
+    --yellow: #f1c40f;
+    --text: #e8eaf6;
+    --muted: #8b8fa8;
+    --border: #2e3250;
+    --radius: 12px;
+    --font: 'Segoe UI', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+
+  /* ── HEADER ── */
+  header {
+    background: linear-gradient(135deg, #1a1d27 0%, #12152a 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 32px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  header .logo { font-size: 26px; font-weight: 800; background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  header .sub  { color: var(--muted); font-size: 13px; }
+
+  /* ── TABS ── */
+  .tabs { display: flex; gap: 4px; padding: 20px 32px 0; border-bottom: 1px solid var(--border); background: var(--bg); }
+  .tab-btn {
+    padding: 10px 22px; border: none; background: transparent; color: var(--muted);
+    font-size: 14px; font-weight: 600; cursor: pointer; border-radius: 8px 8px 0 0;
+    border-bottom: 2px solid transparent; transition: all .2s;
+  }
+  .tab-btn:hover  { color: var(--text); background: var(--card); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--card); }
+
+  /* ── CONTENT ── */
+  .tab-content { display: none; padding: 28px 32px; }
+  .tab-content.active { display: block; }
+
+  /* ── GRID ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  @media(max-width:900px){ .grid-2,.grid-3{ grid-template-columns:1fr; } }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+  }
+  .card h3 { font-size: 14px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 14px; }
+
+  /* ── FORM ── */
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 5px; font-weight: 600; }
+  input[type=text], input[type=number], select, textarea {
+    width: 100%; background: var(--card2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 8px; padding: 10px 13px;
+    font-size: 14px; font-family: var(--font); outline: none;
+    transition: border-color .2s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 80px; }
+  .form-group { margin-bottom: 14px; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 10px 20px; border-radius: 8px; border: none;
+    font-size: 14px; font-weight: 700; cursor: pointer; transition: all .2s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #5a52d5; transform: translateY(-1px); }
+  .btn-success { background: var(--green); color: #fff; }
+  .btn-success:hover { background: #27ae60; }
+  .btn-danger  { background: var(--red); color: #fff; }
+  .btn-danger:hover  { background: #c0392b; }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-yellow { background: var(--yellow); color: #222; }
+  .btn-yellow:hover { background: #d4ac0d; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-full { width: 100%; justify-content: center; }
+  .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
+  /* ── PROMPT BOX ── */
+  .prompt-box {
+    background: #0d1117; border: 1px solid var(--border); border-radius: 8px;
+    padding: 16px; font-size: 13px; line-height: 1.7; color: #c9d1d9;
+    font-family: 'Courier New', monospace; white-space: pre-wrap; min-height: 140px;
+    position: relative;
+  }
+  .copy-badge {
+    position: absolute; top: 10px; right: 10px;
+    background: var(--accent); color: #fff; font-size: 11px;
+    padding: 3px 9px; border-radius: 20px; cursor: pointer;
+  }
+  .copy-badge:hover { background: #5a52d5; }
+
+  /* ── BADGE / TAG ── */
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 700;
+    padding: 3px 9px; border-radius: 20px; text-transform: uppercase;
+  }
+  .badge-green  { background: #1a3a2a; color: var(--green); }
+  .badge-red    { background: #3a1a1a; color: var(--red); }
+  .badge-accent { background: #1f1a3a; color: var(--accent); }
+  .badge-yellow { background: #3a3a1a; color: var(--yellow); }
+
+  /* ── EXERCISE LIST ── */
+  #exercise-list { display: flex; flex-direction: column; gap: 10px; }
+  .ex-item {
+    background: var(--card2); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+  }
+  .ex-item .ex-num { font-size: 12px; color: var(--muted); min-width: 28px; font-weight: 700; }
+  .ex-item .ex-info { flex: 1; }
+  .ex-item .ex-name { font-weight: 700; font-size: 14px; }
+  .ex-item .ex-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .ex-item .ex-actions { display: flex; gap: 6px; }
+
+  /* ── BATCH TABLE ── */
+  .batch-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .batch-table th { background: var(--card2); color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .07em; padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  .batch-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .batch-table tr:last-child td { border-bottom: none; }
+  .batch-table tr:hover td { background: #1e2236; }
+  .batch-scroll { max-height: 450px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius); }
+
+  /* ── STATS ── */
+  .stats-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 22px; }
+  .stat-box {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 20px; flex: 1; min-width: 120px;
+  }
+  .stat-box .val { font-size: 26px; font-weight: 800; color: var(--accent); }
+  .stat-box .lbl { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* ── AUTOMATION ── */
+  .step-list { list-style: none; counter-reset: steps; }
+  .step-list li { counter-increment: steps; display: flex; gap: 14px; align-items: flex-start; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .step-list li:last-child { border-bottom: none; }
+  .step-num { background: var(--accent); color: #fff; font-weight: 800; font-size: 13px; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .step-text { font-size: 14px; line-height: 1.6; }
+  .step-text strong { color: var(--accent); }
+  .code-block {
+    background: #0d1117; border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 16px; font-family: 'Courier New', monospace; font-size: 13px;
+    color: #79c0ff; margin-top: 10px; white-space: pre; overflow-x: auto;
+  }
+  .api-key-row { display: flex; gap: 10px; align-items: flex-end; }
+  .api-key-row input { flex: 1; }
+
+  /* ── PROGRESS ── */
+  .progress-bar-wrap { background: var(--card2); border-radius: 20px; height: 8px; overflow: hidden; margin-top: 8px; }
+  .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 20px; transition: width .4s; }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed; bottom: 28px; right: 28px;
+    background: var(--green); color: #fff; padding: 12px 22px;
+    border-radius: 10px; font-weight: 700; font-size: 14px;
+    opacity: 0; transform: translateY(16px); transition: all .3s; z-index: 9999;
+    pointer-events: none;
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
+  #toast.error { background: var(--red); }
+
+  /* ── TOGGLE ── */
+  .toggle-row { display: flex; gap: 6px; margin-bottom: 14px; }
+  .toggle-btn {
+    flex: 1; padding: 8px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--card2); color: var(--muted); font-size: 13px;
+    font-weight: 700; cursor: pointer; text-align: center; transition: all .2s;
+  }
+  .toggle-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* ── MUSCLE SELECT ── */
+  .muscle-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .muscle-tag {
+    background: var(--card2); border: 1px solid var(--border); border-radius: 20px;
+    padding: 4px 12px; font-size: 12px; cursor: pointer; transition: all .2s; color: var(--muted);
+  }
+  .muscle-tag.selected { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* ── DIVIDER ── */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  /* ── EMPTY STATE ── */
+  .empty-state { text-align: center; padding: 40px; color: var(--muted); }
+  .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+
+  /* ── RESPONSIVE ── */
+  @media(max-width:600px){ .tabs { padding: 14px 16px 0; } .tab-content { padding: 20px 16px; } header { padding: 14px 16px; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">⚡ CoachAI</div>
+    <div class="sub">Exercise Image Generator — Powered by fal.ai InstantCharacter</div>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('generator')">🎨 Generator</button>
+  <button class="tab-btn" onclick="switchTab('exercises')">📋 Exercise List</button>
+  <button class="tab-btn" onclick="switchTab('batch')">🗂 Batch Queue</button>
+  <button class="tab-btn" onclick="switchTab('automation')">🤖 Automation</button>
+</div>
+
+<!-- ════════════════════════════════════════
+     TAB 1 — GENERATOR
+════════════════════════════════════════ -->
+<div id="tab-generator" class="tab-content active">
+  <div class="grid-2">
+
+    <!-- LEFT: Form -->
+    <div>
+      <div class="card" style="margin-bottom:

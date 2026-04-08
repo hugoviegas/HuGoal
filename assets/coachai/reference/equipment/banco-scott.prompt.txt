@@ -1,0 +1,7 @@
+Professional studio product render of a single preacher curl bench used as a gym reference object.
+Scene: pure seamless white cyclorama studio background with a matching white floor.
+Subject: the equipment is isolated, centered, clearly recognizable, and shown without any person, hands, or body parts.
+Style: photorealistic, sharp, high-detail, commercial product photography.
+Material lock: keep the same equipment design, shape, finish, color, and proportions across generations.
+Lighting: locked three-point studio lighting with soft shadows only and consistent exposure.
+Composition: clean single-object reference image with generous whitespace around the object.

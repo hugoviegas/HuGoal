@@ -1,0 +1,47 @@
+{
+  "scene": "professional fitness studio photograph",
+  "background": "pure seamless white cyclorama, matching white floor and wall, no color cast",
+  "lighting": "locked three-point studio lighting with a soft key light from upper-left, balanced fill light from the right, and subtle rim light for separation",
+  "camera": {
+    "angle": "Camera angle: 45-degree front diagonal, eye-level, full body centered, clear depth and muscle definition.",
+    "framing": "full body centered, all hands and feet visible, no crop",
+    "lens": "50mm full-frame equivalent"
+  },
+  "subject": {
+    "identity": "Same athletic male fitness athlete as the reference image. Same face, same hair, same skin tone, same body proportions, same dark shorts, same plain white training sneakers, same lean muscular look.",
+    "wardrobe": "Keep the exact same clothing colors, fit, fabric texture, and sneaker model as the reference image.",
+    "equipment_style": "Keep the exact same equipment design, color, material, and proportions for Olympic barbell, flat weight bench."
+  },
+  "exercise": {
+    "id": 1,
+    "name_en": "Barbell Bench Press",
+    "name_local": "Supino Reto com Barra",
+    "category": "Chest",
+    "movement_type": "Strength",
+    "target_muscle_primary": "pectoralis major",
+    "target_muscles_secondary": [
+      "triceps",
+      "anterior deltoid"
+    ],
+    "equipment": [
+      "Olympic barbell",
+      "flat weight bench"
+    ],
+    "phase": "end",
+    "phase_description": "Final position, end of motion, stable finish with the target muscles fully expressed.",
+    "reference_mode": "generated-start-image-reference"
+  },
+  "quality": {
+    "style": "photorealistic, high fidelity, crisp texture detail, realistic anatomy, instructional fitness reference",
+    "visual_locks": [
+      "single athlete centered in the frame",
+      "same athlete identity across images",
+      "same outfit and shoes across images",
+      "same equipment design and color across images",
+      "same white background and lighting across images",
+      "clean logo-free studio look",
+      "only the requested equipment in view"
+    ]
+  },
+  "reference_workflow": "For the start image, use the athlete reference image as the primary identity anchor. For the end image, use the previously generated start image as the first reference image and preserve the same athlete, outfit, lighting, and equipment style."
+}

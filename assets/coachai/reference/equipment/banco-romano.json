@@ -1,0 +1,7 @@
+{
+  "kind": "equipment",
+  "name": "Banco Romano",
+  "output": "assets\\coachai\\reference\\equipment\\banco-romano.png",
+  "status": "skipped-existing",
+  "seed": 99905797
+}

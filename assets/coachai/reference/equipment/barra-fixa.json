@@ -1,0 +1,7 @@
+{
+  "kind": "equipment",
+  "name": "Barra Fixa",
+  "output": "assets\\coachai\\reference\\equipment\\barra-fixa.png",
+  "status": "skipped-existing",
+  "seed": 1812688667
+}

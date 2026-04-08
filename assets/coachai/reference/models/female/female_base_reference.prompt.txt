@@ -1,0 +1,7 @@
+Photorealistic full-body studio photo of a fit female fitness athlete.
+Identity anchor: same face, same hairstyle, same skin tone, same body proportions across future renders.
+Outfit lock: dark athletic top, dark fitted shorts or leggings, and plain white training sneakers.
+Scene: pure seamless white cyclorama background and floor.
+Lighting: locked three-point studio setup, neutral white balance, consistent exposure.
+Framing: full body centered, feet and hands fully visible, eye-level camera, 50mm lens look.
+Visual style: clean fitness app reference photo, no logos, no text, no accessories.

@@ -1,0 +1,7 @@
+{
+  "kind": "equipment",
+  "name": "Cordas de Batalha",
+  "output": "assets\\coachai\\reference\\equipment\\cordas-de-batalha.png",
+  "status": "dry-run",
+  "seed": 996882055
+}

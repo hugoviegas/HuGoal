@@ -1,0 +1,16 @@
+[
+  {
+    "kind": "model",
+    "avatar": "male",
+    "output": "assets\\coachai\\reference\\models\\male\\male_base_reference.png",
+    "status": "skipped-existing",
+    "seed": 2498413520
+  },
+  {
+    "kind": "model",
+    "avatar": "female",
+    "output": "assets\\coachai\\reference\\models\\female\\female_base_reference.png",
+    "status": "skipped-existing",
+    "seed": 3134274974
+  }
+]

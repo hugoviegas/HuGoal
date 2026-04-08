@@ -1,0 +1,7 @@
+{
+  "kind": "equipment",
+  "name": "Cabo/Polia",
+  "output": "assets\\coachai\\reference\\equipment\\cabo-polia.png",
+  "status": "skipped-existing",
+  "seed": 1760137623
+}

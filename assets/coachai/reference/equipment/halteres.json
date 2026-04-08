@@ -1,0 +1,7 @@
+{
+  "kind": "equipment",
+  "name": "Halteres",
+  "output": "assets\\coachai\\reference\\equipment\\halteres.png",
+  "status": "skipped-existing",
+  "seed": 2354575206
+}

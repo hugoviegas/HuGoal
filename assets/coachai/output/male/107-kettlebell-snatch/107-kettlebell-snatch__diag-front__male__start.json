@@ -1,0 +1,15 @@
+{
+  "kind": "exercise",
+  "id": 107,
+  "name": "Kettlebell Snatch",
+  "avatar": "male",
+  "stage": "start",
+  "angle": "diag-front",
+  "output": "assets\\coachai\\output\\male\\107-kettlebell-snatch\\107-kettlebell-snatch__diag-front__male__start.png",
+  "status": "generated",
+  "seed": 637644813,
+  "image_url": "https://replicate.delivery/xezq/Yl6blfzEctyldanVfpMXn18gFnPi4Yef850mfgTF6HA8zkGzC/tmpq7xxdfoo.webp",
+  "references": [
+    "assets\\coachai\\reference\\models\\male\\male_base_reference.png"
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "kind": "equipment",
+  "name": "StairMaster",
+  "output": "assets\\coachai\\reference\\equipment\\stairmaster.png",
+  "status": "dry-run",
+  "seed": 1153267130
+}

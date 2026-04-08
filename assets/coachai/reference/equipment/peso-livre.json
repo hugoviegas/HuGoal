@@ -1,0 +1,7 @@
+{
+  "kind": "equipment",
+  "name": "Peso Livre",
+  "output": "assets\\coachai\\reference\\equipment\\peso-livre.png",
+  "status": "dry-run",
+  "seed": 3692079919
+}

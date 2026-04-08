@@ -1,0 +1,238 @@
+[
+  {
+    "kind": "equipment",
+    "name": "Argolas",
+    "output": "assets\\coachai\\reference\\equipment\\argolas.png",
+    "status": "dry-run",
+    "seed": 562153769
+  },
+  {
+    "kind": "equipment",
+    "name": "Barra Vertical",
+    "output": "assets\\coachai\\reference\\equipment\\barra-vertical.png",
+    "status": "dry-run",
+    "seed": 1725535182
+  },
+  {
+    "kind": "equipment",
+    "name": "Bicicleta Ergométrica",
+    "output": "assets\\coachai\\reference\\equipment\\bicicleta-ergom-trica.png",
+    "status": "dry-run",
+    "seed": 2652648283
+  },
+  {
+    "kind": "equipment",
+    "name": "Caixote",
+    "output": "assets\\coachai\\reference\\equipment\\caixote.png",
+    "status": "dry-run",
+    "seed": 2849095485
+  },
+  {
+    "kind": "equipment",
+    "name": "Chão",
+    "output": "assets\\coachai\\reference\\equipment\\ch-o.png",
+    "status": "dry-run",
+    "seed": 1302055552
+  },
+  {
+    "kind": "equipment",
+    "name": "Corda",
+    "output": "assets\\coachai\\reference\\equipment\\corda.png",
+    "status": "dry-run",
+    "seed": 1731234865
+  },
+  {
+    "kind": "equipment",
+    "name": "Cordas de Batalha",
+    "output": "assets\\coachai\\reference\\equipment\\cordas-de-batalha.png",
+    "status": "dry-run",
+    "seed": 996882055
+  },
+  {
+    "kind": "equipment",
+    "name": "Escada de Agilidade",
+    "output": "assets\\coachai\\reference\\equipment\\escada-de-agilidade.png",
+    "status": "dry-run",
+    "seed": 2401795699
+  },
+  {
+    "kind": "equipment",
+    "name": "Faixa",
+    "output": "assets\\coachai\\reference\\equipment\\faixa.png",
+    "status": "dry-run",
+    "seed": 4059531977
+  },
+  {
+    "kind": "equipment",
+    "name": "Kettlebell",
+    "output": "assets\\coachai\\reference\\equipment\\kettlebell.png",
+    "status": "dry-run",
+    "seed": 3542712466
+  },
+  {
+    "kind": "equipment",
+    "name": "Medicine Ball",
+    "output": "assets\\coachai\\reference\\equipment\\medicine-ball.png",
+    "status": "dry-run",
+    "seed": 3280411848
+  },
+  {
+    "kind": "equipment",
+    "name": "Paralelas",
+    "output": "assets\\coachai\\reference\\equipment\\paralelas.png",
+    "status": "dry-run",
+    "seed": 2060188813
+  },
+  {
+    "kind": "equipment",
+    "name": "Peso Livre",
+    "output": "assets\\coachai\\reference\\equipment\\peso-livre.png",
+    "status": "dry-run",
+    "seed": 3692079919
+  },
+  {
+    "kind": "equipment",
+    "name": "Placa",
+    "output": "assets\\coachai\\reference\\equipment\\placa.png",
+    "status": "dry-run",
+    "seed": 1308384355
+  },
+  {
+    "kind": "equipment",
+    "name": "Remo Ergométrico",
+    "output": "assets\\coachai\\reference\\equipment\\remo-ergom-trico.png",
+    "status": "dry-run",
+    "seed": 1999084723
+  },
+  {
+    "kind": "equipment",
+    "name": "Roda Abdominal",
+    "output": "assets\\coachai\\reference\\equipment\\roda-abdominal.png",
+    "status": "dry-run",
+    "seed": 1219065222
+  },
+  {
+    "kind": "equipment",
+    "name": "Rolo de Espuma",
+    "output": "assets\\coachai\\reference\\equipment\\rolo-de-espuma.png",
+    "status": "dry-run",
+    "seed": 143282474
+  },
+  {
+    "kind": "equipment",
+    "name": "StairMaster",
+    "output": "assets\\coachai\\reference\\equipment\\stairmaster.png",
+    "status": "dry-run",
+    "seed": 1153267130
+  },
+  {
+    "kind": "equipment",
+    "name": "Barra",
+    "output": "assets\\coachai\\reference\\equipment\\barra.png",
+    "status": "skipped-existing",
+    "seed": 3320362431
+  },
+  {
+    "kind": "equipment",
+    "name": "Banco",
+    "output": "assets\\coachai\\reference\\equipment\\banco.png",
+    "status": "skipped-existing",
+    "seed": 685805178
+  },
+  {
+    "kind": "equipment",
+    "name": "Halteres",
+    "output": "assets\\coachai\\reference\\equipment\\halteres.png",
+    "status": "skipped-existing",
+    "seed": 2354575206
+  },
+  {
+    "kind": "equipment",
+    "name": "Banco Inclinado",
+    "output": "assets\\coachai\\reference\\equipment\\banco-inclinado.png",
+    "status": "skipped-existing",
+    "seed": 1904446308
+  },
+  {
+    "kind": "equipment",
+    "name": "Banco Declinado",
+    "output": "assets\\coachai\\reference\\equipment\\banco-declinado.png",
+    "status": "skipped-existing",
+    "seed": 3699745666
+  },
+  {
+    "kind": "equipment",
+    "name": "Cabo/Polia",
+    "output": "assets\\coachai\\reference\\equipment\\cabo-polia.png",
+    "status": "skipped-existing",
+    "seed": 1760137623
+  },
+  {
+    "kind": "equipment",
+    "name": "Máquina",
+    "output": "assets\\coachai\\reference\\equipment\\m-quina.png",
+    "status": "skipped-existing",
+    "seed": 2976764970
+  },
+  {
+    "kind": "equipment",
+    "name": "Barras Paralelas",
+    "output": "assets\\coachai\\reference\\equipment\\barras-paralelas.png",
+    "status": "skipped-existing",
+    "seed": 2672528657
+  },
+  {
+    "kind": "equipment",
+    "name": "Barra Fixa",
+    "output": "assets\\coachai\\reference\\equipment\\barra-fixa.png",
+    "status": "skipped-existing",
+    "seed": 1812688667
+  },
+  {
+    "kind": "equipment",
+    "name": "Banco Romano",
+    "output": "assets\\coachai\\reference\\equipment\\banco-romano.png",
+    "status": "skipped-existing",
+    "seed": 99905797
+  },
+  {
+    "kind": "equipment",
+    "name": "T-Bar",
+    "output": "assets\\coachai\\reference\\equipment\\t-bar.png",
+    "status": "generated",
+    "seed": 1141406303,
+    "image_url": "https://replicate.delivery/xezq/edVwhyeHAun7EEZes0pLrf8TrncJ9YffOsS38z1Gd4V30BNmF/tmphmamcesm.png"
+  },
+  {
+    "kind": "equipment",
+    "name": "Banco Scott",
+    "output": "assets\\coachai\\reference\\equipment\\banco-scott.png",
+    "status": "generated",
+    "seed": 3892390150,
+    "image_url": "https://replicate.delivery/xezq/GL36OWbAPo4zGhGn1W7HGkWeQV72lafyF6HIX3hH0XBeOoxsA/tmpe2p9kfjv.png"
+  },
+  {
+    "kind": "equipment",
+    "name": "Bola Suíça",
+    "output": "assets\\coachai\\reference\\equipment\\bola-su-a.png",
+    "status": "generated",
+    "seed": 3394382602,
+    "image_url": "https://replicate.delivery/xezq/SA32Kawt306OOFDiFReexPOTSUaPpZXjevjIjWuHebToegGzC/tmpr6vrai19.png"
+  },
+  {
+    "kind": "equipment",
+    "name": "Faixa Elástica",
+    "output": "assets\\coachai\\reference\\equipment\\faixa-el-stica.png",
+    "status": "generated",
+    "seed": 2605924601,
+    "image_url": "https://replicate.delivery/xezq/92Ix1GW5in60L9U5vST9TnTGLo1TAIqHhXI3emToFk35DaMLA/tmpei_bcyda.png"
+  },
+  {
+    "kind": "equipment",
+    "name": "Kettlebell",
+    "output": "assets\\coachai\\reference\\equipment\\kettlebell.webp",
+    "status": "generated",
+    "seed": 3542712466,
+    "image_url": "https://replicate.delivery/xezq/f3ex1oSSecRDyI5C7cqRvdlUA6mSEYz707nculZrteOhNSjZB/tmpdqplxxe6.webp"
+  }
+]

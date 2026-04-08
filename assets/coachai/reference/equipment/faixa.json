@@ -1,0 +1,7 @@
+{
+  "kind": "equipment",
+  "name": "Faixa",
+  "output": "assets\\coachai\\reference\\equipment\\faixa.png",
+  "status": "dry-run",
+  "seed": 4059531977
+}

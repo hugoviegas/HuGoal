@@ -1,0 +1,7 @@
+{
+  "kind": "equipment",
+  "name": "Barras Paralelas",
+  "output": "assets\\coachai\\reference\\equipment\\barras-paralelas.png",
+  "status": "skipped-existing",
+  "seed": 2672528657
+}
