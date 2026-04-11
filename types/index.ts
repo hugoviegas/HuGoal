@@ -52,15 +52,32 @@ export interface Exercise {
   id: string;
   name: string;
   name_en: string;
+  force?: string | null;
+  mechanic?: string | null;
+  category?: string;
   primary_muscles: string[];
   secondary_muscles: string[];
+  primaryMuscles?: string[];
+  secondaryMuscles?: string[];
   equipment: EquipmentType[];
   difficulty: Difficulty;
   video_youtube_ids: string[];
   video_storage_url?: string;
   instructions_pt?: string;
   instructions_en?: string;
+  instructions?: string[];
   aliases: string[];
+  images?: string[];
+  muscle_primary?: string;
+  muscle_secondary?: string[];
+  training_style?: string[];
+  type?: string;
+  source_id?: string;
+  source_level?: string;
+  source_equipment?: string | null;
+  source_category?: string;
+  source_images?: string[];
+  remote_image_urls?: string[];
 }
 
 // ─── Workouts ───────────────────────────────────────────────────

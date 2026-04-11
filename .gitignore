@@ -42,3 +42,13 @@ yarn-error.*
 /android
 .env
 .firebase/logs/vsce-debug.log
+
+# generated workout import payloads
+lib/workouts/imported/*.json
+!lib/workouts/imported/.gitkeep
+
+# generated exercise images
+assets/exercises/*
+!assets/exercises/.gitkeep
+!assets/exercises/MANIFEST.json
+firebase-admin-sdk-key.json

@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HuGoal — Use Case Diagram</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0e0f11;
+    --bg2: #161719;
+    --bg3: #1e2023;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --teal: #00c6a2;
+    --teal-dim: rgba(0,198,162,0.12);
+    --teal-glow: rgba(0,198,162,0.25);
+    --purple: #a78bfa;
+    --purple-dim: rgba(167,139,250,0.12);
+    --amber: #f59e0b;
+    --amber-dim: rgba(245,158,11,0.12);
+    --blue: #60a5fa;
+    --blue-dim: rgba(96,165,250,0.12);
+    --pink: #f472b6;
+    --pink-dim: rgba(244,114,182,0.12);
+    --red: #f87171;
+    --red-dim: rgba(248,113,113,0.10);
+    --text: #e8e9eb;
+    --text2: #8a8d93;
+    --text3: #5a5d63;
+    --font: 'DM Sans', sans-serif;
+    --mono: 'DM Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    font-family: var(--font);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 40px 24px 80px;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  .header-tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .15em;
+    color: var(--teal);
+    background: var(--teal-dim);
+    border: 1px solid rgba(0,198,162,0.25);
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 14px;
+  }
+  .header h1 {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -.02em;
+    margin-bottom: 6px;
+  }
+  .header p {
+    font-size: 13px;
+    color: var(--text2);
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 40px;
+  }
+  .leg {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text2);
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    padding: 5px 10px;
+    border-radius: 6px;
+  }
+  .leg-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* Main layout */
+  .diagram {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 90px 1fr 90px;
+    gap: 0;
+    align-items: start;
+  }
+
+  /* Actors */
+  .actors-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding-top: 20px;
+    position: relative;
+  }
+  .actor {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 36px;
+    cursor: default;
+  }
+  .actor-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    border: 1.5px solid;
+    position: relative;
+  }
+  .actor-name {
+    font-size: 10px;
+    font-weight: 500;
+    text-align: center;
+    color: var(--text2);
+    line-height: 1.3;
+  }
+  .actor-role {
+    font-size: 9px;
+    font-family: var(--mono);
+    text-align: center;
+  }
+
+  /* actor colors */
+  .a-user .actor-icon { background: var(--teal-dim); border-color: var(--teal); color: var(--teal); }
+  .a-user .actor-role { color: var(--teal); }
+  .a-pro .actor-icon { background: var(--purple-dim); border-color: var(--purple); color: var(--purple); }
+  .a-pro .actor-role { color: var(--purple); }
+  .a-pt .actor-icon { background: var(--amber-dim); border-color: var(--amber); color: var(--amber); }
+  .a-pt .actor-role { color: var(--amber); }
+  .a-guest .actor-icon { background: var(--bg3); border-color: var(--text3); color: var(--text3); }
+  .a-guest .actor-role { color: var(--text3); }
+  .a-ai .actor-icon { background: var(--blue-dim); border-color: var(--blue); color: var(--blue); }
+  .a-ai .actor-role { color: var(--blue); }
+  .a-admin .actor-icon { background: var(--red-dim); border-color: var(--red); color: var(--red); }
+  .a-admin .actor-role { color: var(--red); }
+
+  /* Modules area */
+  .modules {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .module {
+    border: 1px solid var(--border2);
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--bg2);
+  }
+  .module-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+  }
+  .module-header:hover { background: rgba(255,255,255,0.02); }
+  .module-icon { font-size: 15px; }
+  .module-title { font-size: 13px; font-weight: 600; flex: 1; }
+  .module-count {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    border: 1px solid;
+  }
+  .module-chevron {
+    font-size: 11px;
+    color: var(--text3);
+    transition: transform .2s;
+  }
+  .module.open .module-chevron { transform: rotate(180deg); }
+
+  .module-body {
+    display: none;
+    padding: 12px 14px;
+  }
+  .module.open .module-body { display: block; }
+
+  /* Use case grid */
+  .uc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 7px;
+  }
+
+  .uc {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 9px 11px;
+    position: relative;
+    transition: border-color .15s;
+  }
+  .uc:hover { border-color: var(--border2); }
+
+  .uc-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 4px;
+    line-height: 1.3;
+  }
+  .uc-desc {
+    font-size: 10px;
+    color: var(--text2);
+    line-height: 1.4;
+    margin-bottom: 6px;
+  }
+  .uc-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    align-items: center;
+  }
+  .uc-actors {
+    display: flex;
+    gap: 3px;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+  .actor-pill {
+    font-size: 9px;
+    font-weight: 500;
+    padding: 2px 6px;
+    border-radius: 20px;
+    border: 1px solid;
+    white-space: nowrap;
+  }
+  .ap-user { color: var(--teal); border-color: rgba(0,198,162,0.3); background: var(--teal-dim); }
+  .ap-pro { color: var(--purple); border-color: rgba(167,139,250,0.3); background: var(--purple-dim); }
+  .ap-pt { color: var(--amber); border-color: rgba(245,158,11,0.3); background: var(--amber-dim); }
+  .ap-guest { color: var(--text3); border-color: rgba(90,93,99,0.4); background: rgba(90,93,99,0.08); }
+  .ap-ai { color: var(--blue); border-color: rgba(96,165,250,0.3); background: var(--blue-dim); }
+  .ap-admin { color: var(--red); border-color: rgba(248,113,113,0.3); background: var(--red-dim); }
+
+  .uc-status {
+    font-family: var(--mono);
+    font-size: 8.5px;
+    padding: 2px 6px;
+    border-radius: 20px;
+    border: 1px solid;
+    white-space: nowrap;
+  }
+  .s-done { color: #34d399; border-color: rgba(52,211,153,0.3); background: rgba(52,211,153,0.08); }
+  .s-mvp { color: #86efac; border-color: rgba(134,239,172,0.25); background: rgba(134,239,172,0.06); }
+  .s-v2 { color: var(--blue); border-color: rgba(96,165,250,0.3); background: var(--blue-dim); }
+  .s-ai { color: var(--purple); border-color: rgba(167,139,250,0.3); background: var(--purple-dim); }
+  .s-v3 { color: var(--amber); border-color: rgba(245,158,11,0.3); background: var(--amber-dim); }
+  .s-v4 { color: var(--text3); border-color: rgba(90,93,99,0.35); background: rgba(90,93,99,0.06); }
+
+  /* Module color theming */
+  .mod-auth .module-header { border-left: 3px solid var(--teal); }
+  .mod-auth .module-count { color: var(--teal); border-color: rgba(0,198,162,0.3); background: var(--teal-dim); }
+  .mod-train .module-header { border-left: 3px solid #86efac; }
+  .mod-train .module-count { color: #86efac; border-color: rgba(134,239,172,0.3); background: rgba(134,239,172,0.08); }
+  .mod-nutri .module-header { border-left: 3px solid var(--teal); }
+  .mod-nutri .module-count { color: var(--teal); border-color: rgba(0,198,162,0.3); background: var(--teal-dim); }
+  .mod-comm .module-header { border-left: 3px solid var(--blue); }
+  .mod-comm .module-count { color: var(--blue); border-color: rgba(96,165,250,0.3); background: var(--blue-dim); }
+  .mod-profile .module-header { border-left: 3px solid var(--purple); }
+  .mod-profile .module-count { color: var(--purple); border-color: rgba(167,139,250,0.3); background: var(--purple-dim); }
+  .mod-config .module-header { border-left: 3px solid var(--amber); }
+  .mod-config .module-count { color: var(--amber); border-color: rgba(245,158,11,0.3); background: var(--amber-dim); }
+  .mod-future .module-header { border-left: 3px solid var(--text3); }
+  .mod-future .module-count { color: var(--text3); border-color: rgba(90,93,99,0.4); background: rgba(90,93,99,0.08); }
+
+  /* Totals bar */
+  .totals {
+    max-width: 1100px;
+    margin: 20px auto 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 8px;
+  }
+  .total-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+  }
+  .total-num { font-size: 22px; font-weight: 600; }
+  .total-label { font-size: 10px; color: var(--text2); margin-top: 2px; }
+
+  /* Include/Extend lines note */
+  .relations-note {
+    max-width: 1100px;
+    margin: 16px auto 0;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+  }
+  .rel-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text2);
+    margin-bottom: 10px;
+    font-family: var(--mono);
+    letter-spacing: .05em;
+  }
+  .rel-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 6px;
+  }
+  .rel-item {
+    font-size: 11px;
+    color: var(--text2);
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    line-height: 1.4;
+  }
+  .rel-type {
+    font-family: var(--mono);
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    white-space: nowrap;
+    margin-top: 1px;
+    flex-shrink: 0;
+  }
+  .rt-inc { background: rgba(0,198,162,0.12); color: var(--teal); }
+  .rt-ext { background: rgba(96,165,250,0.12); color: var(--blue); }
+  .rt-gen { background: rgba(245,158,11,0.12); color: var(--amber); }
+
+  @media (max-width: 700px) {
+    .diagram { grid-template-columns: 1fr; }
+    .actors-col { flex-direction: row; flex-wrap: wrap; justify-content: center; padding: 0 0 16px; }
+    .actor { margin-bottom: 0; }
+    .uc-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-tag">USE CASE DIAGRAM · UML 2.5</div>
+  <h1>HuGoal — Especificação de Casos de Uso</h1>
+  <p>Todos os atores, módulos e casos de uso do sistema · Clique nos módulos para expandir</p>
+</div>
+
+<div class="legend">
+  <div class="leg"><div class="leg-dot" style="background:#34d399"></div>Funcionando</div>
+  <div class="leg"><div class="leg-dot" style="background:#86efac"></div>MVP</div>
+  <div class="leg"><div class="leg-dot" style="background:#60a5fa"></div>V2</div>
+  <div class="leg"><div class="leg-dot" style="background:#a78bfa"></div>IA necessária</div>
+  <div class="leg"><div class="leg-dot" style="background:#f59e0b"></div>V3</div>
+  <div class="leg"><div class="leg-dot" style="background:#5a5d63"></div>Roadmap V4+</div>
+</div>
+
+<div class="diagram">
+  <!-- LEFT ACTORS -->
+  <div class="actors-col" style="align-items:flex-end; padding-right:10px;">
+    <div class="actor a-guest">
+      <div class="actor-icon">👤</div>
+      <div class="actor-name">Visitante</div>
+      <div class="actor-role">«guest»</div>
+    </div>
+    <div class="actor a-user">
+      <div class="actor-icon">🏃</div>
+      <div class="actor-name">Usuário<br>Free</div>
+      <div class="actor-role">«user»</div>
+    </div>
+    <div class="actor a-pro">
+      <div class="actor-icon">⭐</div>
+      <div class="actor-name">Usuário<br>Pro</div>
+      <div class="actor-role">«pro»</div>
+    </div>
+    <div class="actor a-pt">
+      <div class="actor-icon">🎽</div>
+      <div class="actor-name">Personal<br>Trainer</div>
+      <div class="actor-role">«PT»</div>
+    </div>
+  </div>
+
+  <!-- MODULES -->
+  <div class="modules">
+
+    <!-- AUTH -->
+    <div class="module mod-auth open">
+      <div class="module-header" onclick="toggleModule(this)">
+        <span class="module-icon">🔐</span>
+        <span class="module-title">Autenticação &amp; Onboarding</span>
+        <span class="module-count">7 UCs</span>
+        <span class="module-chevron">▼</span>
+      </div>
+      <div class="module-body">
+        <div class="uc-grid">
+          <div class="uc">
+            <div class="uc-name">Registrar conta</div>
+            <div class="uc-desc">Email+senha, Google OAuth, Apple Sign-In</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-guest">visitante</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Fazer login</div>
+            <div class="uc-desc">Email/senha ou provider OAuth</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-guest">visitante</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Recuperar senha</div>
+            <div class="uc-desc">Envio de link por email para reset</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-guest">visitante</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Completar onboarding</div>
+            <div class="uc-desc">Objetivo, nível, dados físicos (peso, altura, sexo, nascimento)</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Editar foto de perfil</div>
+            <div class="uc-desc">Upload de imagem ou avatar pré-definido</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Editar dados pessoais</div>
+            <div class="uc-desc">Nome, username, email, dados físicos, objetivo</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Excluir conta</div>
+            <div class="uc-desc">Remoção permanente de dados (LGPD)</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TREINOS -->
+    <div class="module mod-train open">
+      <div class="module-header" onclick="toggleModule(this)">
+        <span class="module-icon">🏋️</span>
+        <span class="module-title">Treinos</span>
+        <span class="module-count">14 UCs</span>
+        <span class="module-chevron">▼</span>
+      </div>
+      <div class="module-body">
+        <div class="uc-grid">
+          <div class="uc">
+            <div class="uc-name">Criar ficha de treino</div>
+            <div class="uc-desc">Nome, descrição, nível, dias da semana, rounds</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span><span class="actor-pill ap-pt">PT</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Adicionar exercício à ficha</div>
+            <div class="uc-desc">Buscar exercício, definir séries, reps, carga, descanso</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span><span class="actor-pill ap-pt">PT</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Editar / excluir ficha</div>
+            <div class="uc-desc">Alterar qualquer campo ou remover ficha</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span><span class="actor-pill ap-pt">PT</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Arquivar ficha</div>
+            <div class="uc-desc">Mover para arquivados sem excluir</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Iniciar treino ativo</div>
+            <div class="uc-desc">Modo guiado: sequência de exercícios + timer descanso</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Registrar série executada</div>
+            <div class="uc-desc">Marcar séries, ajustar reps e carga ao vivo</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Concluir treino</div>
+            <div class="uc-desc">Salvar sessão, ganhar XP, mostrar resumo</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Ver histórico de treinos</div>
+            <div class="uc-desc">Lista de sessões passadas com volume e duração</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Explorar banco de exercícios</div>
+            <div class="uc-desc">Busca por nome, músculo, equipamento. Imagem + instrução</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-mvp">MVP open-source</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Ver métricas de progresso</div>
+            <div class="uc-desc">Gráfico de carga por exercício, PR, volume semanal</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Compartilhar ficha</div>
+            <div class="uc-desc">Gerar link público ou compartilhar in-app</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span><span class="actor-pill ap-pt">PT</span></div><span class="uc-status s-v2">V2</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Importar ficha por link</div>
+            <div class="uc-desc">Aceitar convite de PT ou amigo via link/QR</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-v2">V2</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Gerar treino com IA</div>
+            <div class="uc-desc">Assistente cria ficha personalizada por objetivo e nível</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span><span class="actor-pill ap-ai">IA</span></div><span class="uc-status s-ai">IA V2</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Atribuir ficha a aluno</div>
+            <div class="uc-desc">PT manda ficha diretamente para aluno cadastrado</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-pt">PT</span></div><span class="uc-status s-v3">V3</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NUTRIÇÃO -->
+    <div class="module mod-nutri open">
+      <div class="module-header" onclick="toggleModule(this)">
+        <span class="module-icon">🥗</span>
+        <span class="module-title">Nutrição</span>
+        <span class="module-count">12 UCs</span>
+        <span class="module-chevron">▼</span>
+      </div>
+      <div class="module-body">
+        <div class="uc-grid">
+          <div class="uc">
+            <div class="uc-name">Identificar alimento por foto</div>
+            <div class="uc-desc">Câmera/galeria → IA detecta alimento e estima macros</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span><span class="actor-pill ap-ai">IA</span></div><span class="uc-status s-done">✓ funcionando</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Adicionar alimento por texto</div>
+            <div class="uc-desc">"200g de frango" → IA calcula macros automaticamente</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span><span class="actor-pill ap-ai">IA</span></div><span class="uc-status s-v2">V2</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Adicionar alimento por áudio</div>
+            <div class="uc-desc">Falar o alimento → speech-to-text → IA processa macros</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span><span class="actor-pill ap-ai">IA</span></div><span class="uc-status s-ai">IA V2</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Adicionar alimento manualmente</div>
+            <div class="uc-desc">Busca no banco TACO/USDA ou entrada manual de macros</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Editar / remover alimento</div>
+            <div class="uc-desc">Ajustar quantidade, macros ou excluir registro</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Ver diário nutricional</div>
+            <div class="uc-desc">Café, almoço, jantar, snack. Total diário de macros</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Ver macros e metas do dia</div>
+            <div class="uc-desc">Dashboard com anéis/barras: cal, prot, carb, gordura</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Registrar ingestão de água</div>
+            <div class="uc-desc">Botões +250ml / +500ml, meta diária configurável</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Definir metas nutricionais</div>
+            <div class="uc-desc">Calcular TDEE, déficit/surplus, metas de macros</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Gerar dieta personalizada IA</div>
+            <div class="uc-desc">Plano semanal por objetivo, restrições e preferências</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span><span class="actor-pill ap-ai">IA</span></div><span class="uc-status s-ai">IA V2</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Compartilhar dieta / receita</div>
+            <div class="uc-desc">Exportar plano alimentar ou receita fitness</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-v2">V2</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Ver histórico nutricional</div>
+            <div class="uc-desc">Gráfico de calorias e macros ao longo do tempo</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-v2">V2</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMUNIDADE -->
+    <div class="module mod-comm">
+      <div class="module-header" onclick="toggleModule(this)">
+        <span class="module-icon">👥</span>
+        <span class="module-title">Comunidade</span>
+        <span class="module-count">10 UCs</span>
+        <span class="module-chevron">▼</span>
+      </div>
+      <div class="module-body">
+        <div class="uc-grid">
+          <div class="uc">
+            <div class="uc-name">Ver feed de posts</div>
+            <div class="uc-desc">Posts de treinos, refeições e conquistas de seguidos</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-v2">V2</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Criar post</div>
+            <div class="uc-desc">Compartilhar treino concluído, refeição ou conquista</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-v2">V2</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Curtir e comentar post</div>
+            <div class="uc-desc">Reações e comentários em posts do feed</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-v2">V2</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Seguir / deixar de seguir</div>
+            <div class="uc-desc">Seguir usuários para ver posts no feed</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-v2">V2</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Buscar usuários</div>
+            <div class="uc-desc">Pesquisa por @username ou nome</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-v2">V2</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Ver perfil de usuário</div>
+            <div class="uc-desc">Posts, seguidores, bio, stats públicas</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-v2">V2</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Denunciar post / usuário</div>
+            <div class="uc-desc">Reportar conteúdo impróprio para moderação</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-v2">V2</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Criar grupo de treino</div>
+            <div class="uc-desc">Grupo com amigos, meta coletiva e prazo definido</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-v3">V3</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Participar de desafio</div>
+            <div class="uc-desc">Aceitar convite, definir meta pessoal, competir no ranking</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-v3">V3</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Ver leaderboard do grupo</div>
+            <div class="uc-desc">Ranking de progresso dos membros do grupo</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-v3">V3</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PERFIL / GAMIFICAÇÃO -->
+    <div class="module mod-profile">
+      <div class="module-header" onclick="toggleModule(this)">
+        <span class="module-icon">🎮</span>
+        <span class="module-title">Perfil &amp; Gamificação</span>
+        <span class="module-count">9 UCs</span>
+        <span class="module-chevron">▼</span>
+      </div>
+      <div class="module-body">
+        <div class="uc-grid">
+          <div class="uc">
+            <div class="uc-name">Ver XP e nível atual</div>
+            <div class="uc-desc">Barra de progresso para próximo nível, tier (Bronze→Diamante)</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Ganhar XP por ação</div>
+            <div class="uc-desc">Treino +50XP, refeição +20XP, meta batida +100XP, PR +30XP</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Manter e ver streak</div>
+            <div class="uc-desc">Contador de dias consecutivos, alerta de streak em risco</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Desbloquear conquista</div>
+            <div class="uc-desc">Badge ao atingir marcos: 1º treino, 7 dias, 100 treinos…</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Ver página de conquistas</div>
+            <div class="uc-desc">Galeria de badges desbloqueados e bloqueados</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Registrar medidas corporais</div>
+            <div class="uc-desc">Peso, altura, % gordura, circunferências</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Ver evolução corporal</div>
+            <div class="uc-desc">Gráfico de peso e composição ao longo do tempo</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-v2">V2</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Receber relatório semanal</div>
+            <div class="uc-desc">Push/email: resumo de treinos, calorias, XP ganho</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-v2">V2</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Ver dashboard web</div>
+            <div class="uc-desc">Versão browser read-only para visualização completa</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span><span class="actor-pill ap-pro">pro</span></div><span class="uc-status s-v4">V4</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONFIGURAÇÕES -->
+    <div class="module mod-config">
+      <div class="module-header" onclick="toggleModule(this)">
+        <span class="module-icon">⚙️</span>
+        <span class="module-title">Configurações &amp; Monetização</span>
+        <span class="module-count">8 UCs</span>
+        <span class="module-chevron">▼</span>
+      </div>
+      <div class="module-body">
+        <div class="uc-grid">
+          <div class="uc">
+            <div class="uc-name">Alternar tema claro/escuro</div>
+            <div class="uc-desc">Toggle manual ou seguir preferência do sistema</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Selecionar idioma</div>
+            <div class="uc-desc">PT-BR e EN no MVP. ES, FR e outros em V2</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Inserir API Key de IA</div>
+            <div class="uc-desc">Usuário free usa sua própria key (OpenAI / Anthropic)</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Configurar notificações</div>
+            <div class="uc-desc">Push: lembrete treino, streak em risco, meta de água</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-v2">V2</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Selecionar unidades</div>
+            <div class="uc-desc">Métrico (kg/cm) ou imperial (lb/in)</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Assinar plano Pro</div>
+            <div class="uc-desc">In-app purchase: mensal ou anual. IA sem API Key</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-v2">V2</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Gerenciar assinatura</div>
+            <div class="uc-desc">Ver plano ativo, cancelar, alterar método de pagamento</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-pro">pro</span></div><span class="uc-status s-v2">V2</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Aceitar termos e privacidade</div>
+            <div class="uc-desc">Consentimento LGPD no cadastro e atualizações</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-guest">visitante</span></div><span class="uc-status s-mvp">MVP</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROADMAP FUTURO -->
+    <div class="module mod-future">
+      <div class="module-header" onclick="toggleModule(this)">
+        <span class="module-icon">🚀</span>
+        <span class="module-title">Roadmap Futuro (V3–V4)</span>
+        <span class="module-count">7 UCs</span>
+        <span class="module-chevron">▼</span>
+      </div>
+      <div class="module-body">
+        <div class="uc-grid">
+          <div class="uc">
+            <div class="uc-name">Sincronizar com Google Health</div>
+            <div class="uc-desc">Passos, calorias, sono ↔ HuGoal via Health Connect API</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-v4">V4</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Sincronizar com Apple Health</div>
+            <div class="uc-desc">HealthKit integration bidirecional em iOS</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-v4">V4</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Usar app no smartwatch</div>
+            <div class="uc-desc">Wear OS / WatchOS: iniciar treino, timer, BPM</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-v4">V4</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Usar widgets na tela inicial</div>
+            <div class="uc-desc">Macros do dia, próximo treino, streak</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-v3">V3</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Assistente via WhatsApp</div>
+            <div class="uc-desc">Registrar alimento e consultar stats pelo chat</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span><span class="actor-pill ap-ai">IA</span></div><span class="uc-status s-v4">V4</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Conectar balança bioimpedância</div>
+            <div class="uc-desc">BLE com Xiaomi Scale, Garmin, Withings. Auto-registro</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-user">usuário</span></div><span class="uc-status s-v4">V4</span></div>
+          </div>
+          <div class="uc">
+            <div class="uc-name">Gerir painel de alunos (PT)</div>
+            <div class="uc-desc">Dashboard B2B: lista de alunos, progresso, fichas ativas</div>
+            <div class="uc-footer"><div class="uc-actors"><span class="actor-pill ap-pt">PT</span></div><span class="uc-status s-v3">V3</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /modules -->
+
+  <!-- RIGHT ACTORS -->
+  <div class="actors-col" style="align-items:flex-start; padding-left:10px;">
+    <div class="actor a-ai">
+      <div class="actor-icon">🤖</div>
+      <div class="actor-name">Sistema<br>IA</div>
+      <div class="actor-role">«AI»</div>
+    </div>
+    <div class="actor a-admin">
+      <div class="actor-icon">🛡️</div>
+      <div class="actor-name">Admin</div>
+      <div class="actor-role">«admin»</div>
+    </div>
+  </div>
+</div><!-- /diagram -->
+
+<!-- TOTALS -->
+<div class="totals">
+  <div class="total-card">
+    <div class="total-num" style="color:var(--teal)">67</div>
+    <div class="total-label">casos de uso total</div>
+  </div>
+  <div class="total-card">
+    <div class="total-num" style="color:#34d399">1</div>
+    <div class="total-label">já funcionando</div>
+  </div>
+  <div class="total-card">
+    <div class="total-num" style="color:#86efac">30</div>
+    <div class="total-label">para o MVP</div>
+  </div>
+  <div class="total-card">
+    <div class="total-num" style="color:var(--blue)">20</div>
+    <div class="total-label">versão 2</div>
+  </div>
+  <div class="total-card">
+    <div class="total-num" style="color:var(--amber)">9</div>
+    <div class="total-label">versão 3–4</div>
+  </div>
+  <div class="total-card">
+    <div class="total-num" style="color:var(--purple)">6</div>
+    <div class="total-label">requerem IA</div>
+  </div>
+  <div class="total-card">
+    <div class="total-num" style="color:var(--text2)">6</div>
+    <div class="total-label">atores no sistema</div>
+  </div>
+  <div class="total-card">
+    <div class="total-num" style="color:var(--text2)">7</div>
+    <div class="total-label">módulos</div>
+  </div>
+</div>
+
+<!-- RELATIONS -->
+<div class="relations-note">
+  <div class="rel-title">RELACIONAMENTOS UML — «include» / «extend» / «generalization»</div>
+  <div class="rel-grid">
+    <div class="rel-item"><span class="rel-type rt-inc">«include»</span>Iniciar treino ativo <b>inclui</b> Registrar série executada</div>
+    <div class="rel-item"><span class="rel-type rt-inc">«include»</span>Concluir treino <b>inclui</b> Ganhar XP por ação</div>
+    <div class="rel-item"><span class="rel-type rt-inc">«include»</span>Identificar por foto <b>inclui</b> Sistema IA estimar macros</div>
+    <div class="rel-item"><span class="rel-type rt-inc">«include»</span>Gerar dieta IA <b>inclui</b> Definir metas nutricionais</div>
+    <div class="rel-item"><span class="rel-type rt-inc">«include»</span>Registrar conta <b>inclui</b> Aceitar termos e privacidade</div>
+    <div class="rel-item"><span class="rel-type rt-inc">«include»</span>Registrar conta <b>inclui</b> Completar onboarding</div>
+    <div class="rel-item"><span class="rel-type rt-ext">«extend»</span>Concluir treino <b>pode estender</b> Criar post na comunidade</div>
+    <div class="rel-item"><span class="rel-type rt-ext">«extend»</span>Desbloquear conquista <b>pode estender</b> Criar post (conquista)</div>
+    <div class="rel-item"><span class="rel-type rt-ext">«extend»</span>Adicionar alimento texto <b>estende</b> Identificar por foto (fallback)</div>
+    <div class="rel-item"><span class="rel-type rt-ext">«extend»</span>Gerar treino com IA <b>estende</b> Criar ficha de treino</div>
+    <div class="rel-item"><span class="rel-type rt-gen">«generalization»</span>Usuário Pro <b>herda</b> todos os casos de uso do Usuário Free</div>
+    <div class="rel-item"><span class="rel-type rt-gen">«generalization»</span>Personal Trainer <b>herda</b> Usuário Free + casos exclusivos de PT</div>
+  </div>
+</div>
+
+<script>
+function toggleModule(header) {
+  const mod = header.closest('.module');
+  mod.classList.toggle('open');
+}
+</script>
+</body>
+</html>

@@ -33,7 +33,7 @@ module.exports = {
         },
         dark: {
           bg: "#16181C",
-          card: "#1E2028",
+          card: "#16181C",
           border: "#2A2D3A",
           surface: "#22252F",
         },

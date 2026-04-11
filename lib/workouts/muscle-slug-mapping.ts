@@ -1,105 +1,131 @@
 /**
- * Mapeamento de nossos nomes de músculos (em português)
- * para slugs compatíveis com react-native-body-highlighter
+ * Maps Portuguese and English muscle keys to react-native-body-highlighter slugs.
+ * The free-exercise-db import keeps source muscle data in English, so this
+ * mapping must accept both the legacy Portuguese keys and the new English keys.
  */
 
 export const MUSCLE_TO_SLUG_MAPPING: Record<string, string> = {
-  // Front - Chest
+  // Chest
   peitoral_maior: "chest",
   peitoral_superior: "chest",
   peitoral_inferior: "chest",
   peitoral: "chest",
   peito: "chest",
+  chest: "chest",
   serratus: "chest",
 
-  // Both - Deltoids
+  // Deltoids / shoulders
   deltoide_anterior: "deltoids",
   deltoide_lateral: "deltoids",
   deltoide_posterior: "deltoids",
   deltoide_3_porcoes: "deltoids",
   deltoide: "deltoids",
+  deltoids: "deltoids",
   ombros: "deltoids",
+  shoulders: "deltoids",
 
-  // Front - Biceps
+  // Biceps
   biceps_braquial: "biceps",
   biceps_braquial_cabeca_longa: "biceps",
   biceps: "biceps",
   braquial: "biceps",
 
-  // Back - Triceps
+  // Triceps
   triceps_braquial: "triceps",
   triceps_cabeca_longa: "triceps",
   triceps: "triceps",
 
-  // Both - Forearm
+  // Forearm
   braquiorradial: "forearm",
   antebraco: "forearm",
+  forearm: "forearm",
+  forearms: "forearm",
   flexores_do_antebraco: "forearm",
   extensores_do_antebraco: "forearm",
 
-  // Front - Abs
+  // Abs / core
   reto_abdominal: "abs",
   reto_abdominal_inferior: "abs",
   transverso_abdominal: "abs",
   core_transverso: "abs",
+  abdominals: "abs",
+  abs: "abs",
+  core: "abs",
 
-  // Front - Obliques
+  // Obliques
   obliquos: "obliques",
+  obliques: "obliques",
 
-  // Front - Quadriceps
+  // Quadriceps
   quadriceps: "quadriceps",
   flexores_do_quadril: "quadriceps",
 
-  // Front - Adductors
+  // Adductors
   adutores: "adductors",
+  adductors: "adductors",
+  abductors: "gluteal",
 
-  // Back - Hamstring
+  // Hamstrings
   isquiotibiais: "hamstring",
+  hamstrings: "hamstring",
+  hamstring: "hamstring",
 
-  // Both - Calves
+  // Calves
   gastrocnemio: "calves",
+  calves: "calves",
   panturrilha: "calves",
   soleo: "calves",
 
-  // Both - Trapezius
+  // Trapezius
   trapezio: "trapezius",
+  trapezius: "trapezius",
+  traps: "trapezius",
   trapezio_superior: "trapezius",
   levantador_da_escapula: "trapezius",
 
-  // Back - Gluteal
+  // Glutes
   gluteo_maximo: "gluteal",
   gluteo_medio: "gluteal",
   gluteo_minimo: "gluteal",
   gluteos: "gluteal",
+  gluteal: "gluteal",
+  glutes: "gluteal",
   piriforme: "gluteal",
 
-  // Back - Latissimus (upper-back as closest)
+  // Upper back / lats / rhomboids
   latissimo_do_dorso: "upper-back",
   dorsais: "upper-back",
+  lats: "upper-back",
+  latissimus: "upper-back",
   costas: "upper-back",
-
-  // Back - Rhomboid (upper-back)
   romboides: "upper-back",
+  rhomboids: "upper-back",
+  middle_back: "upper-back",
+  upper_back: "upper-back",
+  "upper-back": "upper-back",
 
-  // Back - Lower back
+  // Lower back
   eretores_da_espinha: "lower-back",
   eretores: "lower-back",
   coluna_toracica: "lower-back",
   coluna: "lower-back",
   quadratus_lumborum: "lower-back",
+  lower_back: "lower-back",
+  "lower-back": "lower-back",
 
-  // Front - Neck
+  // Neck
   esternocleidomastoideo: "neck",
   pescoco: "neck",
+  neck: "neck",
 
-  // Both - Core (map secondary muscles)
-  core: "abs",
-
-  // Full body (for workouts that target the whole body)
+  // Full body / fallback
   corpo_inteiro: "chest",
+  full_body: "chest",
+  fullbody: "chest",
 
   // Arms combined
   bracos: "biceps",
+  arms: "biceps",
 };
 
 /**
@@ -136,7 +162,17 @@ export const SLUG_TO_DETAILS: Record<
  * Obtém o slug correspondente a um nome de músculo
  */
 export function getMuscleSlug(muscleKey: string): string | undefined {
-  return MUSCLE_TO_SLUG_MAPPING[muscleKey];
+  const normalized = String(muscleKey)
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  return (
+    MUSCLE_TO_SLUG_MAPPING[muscleKey] ?? MUSCLE_TO_SLUG_MAPPING[normalized]
+  );
 }
 
 /**

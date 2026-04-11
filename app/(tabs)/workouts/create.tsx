@@ -86,7 +86,9 @@ type LibraryExercise = Exercise & {
 
 function toLibraryExercise(exercise: OfficialExerciseRecord): LibraryExercise {
   const firstEquipment =
-    (exercise.equipment.find((item) => item !== "none") as EquipmentType | undefined) ??
+    (exercise.equipment.find((item) => item !== "none") as
+      | EquipmentType
+      | undefined) ??
     (exercise.equipment[0] as EquipmentType | undefined) ??
     "none";
 
@@ -288,25 +290,28 @@ export default function CreateWorkoutScreen() {
 
       // Mock AI response - replace with real Gemini API call later
       if (exerciseLibrary.length === 0) {
-        showToast("Exercise catalog is still loading. Try again in a moment.", "error");
+        showToast(
+          "Exercise catalog is still loading. Try again in a moment.",
+          "error",
+        );
         return;
       }
 
       const generatedExercises: RoundExerciseConfig[] = exerciseLibrary
         .slice(0, 5)
         .map((exercise) => ({
-        id: `selected-${exercise.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        exerciseId: exercise.id,
-        name: exercise.name,
-        muscleGroups: exercise.primary_muscles,
-        equipment: exercise.equipment_label,
-        difficulty: exercise.difficulty,
-        hasWeight: exercise.has_weight,
-        imageUrl: GENERIC_EXERCISE_IMAGE,
-        sets: 3 + Math.floor(Math.random() * 2),
-        reps: `${8 + Math.floor(Math.random() * 4)}-${12 + Math.floor(Math.random() * 4)}`,
-        weightKg: exercise.has_weight ? 20 : undefined,
-        restSeconds: 60,
+          id: `selected-${exercise.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          exerciseId: exercise.id,
+          name: exercise.name,
+          muscleGroups: exercise.primary_muscles,
+          equipment: exercise.equipment_label,
+          difficulty: exercise.difficulty,
+          hasWeight: exercise.has_weight,
+          imageUrl: GENERIC_EXERCISE_IMAGE,
+          sets: 3 + Math.floor(Math.random() * 2),
+          reps: `${8 + Math.floor(Math.random() * 4)}-${12 + Math.floor(Math.random() * 4)}`,
+          weightKg: exercise.has_weight ? 20 : undefined,
+          restSeconds: 60,
         }));
 
       setDraft((prev) => ({

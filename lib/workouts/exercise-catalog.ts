@@ -1,22 +1,12 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { Exercise } from "@/types";
-import { listOfficialExercisesFromFirestore } from "@/lib/firestore/exercises";
 import {
   OFFICIAL_EXERCISES,
   type OfficialExerciseRecord,
 } from "@/lib/workouts/generated/official-exercises";
 
-const CATALOG_CACHE_KEY = "workouts:exercise_catalog:v1";
-const CATALOG_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
-
-interface CachedCatalogPayload {
-  savedAt: number;
-  exercises: OfficialExerciseRecord[];
-}
-
 export interface ExerciseCatalogResult {
   exercises: OfficialExerciseRecord[];
-  source: "firestore" | "cache" | "bundled";
+  source: "bundled";
 }
 
 function uniqueById<T extends { id: string }>(items: T[]): T[] {
@@ -34,68 +24,14 @@ function uniqueById<T extends { id: string }>(items: T[]): T[] {
   return result;
 }
 
-function isCacheFresh(savedAt: number): boolean {
-  return Date.now() - savedAt <= CATALOG_CACHE_TTL_MS;
-}
-
-async function readCatalogCache(): Promise<OfficialExerciseRecord[] | null> {
-  try {
-    const raw = await AsyncStorage.getItem(CATALOG_CACHE_KEY);
-    if (!raw) {
-      return null;
-    }
-
-    const parsed = JSON.parse(raw) as CachedCatalogPayload;
-    if (!parsed?.savedAt || !Array.isArray(parsed.exercises)) {
-      return null;
-    }
-
-    if (!isCacheFresh(parsed.savedAt) || parsed.exercises.length === 0) {
-      return null;
-    }
-
-    return uniqueById(parsed.exercises);
-  } catch {
-    return null;
-  }
-}
-
-async function saveCatalogCache(exercises: OfficialExerciseRecord[]): Promise<void> {
-  try {
-    const payload: CachedCatalogPayload = {
-      savedAt: Date.now(),
-      exercises: uniqueById(exercises),
-    };
-    await AsyncStorage.setItem(CATALOG_CACHE_KEY, JSON.stringify(payload));
-  } catch {
-    // Best-effort cache write.
-  }
-}
+const BUNDLED_CATALOG: OfficialExerciseRecord[] =
+  uniqueById(OFFICIAL_EXERCISES);
 
 export async function getExerciseCatalog(
-  forceRefresh = false,
+  _forceRefresh = false,
 ): Promise<ExerciseCatalogResult> {
-  if (!forceRefresh) {
-    const cache = await readCatalogCache();
-    if (cache && cache.length > 0) {
-      return { exercises: cache, source: "cache" };
-    }
-  }
-
-  try {
-    const firestoreExercises = await listOfficialExercisesFromFirestore();
-    if (firestoreExercises.length > 0) {
-      const normalized = uniqueById(firestoreExercises);
-      await saveCatalogCache(normalized);
-      return { exercises: normalized, source: "firestore" };
-    }
-  } catch {
-    // Firestore unavailable, continue with fallback.
-  }
-
-  const bundled = uniqueById(OFFICIAL_EXERCISES);
-  await saveCatalogCache(bundled);
-  return { exercises: bundled, source: "bundled" };
+  // Runtime always uses local bundled catalog for zero-network startup.
+  return { exercises: BUNDLED_CATALOG, source: "bundled" };
 }
 
 export function toMuscleKey(value: string): string {
@@ -120,7 +56,9 @@ export function muscleKeyToLabel(key: string): string {
     .join(" ");
 }
 
-export function buildMuscleTabs(exercises: Exercise[]): Array<{ id: string; label: string }> {
+export function buildMuscleTabs(
+  exercises: Exercise[],
+): Array<{ id: string; label: string }> {
   const byCount = new Map<string, number>();
 
   for (const exercise of exercises) {

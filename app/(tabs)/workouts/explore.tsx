@@ -67,13 +67,6 @@ export default function ExploreScreen() {
       setSelectedExercise(
         (previous) => previous ?? catalog.exercises[0] ?? null,
       );
-
-      if (catalog.source === "bundled") {
-        showToast(
-          "Using bundled exercise catalog while Firestore sync is unavailable.",
-          "info",
-        );
-      }
     } catch {
       const message = "Failed to load exercises";
       showToast(message, "error");
