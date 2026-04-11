@@ -188,11 +188,12 @@ export default function WorkoutsScreen() {
     cooldown: false,
   });
   const [panelExpanded, setPanelExpanded] = useState(false);
-  const [weekOffset, setWeekOffset] = useState(0);
+  const [weekOffset, setWeekOffset] = useState(1);
+  const [initialWeekMonday] = useState(() => startOfWeekMonday(new Date()));
 
   // Panel slide-up animation
   const COLLAPSED_H = insets.bottom + 144; // pt-3(12) + btn-lg(52) + tabBar(80)
-  const EXPAND_CONTENT_H = 400;
+  const EXPAND_CONTENT_H = Math.min(420, Math.max(300, windowHeight * 0.48));
   const EXPANDED_H = COLLAPSED_H + EXPAND_CONTENT_H;
 
   const panelHeight = useRef(new Animated.Value(COLLAPSED_H)).current;
@@ -228,6 +229,9 @@ export default function WorkoutsScreen() {
     () => buildSessionSections(todayWorkout?.exercises ?? []),
     [todayWorkout],
   );
+  const sessionTargetId =
+    sessionActive && sessionTemplateId ? sessionTemplateId : todayWorkout?.id;
+  const startActionLabel = sessionActive ? "Resume" : "Start";
 
   const weekCompletion = useMemo(() => {
     const todayIdx = toMondayFirstIndex(new Date());
@@ -244,7 +248,7 @@ export default function WorkoutsScreen() {
 
   const weekPages = useMemo(() => {
     const today = new Date();
-    const currentMonday = startOfWeekMonday(today);
+    const currentMonday = initialWeekMonday;
     const offsets = [-1, 0, 1];
 
     return offsets.map((off) => {
@@ -268,7 +272,7 @@ export default function WorkoutsScreen() {
         };
       });
     });
-  }, [weekCompletion.done]);
+  }, [initialWeekMonday, weekCompletion.done]);
 
   useEffect(() => {
     // ensure current (center) week visible on mount
@@ -347,6 +351,47 @@ export default function WorkoutsScreen() {
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    // After data loads, ensure the week pager is scrolled to the center (current week).
+    if (loading) return;
+
+    let attempts = 0;
+    const maxAttempts = 8;
+
+    const tryScroll = () => {
+      const node = weekScrollRef.current as any;
+      if (!node) {
+        if (++attempts <= maxAttempts) {
+          setTimeout(tryScroll, 80);
+        }
+        return;
+      }
+
+      try {
+        if (Platform.OS === "web") {
+          if (typeof node.scrollTo === "function") {
+            node.scrollTo({ left: weekPagerWidth * 1, behavior: "auto" });
+            return;
+          }
+          if (node && "scrollLeft" in node) {
+            node.scrollLeft = weekPagerWidth * 1;
+            return;
+          }
+        }
+
+        if (typeof node.scrollTo === "function") {
+          node.scrollTo({ x: weekPagerWidth * 1, animated: false });
+        }
+      } catch (_e) {
+        if (++attempts <= maxAttempts) setTimeout(tryScroll, 120);
+      }
+    };
+
+    // give initial render a short window
+    const id = setTimeout(tryScroll, 60);
+    return () => clearTimeout(id);
+  }, [loading, weekPagerWidth, weekPages.length]);
 
   const openPanel = useCallback(() => {
     panelExpandedRef.current = true;
@@ -574,6 +619,7 @@ export default function WorkoutsScreen() {
             );
             setWeekOffset(Math.max(0, Math.min(weekPages.length - 1, page)));
           }}
+          contentOffset={{ x: weekPagerWidth, y: 0 }}
         >
           {weekPages.map((days, pageIndex) => {
             return (
@@ -639,7 +685,7 @@ export default function WorkoutsScreen() {
         contentContainerStyle={{
           paddingTop: 14,
           paddingHorizontal: 16,
-          paddingBottom: insets.bottom + 120,
+          paddingBottom: insets.bottom + 140,
         }}
       >
         {loading ? (
@@ -713,17 +759,14 @@ export default function WorkoutsScreen() {
                 <Button
                   size="sm"
                   onPress={() => {
-                    const id =
-                      sessionActive && sessionTemplateId
-                        ? sessionTemplateId
-                        : todayWorkout.id;
-                    router.push(`/workouts/${id}/run`);
+                    if (!sessionTargetId) return;
+                    router.push(`/workouts/${sessionTargetId}/run`);
                   }}
                 >
                   <View className="flex-row items-center gap-1">
                     <Play size={14} color="#ffffff" />
                     <Text className="text-white font-semibold">
-                      {sessionActive ? "Resume" : "Start"}
+                      {startActionLabel}
                     </Text>
                   </View>
                 </Button>
@@ -769,53 +812,6 @@ export default function WorkoutsScreen() {
                 </View>
               </View>
             </View>
-
-            {workouts.length > 1 ? (
-              <View
-                className={cn(
-                  "rounded-2xl p-4 mb-4",
-                  isDark ? "bg-dark-card" : "bg-light-card",
-                )}
-              >
-                <View className="flex-row items-center justify-between mb-2">
-                  <Text className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                    History
-                  </Text>
-                  <Pressable onPress={() => router.push("/workouts/history")}>
-                    <Text className="text-sm text-primary-500">View all</Text>
-                  </Pressable>
-                </View>
-
-                {workouts.slice(1, 4).map((w) => (
-                  <Pressable
-                    key={w.id}
-                    onPress={() => router.push(`/workouts/${w.id}`)}
-                    className={cn(
-                      "py-3",
-                      isDark
-                        ? "border-b border-dark-border"
-                        : "border-b border-light-border",
-                    )}
-                  >
-                    <View className="flex-row items-center justify-between">
-                      <View>
-                        <Text className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {w.name}
-                        </Text>
-                        <Text className="text-xs text-gray-500 dark:text-gray-400">
-                          {new Date(
-                            w.updated_at || w.created_at,
-                          ).toLocaleDateString()}
-                        </Text>
-                      </View>
-                      <Text className="text-xs text-gray-500 dark:text-gray-400">
-                        {w.estimated_duration_minutes} min
-                      </Text>
-                    </View>
-                  </Pressable>
-                ))}
-              </View>
-            ) : null}
 
             <View className="mb-5">
               {sections.map((section) => {
@@ -931,6 +927,51 @@ export default function WorkoutsScreen() {
             </Pressable>
           </View>
         </View>
+
+        {workouts.length > 1 ? (
+          <View
+            className={cn(
+              "rounded-2xl p-4 mt-4",
+              isDark ? "bg-dark-card" : "bg-light-card",
+            )}
+          >
+            <View className="flex-row items-center justify-between mb-2">
+              <Text className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                History
+              </Text>
+              <Pressable onPress={() => router.push("/workouts/history")}>
+                <Text className="text-sm text-primary-500">View all</Text>
+              </Pressable>
+            </View>
+
+            {workouts.slice(1, 4).map((w) => (
+              <Pressable
+                key={w.id}
+                onPress={() => router.push(`/workouts/${w.id}`)}
+                className={cn(
+                  "py-3",
+                  isDark
+                    ? "border-b border-dark-border"
+                    : "border-b border-light-border",
+                )}
+              >
+                <View className="flex-row items-center justify-between">
+                  <View>
+                    <Text className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {w.name}
+                    </Text>
+                    <Text className="text-xs text-gray-500 dark:text-gray-400">
+                      {new Date(w.updated_at || w.created_at).toLocaleDateString()}
+                    </Text>
+                  </View>
+                  <Text className="text-xs text-gray-500 dark:text-gray-400">
+                    {w.estimated_duration_minutes} min
+                  </Text>
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
       </ScrollView>
 
       {todayWorkout ? (
@@ -1018,11 +1059,8 @@ export default function WorkoutsScreen() {
                   className="flex-1"
                   size="lg"
                   onPress={() => {
-                    const id =
-                      sessionActive && sessionTemplateId
-                        ? sessionTemplateId
-                        : todayWorkout.id;
-                    router.push(`/workouts/${id}/run`);
+                    if (!sessionTargetId) return;
+                    router.push(`/workouts/${sessionTargetId}/run`);
                   }}
                 >
                   <View
@@ -1041,7 +1079,7 @@ export default function WorkoutsScreen() {
                         fontSize: 16,
                       }}
                     >
-                      {sessionActive ? "Resume" : "Start"}
+                      {startActionLabel}
                     </Text>
                   </View>
                 </Button>
