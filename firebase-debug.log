@@ -1,0 +1,87 @@
+[debug] [2026-04-11T18:53:51.508Z] ----------------------------------------------------------------------
+[debug] [2026-04-11T18:53:51.524Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\hugov\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only firestore:indexes --non-interactive --debug
+[debug] [2026-04-11T18:53:51.525Z] CLI Version:   15.11.0
+[debug] [2026-04-11T18:53:51.525Z] Platform:      win32
+[debug] [2026-04-11T18:53:51.526Z] Node Version:  v22.14.0
+[debug] [2026-04-11T18:53:51.526Z] Time:          Sat Apr 11 2026 19:53:51 GMT+0100 (Horário de Verão Britânico)
+[debug] [2026-04-11T18:53:51.526Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-04-11T18:54:27.553Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-04-11T18:54:27.556Z] > authorizing via signed-in user (hugoviegas3.0@gmail.com)
+[debug] [2026-04-11T18:54:27.557Z] [iam] checking project coachai-24f52 for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]
+[debug] [2026-04-11T18:54:27.559Z] Checked if tokens are valid: false, expires at: 1775925798825
+[debug] [2026-04-11T18:54:27.560Z] Checked if tokens are valid: false, expires at: 1775925798825
+[debug] [2026-04-11T18:54:27.560Z] > refreshing access token with scopes: []
+[debug] [2026-04-11T18:54:27.565Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-04-11T18:54:27.566Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-04-11T18:54:27.774Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-04-11T18:54:27.774Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-04-11T18:54:27.797Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/coachai-24f52:testIamPermissions [none]
+[debug] [2026-04-11T18:54:27.805Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/coachai-24f52:testIamPermissions  x-goog-user-project=coachai-24f52
+[debug] [2026-04-11T18:54:27.812Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/coachai-24f52:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[debug] [2026-04-11T18:54:28.549Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/coachai-24f52:testIamPermissions 200
+[debug] [2026-04-11T18:54:28.550Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/coachai-24f52:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[info] 
+[info] === Deploying to 'coachai-24f52'...
+[info] 
+[info] i  deploying firestore 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[debug] [2026-04-11T18:54:28.566Z] Checked if tokens are valid: true, expires at: 1775937266775
+[debug] [2026-04-11T18:54:28.574Z] Checked if tokens are valid: true, expires at: 1775937266775
+[debug] [2026-04-11T18:54:28.575Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/coachai-24f52/databases/(default) [none]
+[debug] [2026-04-11T18:54:28.843Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/coachai-24f52/databases/(default) 200
+[debug] [2026-04-11T18:54:28.846Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/coachai-24f52/databases/(default) {"name":"projects/coachai-24f52/databases/(default)","uid":"d2fd424b-933d-4136-b63c-303fc481c720","createTime":"2026-04-02T18:04:12.481257Z","updateTime":"2026-04-02T18:04:12.481257Z","locationId":"eur3","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-04-11T17:54:28.813167Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"e","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_DISABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","etag":"IPLM5bu85pMDMI7W9erhz5MD"}
+[info] i  firestore: reading indexes from firestore.indexes.json... 
+[info] i  cloud.firestore: checking firestore.rules for compilation errors... 
+[debug] [2026-04-11T18:54:28.863Z] Checked if tokens are valid: true, expires at: 1775937266775
+[debug] [2026-04-11T18:54:28.863Z] Checked if tokens are valid: true, expires at: 1775937266775
+[debug] [2026-04-11T18:54:28.864Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/coachai-24f52:test [none]
+[debug] [2026-04-11T18:54:28.864Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/coachai-24f52:test [omitted]
+[debug] [2026-04-11T18:54:30.894Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/coachai-24f52:test 200
+[debug] [2026-04-11T18:54:30.894Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/coachai-24f52:test {}
+[info] +  cloud.firestore: rules file firestore.rules compiled successfully 
+[info] i  firestore: deploying indexes... 
+[debug] [2026-04-11T18:54:30.899Z] Checked if tokens are valid: true, expires at: 1775937266775
+[debug] [2026-04-11T18:54:30.899Z] Checked if tokens are valid: true, expires at: 1775937266775
+[debug] [2026-04-11T18:54:30.899Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/coachai-24f52/databases/(default)/collectionGroups/-/indexes [none]
+[debug] [2026-04-11T18:54:30.992Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/coachai-24f52/databases/(default)/collectionGroups/-/indexes 200
+[debug] [2026-04-11T18:54:30.993Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/coachai-24f52/databases/(default)/collectionGroups/-/indexes {"indexes":[{"name":"projects/coachai-24f52/databases/(default)/collectionGroups/workout_exercises/indexes/CICAgJim14AK","queryScope":"COLLECTION","fields":[{"fieldPath":"workout_template_id","order":"ASCENDING"},{"fieldPath":"order_index","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}],"state":"READY","density":"SPARSE_ALL"},{"name":"projects/coachai-24f52/databases/(default)/collectionGroups/nutrition_logs/indexes/CICAgOjXh4EK","queryScope":"COLLECTION","fields":[{"fieldPath":"user_id","order":"ASCENDING"},{"fieldPath":"logged_at","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}],"state":"READY","density":"SPARSE_ALL"},{"name":"projects/coachai-24f52/databases/(default)/collectionGroups/workout_sessions/indexes/CICAgJiUpoMK","queryScope":"COLLECTION","fields":[{"fieldPath":"user_id","order":"ASCENDING"},{"fieldPath":"started_at","order":"DESCENDING"},{"fieldPath":"__name__","order":"DESCENDING"}],"state":"READY","density":"SPARSE_ALL"},{"name":"projects/coachai-24f52/databases/(default)/collectionGroups/workout_templates/indexes/CICAgOi3kJAK","queryScope":"COLLECTION","fields":[{"fieldPath":"user_id","order":"ASCENDING"},{"fieldPath":"created_at","order":"DESCENDING"},{"fieldPath":"__name__","order":"DESCENDING"}],"state":"READY","density":"SPARSE_ALL"}]}
+[debug] [2026-04-11T18:54:30.993Z] Checked if tokens are valid: true, expires at: 1775937266775
+[debug] [2026-04-11T18:54:30.994Z] Checked if tokens are valid: true, expires at: 1775937266775
+[debug] [2026-04-11T18:54:30.994Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/coachai-24f52/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* [none]
+[debug] [2026-04-11T18:54:31.075Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/coachai-24f52/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* 200
+[debug] [2026-04-11T18:54:31.077Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/coachai-24f52/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* {"fields":[{"name":"projects/coachai-24f52/databases/(default)/collectionGroups/__default__/fields/*","indexConfig":{"indexes":[{"queryScope":"COLLECTION","fields":[{"fieldPath":"*","order":"ASCENDING"}],"state":"READY"},{"queryScope":"COLLECTION","fields":[{"fieldPath":"*","order":"DESCENDING"}],"state":"READY"},{"queryScope":"COLLECTION","fields":[{"fieldPath":"*","arrayConfig":"CONTAINS"}],"state":"READY"}]}}]}
+[debug] [2026-04-11T18:54:31.078Z] Checked if tokens are valid: true, expires at: 1775937266775
+[debug] [2026-04-11T18:54:31.078Z] Checked if tokens are valid: true, expires at: 1775937266775
+[debug] [2026-04-11T18:54:31.078Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/coachai-24f52/databases/(default) [none]
+[debug] [2026-04-11T18:54:31.175Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/coachai-24f52/databases/(default) 200
+[debug] [2026-04-11T18:54:31.192Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/coachai-24f52/databases/(default) {"name":"projects/coachai-24f52/databases/(default)","uid":"d2fd424b-933d-4136-b63c-303fc481c720","createTime":"2026-04-02T18:04:12.481257Z","updateTime":"2026-04-02T18:04:12.481257Z","locationId":"eur3","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-04-11T17:54:31.129502Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"e","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_DISABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","etag":"IMf+8ry85pMDMI7W9erhz5MD"}
+[info] i  firestore: there are 4 indexes defined in your project that are not present in your firestore indexes file. To delete them, run this command with the --force flag. 
+[debug] [2026-04-11T18:54:31.195Z] Creating new index: {"collectionGroup":"community_posts","queryScope":"COLLECTION","fields":[{"fieldPath":"author_id","order":"ASCENDING"},{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"created_at","order":"DESCENDING"}]}
+[debug] [2026-04-11T18:54:31.198Z] Checked if tokens are valid: true, expires at: 1775937266775
+[debug] [2026-04-11T18:54:31.198Z] Checked if tokens are valid: true, expires at: 1775937266775
+[debug] [2026-04-11T18:54:31.199Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/coachai-24f52/databases/(default)/collectionGroups/community_posts/indexes [none]
+[debug] [2026-04-11T18:54:31.199Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/coachai-24f52/databases/(default)/collectionGroups/community_posts/indexes {"fields":[{"fieldPath":"author_id","order":"ASCENDING"},{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"created_at","order":"DESCENDING"}],"queryScope":"COLLECTION"}
+[debug] [2026-04-11T18:54:31.428Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/coachai-24f52/databases/(default)/collectionGroups/community_posts/indexes 200
+[debug] [2026-04-11T18:54:31.430Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/coachai-24f52/databases/(default)/collectionGroups/community_posts/indexes {"name":"projects/coachai-24f52/databases/(default)/operations/S0lvOUZqSmdBQ0lDDCoDIDQwMGNlNDU4ZDhhZi05OGI5LWZmMTQtMmFkZi1jMmE2YzYwNCQac2VuaWxlcGlwCQpBEg","metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.IndexOperationMetadata","startTime":"2026-04-11T18:54:31.326304Z","index":"projects/coachai-24f52/databases/(default)/collectionGroups/community_posts/indexes/CICAgJjF9oIK","state":"INITIALIZING"}}
+[debug] [2026-04-11T18:54:31.430Z] Creating new index: {"collectionGroup":"community_posts","queryScope":"COLLECTION","fields":[{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"created_at","order":"DESCENDING"}]}
+[debug] [2026-04-11T18:54:31.431Z] Checked if tokens are valid: true, expires at: 1775937266775
+[debug] [2026-04-11T18:54:31.431Z] Checked if tokens are valid: true, expires at: 1775937266775
+[debug] [2026-04-11T18:54:31.431Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/coachai-24f52/databases/(default)/collectionGroups/community_posts/indexes [none]
+[debug] [2026-04-11T18:54:31.432Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/coachai-24f52/databases/(default)/collectionGroups/community_posts/indexes {"fields":[{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"created_at","order":"DESCENDING"}],"queryScope":"COLLECTION"}
+[debug] [2026-04-11T18:54:31.656Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/coachai-24f52/databases/(default)/collectionGroups/community_posts/indexes 200
+[debug] [2026-04-11T18:54:31.658Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/coachai-24f52/databases/(default)/collectionGroups/community_posts/indexes {"name":"projects/coachai-24f52/databases/(default)/operations/S0U0ejdqSmdBQ0lDDCoDIGU2YWYxMDI3ZWNiOS03MTM4LTgzYzQtMTZlNS1hOWYzMzEyMCQac2VuaWxlcGlwCQpBEg","metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.IndexOperationMetadata","startTime":"2026-04-11T18:54:31.566668Z","index":"projects/coachai-24f52/databases/(default)/collectionGroups/community_posts/indexes/CICAgJj7z4EK","state":"INITIALIZING"}}
+[debug] [2026-04-11T18:54:31.659Z] Creating new index: {"collectionGroup":"community_groups","queryScope":"COLLECTION","fields":[{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"created_at","order":"DESCENDING"}]}
+[debug] [2026-04-11T18:54:31.659Z] Checked if tokens are valid: true, expires at: 1775937266775
+[debug] [2026-04-11T18:54:31.659Z] Checked if tokens are valid: true, expires at: 1775937266775
+[debug] [2026-04-11T18:54:31.660Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/coachai-24f52/databases/(default)/collectionGroups/community_groups/indexes [none]
+[debug] [2026-04-11T18:54:31.660Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/coachai-24f52/databases/(default)/collectionGroups/community_groups/indexes {"fields":[{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"created_at","order":"DESCENDING"}],"queryScope":"COLLECTION"}
+[debug] [2026-04-11T18:54:31.860Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/coachai-24f52/databases/(default)/collectionGroups/community_groups/indexes 200
+[debug] [2026-04-11T18:54:31.861Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/coachai-24f52/databases/(default)/collectionGroups/community_groups/indexes {"name":"projects/coachai-24f52/databases/(default)/operations/S01vNzRpTmdBQ0lDDCoDIGE0YzdlNDRlMjc4Yy1mZWVhLTc1YTQtZWUyYS1lOGFkMmZhOCQac2VuaWxlcGlwCQpBEg","metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.IndexOperationMetadata","startTime":"2026-04-11T18:54:31.744093Z","index":"projects/coachai-24f52/databases/(default)/collectionGroups/community_groups/indexes/CICAgNi47oMK","state":"INITIALIZING"}}
+[debug] [2026-04-11T18:54:31.861Z] Creating new index: {"collectionGroup":"community_groups","queryScope":"COLLECTION","fields":[{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"visibility","order":"ASCENDING"},{"fieldPath":"member_count","order":"DESCENDING"}]}
+[debug] [2026-04-11T18:54:31.863Z] Checked if tokens are valid: true, expires at: 1775937266775
+[debug] [2026-04-11T18:54:31.863Z] Checked if tokens are valid: true, expires at: 1775937266775
+[debug] [2026-04-11T18:54:31.864Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/coachai-24f52/databases/(default)/collectionGroups/community_groups/indexes [none]
+[debug] [2026-04-11T18:54:31.865Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/coachai-24f52/databases/(default)/collectionGroups/community_groups/indexes {"fields":[{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"visibility","order":"ASCENDING"},{"fieldPath":"member_count","order":"DESCENDING"}],"queryScope":"COLLECTION"}
+[debug] [2026-04-11T18:54:32.053Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/coachai-24f52/databases/(default)/collectionGroups/community_groups/indexes 200

@@ -96,14 +96,45 @@ export interface WorkoutExercise {
   order: number;
 }
 
+export type WorkoutSectionType = "warmup" | "round" | "cooldown";
+export type WorkoutBlockType = "exercise" | "rest";
+
+export interface WorkoutBlock {
+  id: string;
+  type: WorkoutBlockType;
+  order: number;
+  exercise_id?: string;
+  name?: string;
+  reps?: string;
+  weight_kg?: number;
+  rest_seconds?: number;
+  notes?: string;
+  duration_seconds?: number;
+  primary_muscles?: string[];
+  secondary_muscles?: string[];
+}
+
+export interface WorkoutSection {
+  id: string;
+  type: WorkoutSectionType;
+  name: string;
+  order: number;
+  blocks: WorkoutBlock[];
+}
+
 export interface WorkoutTemplate {
   id: string;
   user_id: string;
   name: string;
   description?: string;
+  cover_image_url?: string;
   is_ai_generated: boolean;
   source_prompt?: string;
   exercises: WorkoutExercise[];
+  sections?: WorkoutSection[];
+  target_muscles?: string[];
+  is_active?: boolean;
+  schedule_day_of_week?: number;
   estimated_duration_minutes: number;
   difficulty: Difficulty;
   tags: string[];
@@ -321,6 +352,43 @@ export interface GroupMember {
   current_score: number;
   current_rank: number;
   last_activity?: string;
+}
+
+export interface CheckInMedia {
+  storage_url: string;
+  width?: number;
+  height?: number;
+  taken_at?: string; // ISO string from EXIF DateTimeOriginal
+}
+
+export interface GroupCheckIn {
+  id: string;
+  group_id: string;
+  user_id: string;
+  user_name: string;
+  user_avatar?: string;
+  challenge_type: ChallengeType;
+  metric_value: number;
+  metric_unit: string;
+  notes?: string;
+  media?: CheckInMedia[];
+  like_count: number;
+  liked_by: string[];
+  comment_count: number;
+  checked_in_at: string;
+  date: string; // YYYY-MM-DD for one-per-day enforcement
+}
+
+export interface CheckInComment {
+  id: string;
+  check_in_id: string;
+  group_id: string;
+  author_id: string;
+  author_name: string;
+  author_avatar?: string;
+  content: string;
+  emoji_reaction?: string;
+  created_at: string;
 }
 
 export interface ChallengeParticipant {

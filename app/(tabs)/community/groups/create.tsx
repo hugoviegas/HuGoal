@@ -8,13 +8,14 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { X, ChevronRight, Dumbbell, Utensils, Flame, Calendar, Lock, Globe, Users } from "lucide-react-native";
 import { useThemeStore } from "@/stores/theme.store";
 import { useAuthStore } from "@/stores/auth.store";
 import { useCommunityStore } from "@/stores/community.store";
+import { useNavigationStore } from "@/stores/navigation.store";
 import { createGroup } from "@/lib/community-groups";
 import { useToastStore } from "@/stores/toast.store";
 import type { ChallengeType, GroupMembership, GroupVisibility } from "@/types";
@@ -36,6 +37,7 @@ export default function CreateGroupScreen() {
   const profile = useAuthStore((s) => s.profile);
   const showToast = useToastStore((s) => s.show);
   const loadGroups = useCommunityStore((s) => s.loadGroups);
+  const setNavbarVisible = useNavigationStore((s) => s.setNavbarVisible);
 
   const [step, setStep] = useState<Step>(1);
   const [name, setName] = useState("");
@@ -50,6 +52,11 @@ export default function CreateGroupScreen() {
   const [creating, setCreating] = useState(false);
 
   const selectedType = CHALLENGE_TYPES.find((t) => t.key === challengeType)!;
+
+  useEffect(() => {
+    setNavbarVisible(false);
+    return () => setNavbarVisible(true);
+  }, [setNavbarVisible]);
 
   const canNext = () => {
     if (step === 1) return name.trim().length >= 3;
@@ -82,8 +89,10 @@ export default function CreateGroupScreen() {
       await loadGroups(uid);
       showToast("Group created!", "success");
       router.back();
-    } catch {
-      showToast("Failed to create group", "error");
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Failed to create group";
+      console.error("[community][create-group] Failed to create group", e);
+      showToast(message, "error");
     } finally {
       setCreating(false);
     }

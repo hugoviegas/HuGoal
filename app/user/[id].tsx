@@ -276,7 +276,7 @@ export default function PublicProfileScreen() {
           <View style={{ alignItems: "center", paddingVertical: 32, gap: 8 }}>
             <FileText size={32} color={colors.mutedForeground} />
             <Text style={{ color: colors.mutedForeground, fontSize: 14 }}>
-              {following || profile.visibility === "public"
+              {following || profile.profile_visibility === "public"
                 ? "No posts yet"
                 : "Follow to see their posts"}
             </Text>

@@ -1,0 +1,22 @@
+{
+  "name": "projects/coachai-24f52/databases/(default)/documents/community_follows/follow-copilot-20260411191046",
+  "fields": {
+    "follower_id": {
+      "stringValue": "UxtpUffhsMTVYG4UJSh72TJxNho2"
+    },
+    "following_id": {
+      "stringValue": "UxtpUffhsMTVYG4UJSh72TJxNho2"
+    },
+    "is_muted": {
+      "booleanValue": false
+    },
+    "created_at": {
+      "timestampValue": "2026-04-11T00:00:00Z"
+    },
+    "is_blocked": {
+      "booleanValue": false
+    }
+  },
+  "createTime": "2026-04-11T18:10:50.001572Z",
+  "updateTime": "2026-04-11T18:10:50.001572Z"
+}

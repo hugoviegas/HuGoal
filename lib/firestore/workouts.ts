@@ -44,15 +44,46 @@ export interface WorkoutTemplateExerciseRecord {
   muscleGroups: string[];
 }
 
+export type WorkoutTemplateSectionType = "warmup" | "round" | "cooldown";
+export type WorkoutTemplateBlockType = "exercise" | "rest";
+
+export interface WorkoutTemplateBlockRecord {
+  id: string;
+  type: WorkoutTemplateBlockType;
+  order: number;
+  exercise_id?: string;
+  name?: string;
+  reps?: string;
+  weight_kg?: number;
+  rest_seconds?: number;
+  notes?: string;
+  duration_seconds?: number;
+  primary_muscles?: string[];
+  secondary_muscles?: string[];
+}
+
+export interface WorkoutTemplateSectionRecord {
+  id: string;
+  type: WorkoutTemplateSectionType;
+  name: string;
+  order: number;
+  blocks: WorkoutTemplateBlockRecord[];
+}
+
 export interface WorkoutTemplateRecord {
   id: string;
   user_id: string;
   name: string;
   description?: string;
+  cover_image_url?: string;
   difficulty: WorkoutDifficulty;
   is_ai_generated: boolean;
   source_prompt?: string;
   exercises: WorkoutTemplateExerciseRecord[];
+  sections?: WorkoutTemplateSectionRecord[];
+  target_muscles?: string[];
+  is_active?: boolean;
+  schedule_day_of_week?: number;
   estimated_duration_minutes: number;
   tags: string[];
   created_at: string;
@@ -62,12 +93,66 @@ export interface WorkoutTemplateRecord {
 export interface WorkoutTemplateInput {
   name: string;
   description?: string;
+  cover_image_url?: string;
   difficulty: WorkoutDifficulty;
   is_ai_generated: boolean;
   source_prompt?: string;
   exercises: WorkoutTemplateExerciseRecord[];
+  sections?: WorkoutTemplateSectionRecord[];
+  target_muscles?: string[];
+  is_active?: boolean;
+  schedule_day_of_week?: number;
   estimated_duration_minutes: number;
   tags?: string[];
+}
+
+export function aggregateWorkoutMuscles(
+  exercises:
+    | WorkoutTemplateExerciseRecord[]
+    | WorkoutTemplateSectionRecord[] = [],
+): string[] {
+  const muscleGroups = new Set<string>();
+
+  for (const item of exercises) {
+    if ("blocks" in item) {
+      for (const block of item.blocks) {
+        for (const muscle of block.primary_muscles ?? []) {
+          muscleGroups.add(muscle);
+        }
+      }
+      continue;
+    }
+
+    for (const muscle of item.muscleGroups ?? []) {
+      muscleGroups.add(muscle);
+    }
+  }
+
+  return [...muscleGroups];
+}
+
+export function flattenWorkoutSections(
+  sections: WorkoutTemplateSectionRecord[] = [],
+): WorkoutTemplateExerciseRecord[] {
+  const flattened: WorkoutTemplateExerciseRecord[] = [];
+
+  for (const section of sections) {
+    for (const block of section.blocks) {
+      if (block.type !== "exercise" || !block.exercise_id) {
+        continue;
+      }
+
+      flattened.push({
+        id: block.exercise_id,
+        name: block.name ?? block.exercise_id,
+        sets: 1,
+        reps: block.reps ?? "",
+        muscleGroups: block.primary_muscles ?? [],
+      });
+    }
+  }
+
+  return flattened;
 }
 
 export interface CompletedExerciseSetRecord {
@@ -143,15 +228,26 @@ export async function createWorkoutTemplate(
 ): Promise<WorkoutTemplateRecord> {
   const now = new Date().toISOString();
   const reference = doc(workoutsCollection());
+  const flattenedExercises =
+    input.exercises.length > 0
+      ? input.exercises
+      : flattenWorkoutSections(input.sections ?? []);
+  const targetMuscles =
+    input.target_muscles ?? aggregateWorkoutMuscles(flattenedExercises);
   const payload: WorkoutTemplateRecord = {
     id: reference.id,
     user_id: uid,
     name: input.name,
     description: input.description,
+    cover_image_url: input.cover_image_url,
     difficulty: input.difficulty,
     is_ai_generated: input.is_ai_generated,
     source_prompt: input.source_prompt,
-    exercises: input.exercises,
+    exercises: flattenedExercises,
+    sections: input.sections,
+    target_muscles: targetMuscles,
+    is_active: input.is_active ?? false,
+    schedule_day_of_week: input.schedule_day_of_week,
     estimated_duration_minutes: input.estimated_duration_minutes,
     tags: input.tags ?? [],
     created_at: now,

@@ -7,9 +7,7 @@ export default function CommunityLayout() {
       <Stack.Screen name="discover" />
       <Stack.Screen name="[postId]" />
       <Stack.Screen name="create-post" options={{ presentation: "modal" }} />
-      <Stack.Screen name="groups/index" />
-      <Stack.Screen name="groups/create" options={{ presentation: "modal" }} />
-      <Stack.Screen name="groups/[id]" />
+      <Stack.Screen name="groups" />
     </Stack>
   );
 }

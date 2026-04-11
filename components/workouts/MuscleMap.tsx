@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import Body, { ExtendedBodyPart } from "react-native-body-highlighter";
 import { useThemeStore } from "@/stores/theme.store";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,7 @@ interface MuscleMapProps {
   className?: string;
   gender?: "male" | "female";
   scale?: number;
+  bodySize?: number;
   onMuscleSelect?: (slug: string) => void;
 }
 
@@ -27,10 +28,15 @@ export function MuscleMap({
   subtitle,
   className,
   gender = "male",
-  scale = 1.6,
+  scale = 1.05,
+  bodySize = 300,
   onMuscleSelect,
 }: MuscleMapProps) {
   const isDark = useThemeStore((state) => state.isDark);
+
+  // Render each body taller and narrower: width ~45% of bodySize, height = full bodySize
+  const itemWidth = Math.round(bodySize * 0.45);
+  const itemHeight = Math.round(bodySize * 1.0);
 
   // Convert muscle names to slugs for the library
   const primarySlugs = useMemo(
@@ -103,33 +109,55 @@ export function MuscleMap({
         </Text>
       ) : null}
 
-      {/* Front/back side by side */}
-      <View className="mt-2 flex-row items-start justify-center gap-3 py-1">
-        <Body
-          data={bodyData}
-          gender={gender}
-          side="front"
-          scale={scale}
-          colors={colors}
-          border={borderColor}
-          defaultFill={defaultFill}
-          defaultStroke={isDark ? "#4b5563" : "#d1d5db"}
-          defaultStrokeWidth={0.5}
-          onBodyPartPress={handleMusclePress}
-        />
-        <Body
-          data={bodyData}
-          gender={gender}
-          side="back"
-          scale={scale}
-          colors={colors}
-          border={borderColor}
-          defaultFill={defaultFill}
-          defaultStroke={isDark ? "#4b5563" : "#d1d5db"}
-          defaultStrokeWidth={0.5}
-          onBodyPartPress={handleMusclePress}
-        />
-      </View>
+      {/* Front/back side by side in square viewports */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        // Center the two smaller body views so both are visible simultaneously
+        contentContainerStyle={{
+          gap: 4,
+          paddingVertical: 4,
+          justifyContent: "center",
+          alignItems: "center",
+          paddingHorizontal: 8,
+        }}
+        className="mt-2"
+      >
+        <View
+          className="items-center justify-center overflow-hidden rounded-xl"
+          style={{ width: itemWidth, height: itemHeight }}
+        >
+          <Body
+            data={bodyData}
+            gender={gender}
+            side="front"
+            scale={scale}
+            colors={colors}
+            border={borderColor}
+            defaultFill={defaultFill}
+            defaultStroke={isDark ? "#4b5563" : "#d1d5db"}
+            defaultStrokeWidth={0.5}
+            onBodyPartPress={handleMusclePress}
+          />
+        </View>
+        <View
+          className="items-center justify-center overflow-hidden rounded-xl"
+          style={{ width: itemWidth, height: itemHeight }}
+        >
+          <Body
+            data={bodyData}
+            gender={gender}
+            side="back"
+            scale={scale}
+            colors={colors}
+            border={borderColor}
+            defaultFill={defaultFill}
+            defaultStroke={isDark ? "#4b5563" : "#d1d5db"}
+            defaultStrokeWidth={0.5}
+            onBodyPartPress={handleMusclePress}
+          />
+        </View>
+      </ScrollView>
     </View>
   );
 }

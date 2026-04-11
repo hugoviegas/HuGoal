@@ -119,6 +119,10 @@ export function ModernMobileMenu({
     transform: [{ translateX: indicatorIndex.value * tabWidth }],
   }));
 
+  if (!navbarVisible) {
+    return null;
+  }
+
   const shadowStyle =
     Platform.OS === "web"
       ? ({
@@ -147,7 +151,6 @@ export function ModernMobileMenu({
     >
       {containerWidth > 0 && (
         <Animated.View
-          pointerEvents="none"
           style={[
             {
               position: "absolute",
@@ -157,6 +160,7 @@ export function ModernMobileMenu({
               borderRadius: 16,
               backgroundColor: `${activeColor}12`,
               width: indicatorWidth,
+              pointerEvents: "none",
             },
             indicatorStyle,
           ]}

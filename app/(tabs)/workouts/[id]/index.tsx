@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Image, Pressable, ScrollView, Text, View } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Animated, Image, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/Button";
 import { MuscleMap } from "@/components/workouts/MuscleMap";
 import { useAuthStore } from "@/stores/auth.store";
 import { useThemeStore } from "@/stores/theme.store";
-import { useToastStore } from "@/stores/toast.store";
 import {
   clearPausedWorkoutSession,
   getPausedWorkoutSession,
@@ -25,6 +24,16 @@ import {
 import { getExerciseCatalog } from "@/lib/workouts/exercise-catalog";
 import type { OfficialExerciseRecord } from "@/lib/workouts/generated/official-exercises";
 import { cn } from "@/lib/utils";
+
+function normalizeExerciseKey(value: string): string {
+  return String(value)
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
 
 function formatEquipment(equipment: string[] | undefined): string {
   if (!equipment || equipment.length === 0) {
@@ -65,10 +74,9 @@ export default function WorkoutDetailScreen() {
   const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
   const { isDark, colors } = useThemeStore();
-  const showToast = useToastStore((state) => state.show);
 
   const [workout, setWorkout] = useState<WorkoutTemplateRecord | null>(null);
-  const [catalogById, setCatalogById] = useState<
+  const [catalogLookup, setCatalogLookup] = useState<
     Record<string, OfficialExerciseRecord>
   >({});
   const [selectedExerciseId, setSelectedExerciseId] = useState<string>(
@@ -78,6 +86,10 @@ export default function WorkoutDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [pausedSession, setPausedSession] =
     useState<PausedWorkoutSessionRecord | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [nextImageIndex, setNextImageIndex] = useState<number | null>(null);
+  const [pauseImageLoop, setPauseImageLoop] = useState(false);
+  const imageFade = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (exerciseId) {
@@ -111,9 +123,20 @@ export default function WorkoutDetailScreen() {
         const byId: Record<string, OfficialExerciseRecord> = {};
         for (const item of catalog.exercises) {
           byId[item.id] = item;
+          byId[normalizeExerciseKey(item.id)] = item;
+          byId[normalizeExerciseKey(item.name)] = item;
+          if (item.name_en) {
+            byId[normalizeExerciseKey(item.name_en)] = item;
+          }
+          if ((item as any).source_id) {
+            byId[normalizeExerciseKey((item as any).source_id)] = item;
+          }
+          for (const alias of item.aliases ?? []) {
+            byId[normalizeExerciseKey(alias)] = item;
+          }
         }
 
-        setCatalogById(byId);
+        setCatalogLookup(byId);
         setWorkout(workoutRecord);
 
         const fallbackExerciseId =
@@ -183,13 +206,60 @@ export default function WorkoutDetailScreen() {
   }, [selectedExerciseId, workout]);
 
   const selectedOfficial = selectedExercise
-    ? catalogById[selectedExercise.id]
+    ? catalogLookup[selectedExercise.id] ??
+      catalogLookup[normalizeExerciseKey(selectedExercise.id)] ??
+      catalogLookup[normalizeExerciseKey(selectedExercise.name)]
     : null;
-  const imageUrl = selectedOfficial?.remote_image_urls?.[0] ?? null;
+  const exerciseImages = useMemo(() => {
+    const urls = (selectedOfficial?.remote_image_urls ?? []).filter(Boolean);
+    return urls;
+  }, [selectedOfficial?.remote_image_urls]);
+  const currentImageUri =
+    exerciseImages.length > 0 ? exerciseImages[currentImageIndex] : null;
+  const nextImageUri =
+    nextImageIndex !== null ? exerciseImages[nextImageIndex] : null;
   const musclePrimary = selectedOfficial?.primary_muscles?.length
     ? selectedOfficial.primary_muscles
     : (selectedExercise?.muscleGroups ?? []);
   const muscleSecondary = selectedOfficial?.secondary_muscles ?? [];
+  const howToSteps = selectedOfficial?.instructions?.length
+    ? selectedOfficial.instructions
+    : (selectedOfficial?.instructions_en ?? "")
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+  useEffect(() => {
+    setCurrentImageIndex(0);
+    setNextImageIndex(null);
+    setPauseImageLoop(false);
+    imageFade.setValue(0);
+  }, [imageFade, selectedExercise?.id]);
+
+  useEffect(() => {
+    if (exerciseImages.length < 2 || pauseImageLoop || nextImageIndex !== null) {
+      return;
+    }
+
+    const timerId = setTimeout(() => {
+      const nextIndex = (currentImageIndex + 1) % exerciseImages.length;
+      setNextImageIndex(nextIndex);
+      Animated.timing(imageFade, {
+        toValue: 1,
+        duration: 420,
+        useNativeDriver: true,
+      }).start(() => {
+        setCurrentImageIndex(nextIndex);
+        setNextImageIndex(null);
+        imageFade.setValue(0);
+      });
+    }, 2000);
+
+    return () => {
+      clearTimeout(timerId);
+      imageFade.stopAnimation();
+    };
+  }, [currentImageIndex, exerciseImages.length, imageFade, nextImageIndex, pauseImageLoop]);
 
   const handleStartWorkout = async () => {
     if (!id) {
@@ -246,7 +316,7 @@ export default function WorkoutDetailScreen() {
     workout.estimated_duration_minutes,
     workout.exercises.length,
   );
-  const tabBarClearance = insets.bottom + 76;
+  const tabBarClearance = insets.bottom + 160;
   const hasPausedSession = !!pausedSession;
 
   return (
@@ -272,22 +342,61 @@ export default function WorkoutDetailScreen() {
         </View>
 
         <View className="px-4">
-          <View
+          <Pressable
             className="rounded-3xl overflow-hidden bg-black/15 mb-4"
             style={{ aspectRatio: 16 / 9 }}
+            onPress={() => {
+              if (exerciseImages.length > 1) {
+                setPauseImageLoop((prev) => !prev);
+              }
+            }}
           >
-            {imageUrl ? (
-              <Image
-                source={{ uri: imageUrl }}
-                className="h-full w-full"
-                resizeMode="cover"
-              />
+            {currentImageUri ? (
+              <>
+                <Image
+                  source={{ uri: currentImageUri }}
+                  className="h-full w-full"
+                  resizeMode="cover"
+                />
+                {nextImageUri ? (
+                  <Animated.Image
+                    source={{ uri: nextImageUri }}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      opacity: imageFade,
+                    }}
+                    resizeMode="cover"
+                  />
+                ) : null}
+              </>
             ) : (
               <View className="h-full w-full items-center justify-center">
                 <Dumbbell size={32} color={colors.muted} />
               </View>
             )}
-          </View>
+
+            {exerciseImages.length > 1 ? (
+              <View
+                style={{
+                  position: "absolute",
+                  right: 10,
+                  bottom: 10,
+                  borderRadius: 999,
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                  backgroundColor: "rgba(15,23,42,0.58)",
+                }}
+              >
+                <Text style={{ color: "#fff", fontSize: 11, fontWeight: "600" }}>
+                  {pauseImageLoop ? "Paused" : "Tap to pause"}
+                </Text>
+              </View>
+            ) : null}
+          </Pressable>
 
           <Text className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-1">
             {selectedExercise.name}
@@ -295,6 +404,31 @@ export default function WorkoutDetailScreen() {
           <Text className="text-sm text-gray-600 dark:text-gray-400 mb-4">
             {workout.name}
           </Text>
+
+          <View className="flex-row flex-wrap gap-2 mb-4">
+            <View
+              className={cn(
+                "px-3 py-1.5 rounded-full",
+                isDark ? "bg-dark-surface" : "bg-light-surface",
+              )}
+            >
+              <Text className="text-xs font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-300">
+                {workout.difficulty}
+              </Text>
+            </View>
+            {selectedOfficial?.category ? (
+              <View
+                className={cn(
+                  "px-3 py-1.5 rounded-full",
+                  isDark ? "bg-dark-surface" : "bg-light-surface",
+                )}
+              >
+                <Text className="text-xs font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-300">
+                  {selectedOfficial.category}
+                </Text>
+              </View>
+            ) : null}
+          </View>
 
           <View
             className={cn(
@@ -331,7 +465,7 @@ export default function WorkoutDetailScreen() {
             secondaryMuscles={muscleSecondary}
             title="Targeted muscle areas"
             subtitle="Front and back activation"
-            scale={1.5}
+            bodySize={300}
           />
 
           <View className="mt-5 mb-2">
@@ -345,8 +479,11 @@ export default function WorkoutDetailScreen() {
 
           <View className="gap-2">
             {workout.exercises.map((exercise, index) => {
-              const current = catalogById[exercise.id];
-              const thumb = current?.remote_image_urls?.[0] ?? null;
+              const currentByLookup =
+                catalogLookup[exercise.id] ??
+                catalogLookup[normalizeExerciseKey(exercise.id)] ??
+                catalogLookup[normalizeExerciseKey(exercise.name)];
+              const thumb = currentByLookup?.remote_image_urls?.[0] ?? null;
               const selected = selectedExercise.id === exercise.id;
 
               return (
@@ -405,6 +542,37 @@ export default function WorkoutDetailScreen() {
               );
             })}
           </View>
+
+          <View className="mt-6">
+            <Text className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              How to perform
+            </Text>
+            {howToSteps.length > 0 ? (
+              <View
+                className={cn(
+                  "rounded-2xl border p-4 gap-3",
+                  isDark
+                    ? "bg-dark-card border-dark-border"
+                    : "bg-light-card border-light-border",
+                )}
+              >
+                {howToSteps.map((step, index) => (
+                  <View key={`${selectedExercise.id}-step-${index}`} className="flex-row items-start gap-2">
+                    <Text className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                      {index + 1}.
+                    </Text>
+                    <Text className="text-sm text-gray-700 dark:text-gray-300 flex-1">
+                      {step}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <Text className="text-sm text-gray-600 dark:text-gray-400">
+                How-to instructions are not available for this exercise yet.
+              </Text>
+            )}
+          </View>
         </View>
       </ScrollView>
 
@@ -415,7 +583,7 @@ export default function WorkoutDetailScreen() {
             ? "bg-dark-surface border-dark-border"
             : "bg-light-surface border-light-border",
         )}
-        style={{ bottom: 0, paddingBottom: insets.bottom + 14 }}
+        style={{ bottom: 0, paddingBottom: insets.bottom + 80 }}
       >
         {hasPausedSession ? (
           <View className="flex-row gap-2">

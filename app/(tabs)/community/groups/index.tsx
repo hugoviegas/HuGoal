@@ -1,16 +1,9 @@
-import {
-  View,
-  Text,
-  FlatList,
-  Pressable,
-  ActivityIndicator,
-  RefreshControl,
-} from "react-native";
+import { View, Text, Pressable, RefreshControl, ActivityIndicator } from "react-native";
 import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ArrowLeft, Plus, Globe } from "lucide-react-native";
-import { GroupCard } from "@/components/community/GroupCard";
+import { ArrowLeft, Globe, Plus } from "lucide-react-native";
+import { GroupsList } from "@/components/community/GroupsList";
 import { useThemeStore } from "@/stores/theme.store";
 import { useAuthStore } from "@/stores/auth.store";
 import { useCommunityStore } from "@/stores/community.store";
@@ -29,6 +22,14 @@ export default function GroupsIndexScreen() {
   const [discoverGroups, setDiscoverGroups] = useState<CommunityGroup[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [tab, setTab] = useState<"mine" | "discover">("mine");
+
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+    router.replace("/(tabs)/community");
+  };
 
   useEffect(() => {
     if (!uid) return;
@@ -54,14 +55,21 @@ export default function GroupsIndexScreen() {
         style={{
           paddingTop: insets.top + 8,
           paddingHorizontal: 16,
-          paddingBottom: 12,
+          paddingBottom: 0,
           borderBottomWidth: 1,
           borderBottomColor: colors.cardBorder,
         }}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 12,
+            marginBottom: 12,
+          }}
+        >
           <Pressable
-            onPress={() => router.back()}
+            onPress={handleBack}
             style={({ pressed }) => ({
               width: 36,
               height: 36,
@@ -75,43 +83,39 @@ export default function GroupsIndexScreen() {
           >
             <ArrowLeft size={18} color={colors.foreground} />
           </Pressable>
-          <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: "800", flex: 1 }}>
-            Challenge Groups
-          </Text>
-          <Pressable
-            onPress={() => router.push("/(tabs)/community/groups/create")}
-            style={({ pressed }) => ({
-              width: 36,
-              height: 36,
-              borderRadius: 10,
-              backgroundColor: pressed ? colors.primary + "CC" : colors.primary,
-              alignItems: "center",
-              justifyContent: "center",
-            })}
+          <Text
+            style={{
+              color: colors.foreground,
+              fontSize: 20,
+              fontWeight: "800",
+              flex: 1,
+            }}
           >
-            <Plus size={20} color={colors.primaryForeground} />
-          </Pressable>
+            Grupos de Desafio
+          </Text>
         </View>
 
         {/* Tabs */}
-        <View style={{ flexDirection: "row", gap: 8 }}>
+        <View style={{ flexDirection: "row", gap: 0 }}>
           {[
-            { key: "mine" as const, label: "My Groups" },
-            { key: "discover" as const, label: "Discover", Icon: Globe },
+            { key: "mine" as const, label: "Meus Grupos" },
+            { key: "discover" as const, label: "Descobrir", Icon: Globe },
           ].map(({ key, label }) => (
             <Pressable
               key={key}
               onPress={() => setTab(key)}
               style={{
-                paddingHorizontal: 14,
-                paddingVertical: 7,
-                borderRadius: 20,
-                backgroundColor: tab === key ? colors.primary : colors.surface,
+                flex: 1,
+                alignItems: "center",
+                paddingVertical: 10,
+                borderBottomWidth: 2,
+                borderBottomColor:
+                  tab === key ? colors.primary : "transparent",
               }}
             >
               <Text
                 style={{
-                  color: tab === key ? colors.primaryForeground : colors.mutedForeground,
+                  color: tab === key ? colors.primary : colors.mutedForeground,
                   fontSize: 14,
                   fontWeight: "700",
                 }}
@@ -123,53 +127,51 @@ export default function GroupsIndexScreen() {
         </View>
       </View>
 
-      {groupsLoading && groups.length === 0 ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <ActivityIndicator color={colors.primary} size="large" />
-        </View>
-      ) : (
-        <FlatList
-          data={displayedGroups}
-          keyExtractor={(g) => g.id}
-          contentContainerStyle={{
-            padding: 16,
-            gap: 12,
-            paddingBottom: insets.bottom + 112,
-          }}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
-          }
-          ListEmptyComponent={
-            <View style={{ alignItems: "center", paddingTop: 40, gap: 12 }}>
-              <Text style={{ color: colors.mutedForeground, fontSize: 16, fontWeight: "600" }}>
-                {tab === "mine" ? "You haven't joined any groups yet" : "No public groups available"}
-              </Text>
-              {tab === "mine" && (
-                <Pressable
-                  onPress={() => router.push("/(tabs)/community/groups/create")}
-                  style={({ pressed }) => ({
-                    paddingHorizontal: 20,
-                    paddingVertical: 12,
-                    borderRadius: 14,
-                    backgroundColor: pressed ? colors.primary + "CC" : colors.primary,
-                  })}
-                >
-                  <Text style={{ color: colors.primaryForeground, fontSize: 15, fontWeight: "700" }}>
-                    Create a Group
-                  </Text>
-                </Pressable>
-              )}
-            </View>
-          }
-          renderItem={({ item }) => (
-            <GroupCard
-              group={item}
-              onPress={() => router.push(`/(tabs)/community/groups/${item.id}`)}
-            />
-          )}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+      <GroupsList
+        groups={displayedGroups}
+        loading={groupsLoading}
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
+        onPress={(g) => router.push(`/(tabs)/community/groups/${g.id}` as never)}
+        emptyMessage={
+          tab === "mine"
+            ? "Você ainda não entrou em nenhum grupo"
+            : "Nenhum grupo público disponível"
+        }
+        emptyAction={
+          tab === "mine"
+            ? {
+                label: "Criar grupo",
+                onPress: () =>
+                  router.push("/(tabs)/community/groups/create" as never),
+              }
+            : undefined
+        }
+        contentPaddingBottom={insets.bottom + 120}
+      />
+
+      {/* Bottom FAB */}
+      <Pressable
+        onPress={() => router.push("/(tabs)/community/groups/create" as never)}
+        style={({ pressed }) => ({
+          position: "absolute",
+          right: 20,
+          bottom: insets.bottom + 96,
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          backgroundColor: pressed ? colors.primary + "CC" : colors.primary,
+          alignItems: "center",
+          justifyContent: "center",
+          shadowColor: "#000",
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 8,
+        })}
+      >
+        <Plus size={28} color={colors.primaryForeground} />
+      </Pressable>
     </View>
   );
 }

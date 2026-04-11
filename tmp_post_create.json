@@ -1,0 +1,52 @@
+{
+  "name": "projects/coachai-24f52/databases/(default)/documents/community_posts/testpost-copilot-20260411190651",
+  "fields": {
+    "flagged_count": {
+      "integerValue": "0"
+    },
+    "author_avatar_url": {
+      "stringValue": ""
+    },
+    "mod_reviewed": {
+      "booleanValue": false
+    },
+    "status": {
+      "stringValue": "published"
+    },
+    "content": {
+      "stringValue": "Automated test post"
+    },
+    "content_length": {
+      "integerValue": "20"
+    },
+    "updated_at": {
+      "timestampValue": "2026-04-11T00:00:00Z"
+    },
+    "author_name": {
+      "stringValue": "Hugo Viegas"
+    },
+    "visibility": {
+      "stringValue": "public"
+    },
+    "liked_by": {
+      "arrayValue": {}
+    },
+    "author_id": {
+      "stringValue": "UxtpUffhsMTVYG4UJSh72TJxNho2"
+    },
+    "created_at": {
+      "timestampValue": "2026-04-11T00:00:00Z"
+    },
+    "media": {
+      "arrayValue": {}
+    },
+    "like_count": {
+      "integerValue": "0"
+    },
+    "comment_count": {
+      "integerValue": "0"
+    }
+  },
+  "createTime": "2026-04-11T18:06:52.567651Z",
+  "updateTime": "2026-04-11T18:06:52.567651Z"
+}

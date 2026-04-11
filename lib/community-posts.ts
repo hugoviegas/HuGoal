@@ -58,11 +58,9 @@ export async function createPost(params: {
   const postData: Omit<CommunityPost, "id"> = {
     author_id: uid,
     author_name,
-    author_avatar_url,
     content,
     content_length: content.length,
     media,
-    linked_content,
     visibility,
     like_count: 0,
     comment_count: 0,
@@ -73,11 +71,25 @@ export async function createPost(params: {
     created_at: new Date().toISOString(),
   };
 
-  const docRef = await addDoc(collection(db, "community_posts"), {
+  const postPayload: Record<string, unknown> = {
     ...postData,
     created_at: serverTimestamp(),
     updated_at: serverTimestamp(),
-  });
+  };
+
+  if (!author_avatar_url) {
+    delete postPayload.author_avatar_url;
+  } else {
+    postPayload.author_avatar_url = author_avatar_url;
+  }
+
+  if (!linked_content) {
+    delete postPayload.linked_content;
+  } else {
+    postPayload.linked_content = linked_content;
+  }
+
+  const docRef = await addDoc(collection(db, "community_posts"), postPayload);
 
   return docRef.id;
 }

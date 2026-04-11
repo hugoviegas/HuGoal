@@ -7,6 +7,8 @@ import {
   getDocs,
   onSnapshot,
   Timestamp,
+  type QuerySnapshot,
+  type DocumentData,
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -34,17 +36,28 @@ export async function loadFeed(uid: string): Promise<CommunityPost[]> {
   let allPosts: CommunityPost[] = [];
 
   for (const chunk of chunks) {
-    const q = query(
+    const primaryQuery = query(
       collection(db, "community_posts"),
       where("author_id", "in", chunk),
       where("status", "==", "published"),
       orderBy("created_at", "desc"),
       limit(FEED_LIMIT),
     );
-    const snap = await getDocs(q);
+
+    const fallbackQuery = query(
+      collection(db, "community_posts"),
+      where("status", "==", "published"),
+      limit(FEED_LIMIT),
+    );
+
+    const snap = await getDocs(primaryQuery).catch(async (error) => {
+      console.error("[community][feed] loadFeed primary query failed", error);
+      return getDocs(fallbackQuery);
+    });
+
     const posts = snap.docs
       .map((d) => firestoreToPost(d.id, d.data() as Record<string, unknown>))
-      .filter((p) => !excludeIds.has(p.author_id));
+      .filter((p) => chunk.includes(p.author_id) && !excludeIds.has(p.author_id));
     allPosts = allPosts.concat(posts);
   }
 
@@ -71,7 +84,7 @@ export function setupFeedListener(
   const excludeIds = new Set([...blockedIds, ...mutedIds]);
   const chunk = followingIds.slice(0, 30); // First chunk only for real-time
 
-  const q = query(
+  const buildPrimaryQuery = () => query(
     collection(db, "community_posts"),
     where("author_id", "in", chunk),
     where("status", "==", "published"),
@@ -79,12 +92,51 @@ export function setupFeedListener(
     limit(FEED_LIMIT),
   );
 
-  return onSnapshot(q, (snap) => {
-    const posts = snap.docs
+  const buildFallbackQuery = () => query(
+    collection(db, "community_posts"),
+    where("status", "==", "published"),
+    limit(FEED_LIMIT),
+  );
+
+  const mapPosts = (snap: QuerySnapshot<DocumentData>) => {
+    const allowedAuthors = new Set(chunk);
+    return snap.docs
       .map((d) => firestoreToPost(d.id, d.data() as Record<string, unknown>))
-      .filter((p) => !excludeIds.has(p.author_id));
-    onUpdate(posts);
-  });
+      .filter((p) => allowedAuthors.has(p.author_id) && !excludeIds.has(p.author_id));
+  };
+
+  let fallbackUnsub: Unsubscribe | null = null;
+
+  const primaryUnsub = onSnapshot(
+    buildPrimaryQuery(),
+    (snap) => {
+      onUpdate(mapPosts(snap));
+    },
+    (error) => {
+      console.error("[community][feed] primary listener failed", error);
+
+      if (fallbackUnsub) return;
+
+      fallbackUnsub = onSnapshot(
+        buildFallbackQuery(),
+        (snap) => {
+          onUpdate(mapPosts(snap));
+        },
+        (fallbackError) => {
+          console.error("[community][feed] fallback listener failed", fallbackError);
+          onUpdate([]);
+        },
+      );
+    },
+  );
+
+  return () => {
+    primaryUnsub();
+    if (fallbackUnsub) {
+      fallbackUnsub();
+      fallbackUnsub = null;
+    }
+  };
 }
 
 // ─── Discover ────────────────────────────────────────────────────────────────

@@ -6,13 +6,13 @@ import type {
   ChallengeParticipant,
   CommunityNotification,
   PublicProfile,
+  GroupCheckIn,
 } from "@/types";
 import { loadFeed, setupFeedListener } from "@/lib/community-feed";
 import { createPost, likePost, unlikePost, deletePost } from "@/lib/community-posts";
 import {
   followUser,
   unfollowUser,
-  isFollowing,
   blockUser,
   unblockUser,
   muteUser,
@@ -21,8 +21,18 @@ import {
   getBlockedUserIds,
   getMutedUserIds,
 } from "@/lib/community-follows";
-import { joinGroup, leaveGroup, getUserGroups } from "@/lib/community-groups";
+import {
+  joinGroup,
+  leaveGroup,
+  deleteGroup,
+  getUserGroups,
+} from "@/lib/community-groups";
 import { getLeaderboard } from "@/lib/community-leaderboard";
+import {
+  createCheckIn,
+  getTodayCheckIn,
+  getGroupCheckIns,
+} from "@/lib/community-checkins";
 import type { PostVisibility, PostLinkedContent } from "@/types";
 
 interface CommunityState {
@@ -38,6 +48,11 @@ interface CommunityState {
   // Groups
   groups: CommunityGroup[];
   groupsLoading: boolean;
+
+  // Check-ins
+  checkIns: Record<string, GroupCheckIn[]>;
+  checkInsLoading: boolean;
+  todayCheckIn: Record<string, GroupCheckIn | null>;
 
   // Leaderboard (per group)
   leaderboards: Record<string, ChallengeParticipant[]>;
@@ -86,8 +101,26 @@ interface CommunityState {
   // Actions — Groups
   loadGroups: (uid: string) => Promise<void>;
   joinGroup: (groupId: string, uid: string, user_name: string, user_avatar?: string) => Promise<void>;
-  leaveGroup: (groupId: string, uid: string) => Promise<void>;
+  leaveGroup: (groupId: string, uid: string, isCreator?: boolean) => Promise<void>;
   loadLeaderboard: (groupId: string) => Promise<void>;
+
+  // Actions — Check-ins
+  loadCheckIns: (groupId: string, date?: string) => Promise<void>;
+  loadTodayCheckIn: (groupId: string, uid: string) => Promise<void>;
+  submitCheckIn: (
+    groupId: string,
+    uid: string,
+    params: {
+      user_name: string;
+      user_avatar?: string;
+      challenge_type: GroupCheckIn["challenge_type"];
+      metric_value: number;
+      metric_unit: string;
+      notes?: string;
+      imageUri?: string;
+      exifDateTimeOriginal?: string;
+    },
+  ) => Promise<void>;
 }
 
 export const useCommunityStore = create<CommunityState>((set, get) => ({
@@ -98,6 +131,9 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
   suggestedPeople: [],
   groups: [],
   groupsLoading: false,
+  checkIns: {},
+  checkInsLoading: false,
+  todayCheckIn: {},
   leaderboards: {},
   followingIds: [],
   blockedIds: [],
@@ -157,13 +193,11 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
 
   createPost: async (params) => {
     const postId = await createPost(params);
-    // Refresh feed
     get().refreshFeed(params.uid);
     return postId;
   },
 
   likePost: async (postId, uid) => {
-    // Optimistic update
     set((state) => ({
       feed: state.feed.map((p) =>
         p.id === postId
@@ -179,7 +213,6 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
   },
 
   unlikePost: async (postId, uid) => {
-    // Optimistic update
     set((state) => ({
       feed: state.feed.map((p) =>
         p.id === postId
@@ -274,8 +307,12 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
     await get().loadGroups(uid);
   },
 
-  leaveGroup: async (groupId, uid) => {
-    await leaveGroup(groupId, uid);
+  leaveGroup: async (groupId, uid, isCreator = false) => {
+    if (isCreator) {
+      await deleteGroup(groupId, uid);
+    } else {
+      await leaveGroup(groupId, uid);
+    }
     set((state) => ({
       groups: state.groups.filter((g) => g.id !== groupId),
     }));
@@ -286,5 +323,43 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
     set((state) => ({
       leaderboards: { ...state.leaderboards, [groupId]: participants },
     }));
+  },
+
+  // ── Check-ins ───────────────────────────────────────────────────────────────
+
+  loadCheckIns: async (groupId, date) => {
+    set({ checkInsLoading: true });
+    try {
+      const checkIns = await getGroupCheckIns(groupId, date);
+      set((state) => ({
+        checkIns: { ...state.checkIns, [groupId]: checkIns },
+        checkInsLoading: false,
+      }));
+    } catch {
+      set({ checkInsLoading: false });
+    }
+  },
+
+  loadTodayCheckIn: async (groupId, uid) => {
+    try {
+      const checkIn = await getTodayCheckIn(groupId, uid);
+      set((state) => ({
+        todayCheckIn: { ...state.todayCheckIn, [groupId]: checkIn },
+      }));
+    } catch {
+      // silent
+    }
+  },
+
+  submitCheckIn: async (groupId, uid, params) => {
+    const checkInId = await createCheckIn({ groupId, uid, ...params });
+    // Refresh check-ins for this group
+    await get().loadCheckIns(groupId);
+    // Update today's check-in cache
+    const todayCheckIn = await getTodayCheckIn(groupId, uid);
+    set((state) => ({
+      todayCheckIn: { ...state.todayCheckIn, [groupId]: todayCheckIn },
+    }));
+    return;
   },
 }));

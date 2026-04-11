@@ -1,0 +1,40 @@
+{
+  "name": "projects/coachai-24f52/databases/(default)/documents/community_groups/testgroup-copilot-20260411190510",
+  "fields": {
+    "name": {
+      "stringValue": "Test Group (Copilot)"
+    },
+    "description": {
+      "stringValue": "Automated test"
+    },
+    "status": {
+      "stringValue": "active"
+    },
+    "member_count": {
+      "integerValue": "1"
+    },
+    "created_at": {
+      "timestampValue": "2026-04-11T00:00:00Z"
+    },
+    "creator_id": {
+      "stringValue": "UxtpUffhsMTVYG4UJSh72TJxNho2"
+    },
+    "membership": {
+      "stringValue": "open"
+    },
+    "avatar_url": {
+      "stringValue": ""
+    },
+    "challenge_type": {
+      "stringValue": "none"
+    },
+    "challenge_config": {
+      "mapValue": {}
+    },
+    "visibility": {
+      "stringValue": "public"
+    }
+  },
+  "createTime": "2026-04-11T18:05:18.739986Z",
+  "updateTime": "2026-04-11T18:05:18.739986Z"
+}

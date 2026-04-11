@@ -1,13 +1,22 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, ScrollView, Pressable, TextInput } from "react-native";
+import {
+  View,
+  FlatList,
+  Text,
+  ScrollView,
+  Pressable,
+  TextInput,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import {
   ArrowDown,
   ArrowUp,
   CirclePlus,
+  Copy,
   Dumbbell,
-  Funnel,
+  GripVertical,
   Search,
   Sparkles,
   X,
@@ -25,18 +34,25 @@ import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
 import { createWorkoutTemplate } from "@/lib/firestore/workouts";
 import { useHideMainTabBar } from "@/hooks/useHideMainTabBar";
-import type { Difficulty, EquipmentType, Exercise } from "@/types";
-import {
-  getExerciseCatalog,
-  muscleKeyToLabel,
-} from "@/lib/workouts/exercise-catalog";
-import type { OfficialExerciseRecord } from "@/lib/workouts/generated/official-exercises";
+import type { Difficulty, EquipmentType } from "@/types";
 
+import { muscleKeyToLabel } from "@/lib/workouts/exercise-catalog";
+import {
+  loadExerciseCache,
+  type CachedLibraryExercise,
+} from "@/lib/workouts/exercise-cache";
+import {
+  buildExerciseFilterGroups,
+  exerciseMatchesFilter,
+  type ExerciseFilterKey,
+} from "@/lib/workouts/exercise-filters";
 type WorkflowType = "manual" | "ai";
 type CreateStep = "workflow" | "details" | "exercises" | "preview";
+type BuilderSectionType = "warmup" | "round" | "cooldown";
 
-interface RoundExerciseConfig {
+interface BuilderExerciseItem {
   id: string;
+  type: "exercise";
   exerciseId: string;
   name: string;
   muscleGroups: string[];
@@ -44,18 +60,29 @@ interface RoundExerciseConfig {
   difficulty: Difficulty;
   hasWeight: boolean;
   imageUrl: string;
-  sets: number;
   reps: string;
   weightKg?: number;
-  restSeconds: number;
   notes?: string;
+}
+
+interface BuilderRestItem {
+  id: string;
+  type: "rest";
+  durationSeconds: number;
+  notes?: string;
+}
+
+type BuilderItem = BuilderExerciseItem | BuilderRestItem;
+
+interface BuilderTarget {
+  section: BuilderSectionType;
+  roundId?: string;
 }
 
 interface WorkoutRound {
   id: string;
   name: string;
-  restAfterSeconds: number | null;
-  exercises: RoundExerciseConfig[];
+  items: BuilderItem[];
 }
 
 interface WorkoutDraft {
@@ -63,8 +90,17 @@ interface WorkoutDraft {
   description: string;
   difficulty: "beginner" | "intermediate" | "advanced";
   workflowType: WorkflowType;
+  warmupEnabled: boolean;
+  warmupItems: BuilderItem[];
   rounds: WorkoutRound[];
+  cooldownEnabled: boolean;
+  cooldownItems: BuilderItem[];
   tags: string[];
+  cover_image_asset?: {
+    uri: string;
+    width: number;
+    height: number;
+  };
 }
 
 const DIFFICULTIES = [
@@ -78,58 +114,14 @@ const STEP_LABELS = ["Workflow", "Details", "Exercises", "Preview"];
 const GENERIC_EXERCISE_IMAGE =
   "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1200&q=80";
 
-type LibraryExercise = Exercise & {
-  has_weight: boolean;
-  equipment_label: EquipmentType;
-  short_description: string;
-};
 
-function toLibraryExercise(exercise: OfficialExerciseRecord): LibraryExercise {
-  const firstEquipment =
-    (exercise.equipment.find((item) => item !== "none") as
-      | EquipmentType
-      | undefined) ??
-    (exercise.equipment[0] as EquipmentType | undefined) ??
-    "none";
-
-  const hasWeight = !exercise.equipment.every(
-    (equipment) => equipment === "none" || equipment === "bodyweight",
-  );
-
-  const firstMuscle = exercise.primary_muscles[0]
-    ? muscleKeyToLabel(exercise.primary_muscles[0])
-    : "Mixed";
-
-  return {
-    ...exercise,
-    equipment_label: firstEquipment,
-    has_weight: hasWeight,
-    short_description: `${exercise.category} • ${firstMuscle}`,
-  };
-}
-
-const EQUIPMENT_FILTERS: ("all" | EquipmentType)[] = [
-  "all",
-  "bodyweight",
-  "barbell",
-  "dumbbell",
-  "kettlebell",
-  "none",
-];
-
-const DIFFICULTY_FILTERS: ("all" | Difficulty)[] = [
-  "all",
-  "beginner",
-  "intermediate",
-  "advanced",
-];
+type LibraryExercise = CachedLibraryExercise;
 
 function createRound(name: string): WorkoutRound {
   return {
     id: `round-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     name,
-    restAfterSeconds: 90,
-    exercises: [],
+    items: [],
   };
 }
 
@@ -149,30 +141,40 @@ export default function CreateWorkoutScreen() {
     useState<WorkoutDraft["difficulty"]>("intermediate");
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
-  const [pickerRoundId, setPickerRoundId] = useState<string | null>(null);
+  const [pickerTarget, setPickerTarget] = useState<BuilderTarget | null>(null);
   const [exerciseSearch, setExerciseSearch] = useState("");
   const [showSaveDraftConfirm, setShowSaveDraftConfirm] = useState(false);
-  const [equipmentFilter, setEquipmentFilter] = useState<"all" | EquipmentType>(
-    "all",
-  );
-  const [difficultyFilter, setDifficultyFilter] = useState<"all" | Difficulty>(
-    "all",
-  );
-  const [exerciseLibrary, setExerciseLibrary] = useState<LibraryExercise[]>([]);
+  const [exerciseFilter, setExerciseFilter] = useState<ExerciseFilterKey>("all");
+  const [exerciseLibrary, setExerciseLibrary] = useState<LibraryExercise[] | null>(null);
   const [loadingExerciseLibrary, setLoadingExerciseLibrary] = useState(false);
   const [draft, setDraft] = useState<WorkoutDraft>({
     name: "",
     description: "",
     difficulty: "intermediate",
     workflowType: "manual",
+    warmupEnabled: false,
+    warmupItems: [],
     rounds: [createRound("Round 1")],
+    cooldownEnabled: false,
+    cooldownItems: [],
     tags: [],
   });
 
-  const totalSelectedExercises = draft.rounds.reduce(
-    (sum, round) => sum + round.exercises.length,
-    0,
-  );
+  const totalSelectedExercises = useMemo(() => {
+    const countExercises = (items: BuilderItem[]) =>
+      items.filter((item) => item.type === "exercise").length;
+
+    const roundsCount = draft.rounds.reduce(
+      (sum, round) => sum + countExercises(round.items ?? []),
+      0,
+    );
+
+    return (
+      roundsCount +
+      (draft.warmupEnabled ? countExercises(draft.warmupItems) : 0) +
+      (draft.cooldownEnabled ? countExercises(draft.cooldownItems) : 0)
+    );
+  }, [draft.cooldownEnabled, draft.cooldownItems, draft.rounds, draft.warmupEnabled, draft.warmupItems]);
 
   useEffect(() => {
     let mounted = true;
@@ -180,15 +182,15 @@ export default function CreateWorkoutScreen() {
     (async () => {
       try {
         setLoadingExerciseLibrary(true);
-        const catalog = await getExerciseCatalog();
+        const exercises = await loadExerciseCache();
 
         if (!mounted) {
           return;
         }
 
-        setExerciseLibrary(catalog.exercises.map(toLibraryExercise));
+        setExerciseLibrary(exercises);
       } catch (error) {
-        console.error("[createWorkout] failed to load exercise catalog", error);
+        console.error("[createWorkout] failed to load exercise cache", error);
         if (!mounted) {
           return;
         }
@@ -206,19 +208,29 @@ export default function CreateWorkoutScreen() {
   }, [showToast]);
 
   const estimatedDuration = useMemo(() => {
-    return draft.rounds.reduce((total, round) => {
-      const exercisesTime = round.exercises.reduce((exerciseTotal, ex) => {
-        const repsWorkSeconds = ex.sets * 40;
-        const restBetweenSets = Math.max(0, ex.sets - 1) * ex.restSeconds;
-        return exerciseTotal + repsWorkSeconds + restBetweenSets;
+    const sectionDuration = (items: BuilderItem[]) =>
+      items.reduce((sum, item) => {
+        if (item.type === "rest") {
+          return sum + item.durationSeconds;
+        }
+        return sum + 40;
       }, 0);
 
-      const roundRest = round.restAfterSeconds ?? 0;
-      return total + exercisesTime + roundRest;
-    }, 0);
-  }, [draft.rounds]);
+    return (
+      draft.rounds.reduce((total, round) => total + sectionDuration(round.items ?? []), 0) +
+      (draft.warmupEnabled ? sectionDuration(draft.warmupItems) : 0) +
+      (draft.cooldownEnabled ? sectionDuration(draft.cooldownItems) : 0)
+    );
+  }, [draft.cooldownEnabled, draft.cooldownItems, draft.rounds, draft.warmupEnabled, draft.warmupItems]);
+
+  const exerciseFilterGroups = useMemo(
+    () => buildExerciseFilterGroups(exerciseLibrary ?? []),
+    [exerciseLibrary],
+  );
 
   const groupedExercises = useMemo(() => {
+    if (!exerciseLibrary) return {};
+
     const filtered = exerciseLibrary.filter((exercise) => {
       const searchable = [
         exercise.name,
@@ -231,13 +243,9 @@ export default function CreateWorkoutScreen() {
 
       const matchesSearch =
         !exerciseSearch || searchable.includes(exerciseSearch.toLowerCase());
-      const matchesEquipment =
-        equipmentFilter === "all" ||
-        exercise.equipment.includes(equipmentFilter as EquipmentType);
-      const matchesDifficulty =
-        difficultyFilter === "all" || exercise.difficulty === difficultyFilter;
+      const matchesFilter = exerciseMatchesFilter(exercise, exerciseFilter);
 
-      return matchesSearch && matchesEquipment && matchesDifficulty;
+      return matchesSearch && matchesFilter;
     });
 
     return filtered.reduce<Record<string, typeof filtered>>((acc, exercise) => {
@@ -248,8 +256,13 @@ export default function CreateWorkoutScreen() {
       acc[key].push(exercise);
       return acc;
     }, {});
-  }, [difficultyFilter, equipmentFilter, exerciseLibrary, exerciseSearch]);
+  }, [exerciseFilter, exerciseLibrary, exerciseSearch]);
 
+  const flattenedFilteredExercises = useMemo(() => {
+    return Object.entries(groupedExercises).flatMap(([group, items]) =>
+      items.map((item) => ({ ...item, group }))
+    );
+  }, [groupedExercises]);
   const handleWorkflowSelect = (type: WorkflowType) => {
     setWorkflowType(type);
     setDraft((prev) => ({ ...prev, workflowType: type }));
@@ -289,7 +302,7 @@ export default function CreateWorkoutScreen() {
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
       // Mock AI response - replace with real Gemini API call later
-      if (exerciseLibrary.length === 0) {
+      if (!exerciseLibrary || exerciseLibrary.length === 0) {
         showToast(
           "Exercise catalog is still loading. Try again in a moment.",
           "error",
@@ -297,10 +310,11 @@ export default function CreateWorkoutScreen() {
         return;
       }
 
-      const generatedExercises: RoundExerciseConfig[] = exerciseLibrary
+      const generatedExercises: BuilderExerciseItem[] = exerciseLibrary
         .slice(0, 5)
         .map((exercise) => ({
           id: `selected-${exercise.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          type: "exercise",
           exerciseId: exercise.id,
           name: exercise.name,
           muscleGroups: exercise.primary_muscles,
@@ -308,10 +322,8 @@ export default function CreateWorkoutScreen() {
           difficulty: exercise.difficulty,
           hasWeight: exercise.has_weight,
           imageUrl: GENERIC_EXERCISE_IMAGE,
-          sets: 3 + Math.floor(Math.random() * 2),
           reps: `${8 + Math.floor(Math.random() * 4)}-${12 + Math.floor(Math.random() * 4)}`,
           weightKg: exercise.has_weight ? 20 : undefined,
-          restSeconds: 60,
         }));
 
       setDraft((prev) => ({
@@ -319,7 +331,7 @@ export default function CreateWorkoutScreen() {
         rounds: [
           {
             ...createRound("Round 1"),
-            exercises: generatedExercises,
+            items: generatedExercises,
           },
         ],
         tags: ["AI-Generated", prev.difficulty],
@@ -338,17 +350,18 @@ export default function CreateWorkoutScreen() {
     }
   };
 
-  const openPickerForRound = (roundId: string) => {
-    setPickerRoundId(roundId);
+  const openPickerForTarget = (target: BuilderTarget) => {
+    setPickerTarget(target);
   };
 
   const closePicker = () => {
-    setPickerRoundId(null);
+    setPickerTarget(null);
   };
 
-  const handleAddExercise = (roundId: string, exercise: LibraryExercise) => {
-    const selectedExercise: RoundExerciseConfig = {
+  const handleAddExercise = (target: BuilderTarget, exercise: LibraryExercise) => {
+    const selectedExercise: BuilderExerciseItem = {
       id: `selected-${exercise.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      type: "exercise",
       exerciseId: exercise.id,
       name: exercise.name,
       muscleGroups: exercise.primary_muscles,
@@ -356,26 +369,41 @@ export default function CreateWorkoutScreen() {
       difficulty: exercise.difficulty,
       hasWeight: exercise.has_weight,
       imageUrl: GENERIC_EXERCISE_IMAGE,
-      sets: 3,
       reps: "10-12",
       weightKg: exercise.has_weight ? 20 : undefined,
-      restSeconds: 60,
       notes: "",
     };
 
-    setDraft((prev) => ({
-      ...prev,
-      rounds: prev.rounds.map((round) =>
-        round.id === roundId
-          ? { ...round, exercises: [...round.exercises, selectedExercise] }
-          : round,
-      ),
-    }));
+    setDraft((prev) => {
+      if (target.section === "warmup") {
+        return {
+          ...prev,
+          warmupItems: [...prev.warmupItems, selectedExercise],
+        };
+      }
+
+      if (target.section === "cooldown") {
+        return {
+          ...prev,
+          cooldownItems: [...prev.cooldownItems, selectedExercise],
+        };
+      }
+
+      return {
+        ...prev,
+        rounds: prev.rounds.map((round) =>
+          round.id === target.roundId
+            ? { ...round, items: [...(round.items ?? []), selectedExercise] }
+            : round,
+        ),
+      };
+    });
+
+    closePicker();
     showToast(
-      `Added ${exercise.name} to ${draft.rounds.find((r) => r.id === roundId)?.name ?? "round"}`,
+      `Added ${exercise.name}`,
       "success",
     );
-    // Clear search so the picker doesn't keep the last typed query selected
     setExerciseSearch("");
   };
 
@@ -420,7 +448,7 @@ export default function CreateWorkoutScreen() {
     });
   };
 
-  const updateRound = (roundId: string, patch: Partial<WorkoutRound>) => {
+  const updateRound = (roundId: string, patch: Pick<WorkoutRound, "name">) => {
     setDraft((prev) => ({
       ...prev,
       rounds: prev.rounds.map((round) =>
@@ -429,81 +457,198 @@ export default function CreateWorkoutScreen() {
     }));
   };
 
-  const updateRoundExercise = (
-    roundId: string,
-    exerciseId: string,
-    patch: Partial<RoundExerciseConfig>,
+  const updateItemsForTarget = (
+    target: BuilderTarget,
+    updater: (items: BuilderItem[]) => BuilderItem[],
   ) => {
-    setDraft((prev) => ({
-      ...prev,
-      rounds: prev.rounds.map((round) =>
-        round.id === roundId
-          ? {
-              ...round,
-              exercises: round.exercises.map((exercise) =>
-                exercise.id === exerciseId
-                  ? { ...exercise, ...patch }
-                  : exercise,
-              ),
-            }
-          : round,
-      ),
-    }));
+    setDraft((prev) => {
+      if (target.section === "warmup") {
+        return { ...prev, warmupItems: updater(prev.warmupItems) };
+      }
+
+      if (target.section === "cooldown") {
+        return { ...prev, cooldownItems: updater(prev.cooldownItems) };
+      }
+
+      return {
+        ...prev,
+        rounds: prev.rounds.map((round) =>
+          round.id === target.roundId
+            ? { ...round, items: updater(round.items ?? []) }
+            : round,
+        ),
+      };
+    });
   };
 
-  const handleRemoveExercise = (roundId: string, exerciseId: string) => {
-    setDraft((prev) => ({
-      ...prev,
-      rounds: prev.rounds.map((round) =>
-        round.id === roundId
-          ? {
-              ...round,
-              exercises: round.exercises.filter(
-                (exercise) => exercise.id !== exerciseId,
-              ),
-            }
-          : round,
-      ),
-    }));
+  const handleAddRest = (target: BuilderTarget) => {
+    const restItem: BuilderRestItem = {
+      id: `rest-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      type: "rest",
+      durationSeconds: 30,
+      notes: "",
+    };
+
+    updateItemsForTarget(target, (items) => [...items, restItem]);
   };
 
-  const handleMoveExercise = (
-    roundId: string,
-    exerciseIndex: number,
+  const updateBuilderItem = (
+    target: BuilderTarget,
+    itemId: string,
+    patch: Partial<BuilderExerciseItem> | Partial<BuilderRestItem>,
+  ) => {
+    updateItemsForTarget(target, (items) =>
+      items.map((item) => {
+        if (item.id !== itemId) {
+          return item;
+        }
+
+        if (item.type === "rest") {
+          return { ...item, ...(patch as Partial<BuilderRestItem>) };
+        }
+
+        return { ...item, ...(patch as Partial<BuilderExerciseItem>) };
+      }),
+    );
+  };
+
+  const handleRemoveItem = (target: BuilderTarget, itemId: string) => {
+    updateItemsForTarget(target, (items) => items.filter((item) => item.id !== itemId));
+  };
+
+  const handleDuplicateItem = (target: BuilderTarget, itemId: string) => {
+    updateItemsForTarget(target, (items) => {
+      const index = items.findIndex((item) => item.id === itemId);
+      if (index < 0) {
+        return items;
+      }
+
+      const item = items[index];
+      const duplicate: BuilderItem =
+        item.type === "rest"
+          ? {
+              ...item,
+              id: `rest-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            }
+          : {
+              ...item,
+              id: `selected-${item.exerciseId}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            };
+
+      const nextItems = [...items];
+      nextItems.splice(index + 1, 0, duplicate);
+      return nextItems;
+    });
+  };
+
+  const handleMoveItem = (
+    target: BuilderTarget,
+    itemIndex: number,
     direction: -1 | 1,
   ) => {
-    setDraft((prev) => ({
-      ...prev,
-      rounds: prev.rounds.map((round) => {
-        if (round.id !== roundId) {
-          return round;
-        }
+    updateItemsForTarget(target, (items) => {
+      const nextIndex = itemIndex + direction;
+      if (nextIndex < 0 || nextIndex >= items.length) {
+        return items;
+      }
 
-        const nextIndex = exerciseIndex + direction;
-        if (nextIndex < 0 || nextIndex >= round.exercises.length) {
-          return round;
-        }
-
-        const exercises = [...round.exercises];
-        [exercises[exerciseIndex], exercises[nextIndex]] = [
-          exercises[nextIndex],
-          exercises[exerciseIndex],
-        ];
-        return { ...round, exercises };
-      }),
-    }));
+      const nextItems = [...items];
+      [nextItems[itemIndex], nextItems[nextIndex]] = [
+        nextItems[nextIndex],
+        nextItems[itemIndex],
+      ];
+      return nextItems;
+    });
   };
 
   const flattenExercisesForSave = () => {
-    return draft.rounds.flatMap((round) =>
-      round.exercises.map((exercise) => ({
-        id: exercise.exerciseId,
-        name: exercise.name,
-        sets: exercise.sets,
-        reps: exercise.reps,
-        muscleGroups: exercise.muscleGroups,
-      })),
-    );
+    const extractExercises = (items: BuilderItem[]) =>
+      items
+        .filter((item): item is BuilderExerciseItem => item.type === "exercise")
+        .map((exercise) => ({
+          id: exercise.exerciseId,
+          name: exercise.name,
+          sets: 1,
+          reps: exercise.reps,
+          muscleGroups: exercise.muscleGroups,
+        }));
+
+    return [
+      ...extractExercises(draft.warmupItems),
+      ...draft.rounds.flatMap((round) => extractExercises(round.items ?? [])),
+      ...extractExercises(draft.cooldownItems),
+    ];
+  };
+
+  const buildSectionsForSave = () => {
+    const mapItemsToBlocks = (items: BuilderItem[]) =>
+      items.map((item, index) => {
+        if (item.type === "rest") {
+          return {
+            id: item.id,
+            type: "rest" as const,
+            order: index + 1,
+            rest_seconds: item.durationSeconds,
+            notes: item.notes,
+          };
+        }
+
+        return {
+          id: item.id,
+          type: "exercise" as const,
+          order: index + 1,
+          exercise_id: item.exerciseId,
+          name: item.name,
+          reps: item.reps,
+          weight_kg: item.weightKg,
+          notes: item.notes,
+          primary_muscles: item.muscleGroups,
+          secondary_muscles: [],
+        };
+      });
+
+    const sections: {
+      id: string;
+      type: "warmup" | "round" | "cooldown";
+      name: string;
+      order: number;
+      blocks: ReturnType<typeof mapItemsToBlocks>;
+    }[] = [];
+
+    let order = 1;
+    if (draft.warmupEnabled) {
+      sections.push({
+        id: "warmup",
+        type: "warmup",
+        name: "Warmup",
+        order,
+        blocks: mapItemsToBlocks(draft.warmupItems),
+      });
+      order += 1;
+    }
+
+    for (const round of draft.rounds) {
+      sections.push({
+        id: round.id,
+        type: "round",
+        name: round.name,
+        order,
+        blocks: mapItemsToBlocks(round.items ?? []),
+      });
+      order += 1;
+    }
+
+    if (draft.cooldownEnabled) {
+      sections.push({
+        id: "cooldown",
+        type: "cooldown",
+        name: "Cooldown",
+        order,
+        blocks: mapItemsToBlocks(draft.cooldownItems),
+      });
+    }
+
+    return sections;
   };
 
   const handleSaveDraft = async () => {
@@ -513,8 +658,17 @@ export default function CreateWorkoutScreen() {
     }
 
     const flatExercises = flattenExercisesForSave();
+    const sections = buildSectionsForSave();
     if (flatExercises.length === 0) {
       showToast("Add at least one exercise", "error");
+      return;
+    }
+
+    const hasEmptyRound = draft.rounds.some(
+      (round) => !(round.items ?? []).some((item) => item.type === "exercise"),
+    );
+    if (hasEmptyRound) {
+      showToast("Each round must have at least one exercise", "error");
       return;
     }
 
@@ -523,14 +677,21 @@ export default function CreateWorkoutScreen() {
         throw new Error("You must be signed in to save workouts");
       }
 
+      let coverImageUrl: string | undefined;
+      if (draft.cover_image_asset) {
+        coverImageUrl = draft.cover_image_asset.uri;
+      }
+
       const savedWorkout = await createWorkoutTemplate(user.uid, {
         name: draft.name.trim(),
         description: draft.description.trim() || undefined,
+        cover_image_url: coverImageUrl,
         difficulty: draft.difficulty,
         is_ai_generated: draft.workflowType === "ai",
         source_prompt:
           workflowType === "ai" ? aiPrompt.trim() || undefined : undefined,
         exercises: flatExercises,
+        sections,
         estimated_duration_minutes: Math.max(
           10,
           Math.ceil(estimatedDuration / 60),
@@ -556,18 +717,152 @@ export default function CreateWorkoutScreen() {
     }
   };
 
+  // Helper: Render header with close button
+  const renderHeader = (title: string) => (
+    <View className="flex-row items-center justify-between px-4 pt-3 pb-2 border-b border-light-border dark:border-dark-border">
+      <Text className="text-lg font-bold text-gray-900 dark:text-gray-100">
+        {title}
+      </Text>
+      <Pressable
+        onPress={() => setShowSaveDraftConfirm(true)}
+        className="h-8 w-8 rounded-full items-center justify-center active:opacity-70"
+      >
+        <X size={20} color={colors.foreground} />
+      </Pressable>
+    </View>
+  );
+
+  const renderBuilderItem = (
+    target: BuilderTarget,
+    item: BuilderItem,
+    itemIndex: number,
+    totalItems: number,
+  ) => (
+    <View
+      key={item.id}
+      className={cn(
+        "rounded-2xl border p-4 mb-3",
+        isDark ? "bg-dark-bg border-dark-border" : "bg-light-bg border-light-border",
+      )}
+    >
+      <View className="flex-row items-start justify-between mb-3">
+        <View className="flex-1 pr-2">
+          <Text className="text-xs font-semibold uppercase tracking-wide text-cyan-600 dark:text-cyan-400 mb-1">
+            {item.type === "exercise" ? `Exercise ${itemIndex + 1}` : `Rest ${itemIndex + 1}`}
+          </Text>
+          <Text className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-5">
+            {item.type === "exercise" ? item.name : `Rest ${item.durationSeconds}s`}
+          </Text>
+          {item.type === "exercise" ? (
+            <Text className="text-xs text-gray-600 dark:text-gray-400 mt-1 capitalize">
+              {item.muscleGroups.slice(0, 2).join(", ")} • {item.equipment}
+            </Text>
+          ) : (
+            <Text className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+              Recovery block between exercises
+            </Text>
+          )}
+        </View>
+        <View className="flex-row gap-1 mt-1">
+          <Pressable
+            onPress={() => handleDuplicateItem(target, item.id)}
+            className="h-8 w-8 items-center justify-center rounded-md bg-light-surface dark:bg-dark-surface"
+          >
+            <Copy size={13} color={colors.foreground} />
+          </Pressable>
+          <Pressable
+            onPress={() => handleMoveItem(target, itemIndex, -1)}
+            disabled={itemIndex === 0}
+            className="h-8 w-8 items-center justify-center rounded-md bg-light-surface dark:bg-dark-surface"
+          >
+            <ArrowUp
+              size={13}
+              color={itemIndex === 0 ? colors.cardBorder : colors.foreground}
+            />
+          </Pressable>
+          <Pressable
+            onPress={() => handleMoveItem(target, itemIndex, 1)}
+            disabled={itemIndex === totalItems - 1}
+            className="h-8 w-8 items-center justify-center rounded-md bg-light-surface dark:bg-dark-surface"
+          >
+            <ArrowDown
+              size={13}
+              color={itemIndex === totalItems - 1 ? colors.cardBorder : colors.foreground}
+            />
+          </Pressable>
+          <Pressable
+            onPress={() => handleRemoveItem(target, item.id)}
+            className="h-8 w-8 items-center justify-center rounded-md bg-red-100 dark:bg-red-900/20"
+          >
+            <X size={13} color="#ef4444" />
+          </Pressable>
+          <View className="h-8 w-8 items-center justify-center rounded-md bg-light-surface dark:bg-dark-surface">
+            <GripVertical size={13} color={colors.muted} />
+          </View>
+        </View>
+      </View>
+
+      {item.type === "exercise" ? (
+        <View className="flex-row gap-2 mb-2">
+          <Input
+            label="Reps"
+            value={item.reps}
+            onChangeText={(text) => updateBuilderItem(target, item.id, { reps: text })}
+            containerClassName="flex-1"
+          />
+          {item.hasWeight ? (
+            <Input
+              label="Weight (kg)"
+              keyboardType="decimal-pad"
+              value={String(item.weightKg ?? 0)}
+              onChangeText={(text) =>
+                updateBuilderItem(target, item.id, { weightKg: Number(text || "0") || 0 })
+              }
+              containerClassName="flex-1"
+            />
+          ) : (
+            <View className="flex-1">
+              <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                Weight
+              </Text>
+              <View className="rounded-xl border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface px-4 py-3">
+                <Text className="text-sm text-gray-500 dark:text-gray-400">Not applicable</Text>
+              </View>
+            </View>
+          )}
+        </View>
+      ) : (
+        <Input
+          label="Rest Duration (seconds)"
+          keyboardType="number-pad"
+          value={String(item.durationSeconds)}
+          onChangeText={(text) =>
+            updateBuilderItem(target, item.id, {
+              durationSeconds: Number(text || "0") || 0,
+            })
+          }
+          containerClassName="mb-2"
+        />
+      )}
+
+      <Input
+        label="Notes (optional)"
+        value={item.notes ?? ""}
+        onChangeText={(text) => updateBuilderItem(target, item.id, { notes: text })}
+      />
+    </View>
+  );
+
   // Workflow Selection Step
   if (step === "workflow") {
     return (
       <View className={cn("flex-1", isDark ? "bg-dark-bg" : "bg-light-bg")}>
+        {renderHeader("Create Workout")}
         <ScrollView
           className="flex-1 p-4"
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: tabBarClearance + 16 }}
         >
-          <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            Create Workout
-          </Text>
           <Text className="text-sm text-gray-600 dark:text-gray-400 mb-6">
             Choose how to build your workout
           </Text>
@@ -576,7 +871,7 @@ export default function CreateWorkoutScreen() {
           <Pressable
             onPress={() => handleWorkflowSelect("manual")}
             className={cn(
-              "p-4 rounded-lg mb-3 border-2 active:opacity-70",
+              "p-6 rounded-2xl mb-4 border-2 active:opacity-70",
               workflowType === "manual"
                 ? "border-cyan-500 dark:border-cyan-500"
                 : "",
@@ -585,13 +880,13 @@ export default function CreateWorkoutScreen() {
                 : "bg-light-surface border-light-border",
             )}
           >
-            <View className="flex-row items-start gap-3">
-              <Dumbbell size={28} color={colors.primary} />
+            <View className="flex-row items-start gap-4">
+              <Dumbbell size={32} color={colors.primary} />
               <View className="flex-1">
-                <Text className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <Text className="text-base font-semibold text-gray-900 dark:text-gray-100">
                   Build Manually
                 </Text>
-                <Text className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                <Text className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                   Browse and select exercises from our library
                 </Text>
               </View>
@@ -602,7 +897,7 @@ export default function CreateWorkoutScreen() {
           <Pressable
             onPress={() => handleWorkflowSelect("ai")}
             className={cn(
-              "p-4 rounded-lg border-2 active:opacity-70",
+              "p-6 rounded-2xl border-2 active:opacity-70",
               workflowType === "ai"
                 ? "border-cyan-500 dark:border-cyan-500"
                 : "",
@@ -611,13 +906,13 @@ export default function CreateWorkoutScreen() {
                 : "bg-light-surface border-light-border",
             )}
           >
-            <View className="flex-row items-start gap-3">
-              <Sparkles size={28} color={colors.primary} />
+            <View className="flex-row items-start gap-4">
+              <Sparkles size={32} color={colors.primary} />
               <View className="flex-1">
-                <Text className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <Text className="text-base font-semibold text-gray-900 dark:text-gray-100">
                   Generate with AI
                 </Text>
-                <Text className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                <Text className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                   Describe your goal and let AI create a custom plan
                 </Text>
               </View>
@@ -647,17 +942,14 @@ export default function CreateWorkoutScreen() {
   if (step === "details") {
     return (
       <View className={cn("flex-1", isDark ? "bg-dark-bg" : "bg-light-bg")}>
+        {renderHeader(
+          workflowType === "ai" ? "Generate Your Workout" : "Workout Details",
+        )}
         <ScrollView
           className="flex-1 p-4"
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: tabBarClearance + 16 }}
         >
-          <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-            {workflowType === "ai"
-              ? "Generate Your Workout"
-              : "Workout Details"}
-          </Text>
-
           <Input
             label="Workout Name"
             placeholder="e.g., Summer Shred"
@@ -760,7 +1052,7 @@ export default function CreateWorkoutScreen() {
 
   // Exercise Selection Step
   if (step === "exercises") {
-    if (pickerRoundId) {
+    if (pickerTarget) {
       return (
         <View className={cn("flex-1", isDark ? "bg-dark-bg" : "bg-light-bg")}>
           <View className="px-4 pt-4 pb-3 border-b border-light-border dark:border-dark-border">
@@ -777,7 +1069,12 @@ export default function CreateWorkoutScreen() {
             </View>
 
             <Text className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-              {draft.rounds.find((round) => round.id === pickerRoundId)?.name}
+              {pickerTarget.section === "round"
+                ? draft.rounds.find((round) => round.id === pickerTarget.roundId)
+                    ?.name
+                : pickerTarget.section === "warmup"
+                  ? "Warmup"
+                  : "Cooldown"}
             </Text>
 
             <View className="flex-row items-center gap-2 rounded-xl border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface px-3 py-2.5 mb-2">
@@ -796,118 +1093,141 @@ export default function CreateWorkoutScreen() {
               ) : null}
             </View>
 
-            <View className="flex-row items-center gap-2 mb-2">
-              <Funnel size={14} color={colors.muted} />
-              <Text className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                Difficulty
-              </Text>
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              showsVerticalScrollIndicator={false}
-              className="mb-3"
-            >
-              <View className="flex-row gap-2">
-                {DIFFICULTY_FILTERS.map((filter) => (
-                  <Badge
-                    key={filter}
-                    variant={
-                      difficultyFilter === filter ? "primary" : "secondary"
-                    }
-                    size="sm"
-                    onPress={() => setDifficultyFilter(filter)}
-                  >
-                    {filter === "all"
-                      ? "All"
-                      : filter.charAt(0).toUpperCase() + filter.slice(1)}
-                  </Badge>
-                ))}
-              </View>
-            </ScrollView>
-
-            <View className="flex-row items-center gap-2 mb-2">
-              <Dumbbell size={14} color={colors.muted} />
-              <Text className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                Equipment
-              </Text>
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              showsVerticalScrollIndicator={false}
-            >
-              <View className="flex-row gap-2">
-                {EQUIPMENT_FILTERS.map((filter) => (
-                  <Badge
-                    key={filter}
-                    variant={
-                      equipmentFilter === filter ? "primary" : "secondary"
-                    }
-                    size="sm"
-                    onPress={() => setEquipmentFilter(filter)}
-                  >
-                    {filter === "all"
-                      ? "All"
-                      : filter.charAt(0).toUpperCase() + filter.slice(1)}
-                  </Badge>
-                ))}
-              </View>
-            </ScrollView>
-          </View>
-
-          <ScrollView
-            className="flex-1 px-4 pt-3"
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: scrollPaddingBottom + 24 }}
-          >
-            {loadingExerciseLibrary ? (
-              <View className="py-16 items-center">
-                <Spinner size="lg" color={colors.primary} />
-                <Text className="text-sm text-gray-600 dark:text-gray-400 mt-3">
-                  Loading official exercise catalog...
-                </Text>
-              </View>
-            ) : Object.entries(groupedExercises).length === 0 ? (
-              <View className="py-12 items-center">
-                <Text className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                  No exercises found
-                </Text>
-                <Text className="text-sm text-gray-600 dark:text-gray-400 mt-1 text-center">
-                  Try another search or remove filters.
-                </Text>
-              </View>
-            ) : (
-              Object.entries(groupedExercises).map(([group, items]) => (
-                <View key={group} className="mb-5">
-                  <Text className="text-sm font-bold uppercase tracking-wide text-gray-600 dark:text-gray-300 mb-2">
-                    {muscleKeyToLabel(group)}
+            <View className="mb-3 rounded-3xl border border-cyan-200/70 dark:border-cyan-900/40 bg-cyan-50/70 dark:bg-cyan-950/20 px-4 py-4 shadow-sm shadow-cyan-500/10 overflow-hidden">
+              <View className="flex-row items-start justify-between gap-3 mb-3">
+                <View className="flex-1">
+                  <Text className="text-[11px] font-bold uppercase tracking-[0.3em] text-cyan-700 dark:text-cyan-300">
+                    Exercise Finder
                   </Text>
+                  <Text className="mt-1 text-lg font-bold text-gray-900 dark:text-gray-100">
+                    One filter for intent and gear
+                  </Text>
+                  <Text className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    Warmups, cooldowns, calisthenics, HIIT and loaded work from the real catalog.
+                  </Text>
+                </View>
+                <View className="items-end gap-2">
+                  <View className="rounded-2xl border border-cyan-200/70 dark:border-cyan-900/40 bg-white/80 dark:bg-black/20 px-3 py-2">
+                    <Text className="text-[10px] font-semibold uppercase tracking-[0.25em] text-gray-500 dark:text-gray-400">
+                      Loaded
+                    </Text>
+                    <Text className="text-base font-bold text-gray-900 dark:text-gray-100">
+                      {exerciseLibrary?.length ?? 0}
+                    </Text>
+                  </View>
+                  {exerciseFilter !== "all" ? (
+                    <Pressable
+                      onPress={() => setExerciseFilter("all")}
+                      className="rounded-full px-3 py-1.5 bg-white/90 dark:bg-black/20 border border-cyan-200/70 dark:border-cyan-900/40"
+                    >
+                      <Text className="text-xs font-semibold text-cyan-700 dark:text-cyan-300">
+                        Reset
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              </View>
 
-                  {items.map((exercise) => (
-                    <View key={exercise.id} className="mb-3">
-                      <ExerciseCard
-                        exercise={exercise}
-                        variant="list"
-                        showImage
-                        imageUrl={GENERIC_EXERCISE_IMAGE}
-                        onAddPress={() =>
-                          handleAddExercise(pickerRoundId, exercise)
-                        }
-                        onPress={() =>
-                          handleAddExercise(pickerRoundId, exercise)
-                        }
-                      />
-                      <Text className="text-xs text-gray-600 dark:text-gray-400 mt-1 px-1">
-                        {exercise.short_description}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} showsVerticalScrollIndicator={false} className="mb-4">
+                <View className="flex-row gap-2">
+                  <Badge
+                    variant={exerciseFilter === "all" ? "primary" : "secondary"}
+                    size="sm"
+                    onPress={() => setExerciseFilter("all")}
+                  >
+                    {`All • ${exerciseLibrary?.length ?? 0}`}
+                  </Badge>
+                </View>
+              </ScrollView>
+
+              {exerciseFilterGroups.map((group) => (
+                <View key={group.title} className="mb-3 last:mb-0">
+                  <View className="flex-row items-center justify-between mb-2">
+                    <View>
+                      <Text className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        {group.title}
+                      </Text>
+                      <Text className="text-xs text-gray-600 dark:text-gray-400">
+                        {group.description}
                       </Text>
                     </View>
-                  ))}
+                    <Text className="text-[10px] font-semibold uppercase tracking-[0.25em] text-gray-500 dark:text-gray-400">
+                      {group.options.length} options
+                    </Text>
+                  </View>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} showsVerticalScrollIndicator={false}>
+                    <View className="flex-row gap-2">
+                      {group.options.map((option) => (
+                        <Badge
+                          key={option.key}
+                          variant={exerciseFilter === option.key ? "primary" : "secondary"}
+                          size="sm"
+                          onPress={() => setExerciseFilter(option.key)}
+                        >
+                          {`${option.label} • ${option.count}`}
+                        </Badge>
+                      ))}
+                    </View>
+                  </ScrollView>
                 </View>
-              ))
-            )}
-          </ScrollView>
+              ))}
+            </View>
+          </View>
 
+
+
+          {loadingExerciseLibrary ? (
+            <View className="flex-1 items-center justify-center">
+              <Spinner size="lg" color={colors.primary} />
+              <Text className="text-sm text-gray-600 dark:text-gray-400 mt-3">
+                Loading official exercise catalog...
+              </Text>
+            </View>
+          ) : flattenedFilteredExercises.length === 0 ? (
+            <View className="flex-1 items-center justify-center">
+              <Text className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                No exercises found
+              </Text>
+              <Text className="text-sm text-gray-600 dark:text-gray-400 mt-1 text-center">
+                Try another search or remove filters.
+              </Text>
+            </View>
+          ) : (
+            <FlatList
+              data={flattenedFilteredExercises}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item, index }) => {
+                const nextItem = flattenedFilteredExercises[index + 1];
+                const showGroupHeader = !nextItem || item.group !== nextItem.group;
+                return (
+                  <View>
+                    <ExerciseCard
+                      exercise={item}
+                      variant="list"
+                      showImage
+                      imageUrl={GENERIC_EXERCISE_IMAGE}
+                      onAddPress={() => handleAddExercise(pickerTarget, item)}
+                      onPress={() => handleAddExercise(pickerTarget, item)}
+                    />
+                    <Text className="text-xs text-gray-600 dark:text-gray-400 mt-1 px-1 mb-3">
+                      {item.short_description}
+                    </Text>
+                    {showGroupHeader && index < flattenedFilteredExercises.length - 1 ? (
+                      <Text className="text-sm font-bold uppercase tracking-wide text-gray-600 dark:text-gray-300 mb-2 mt-1">
+                        {muscleKeyToLabel(flattenedFilteredExercises[index + 1].group)}
+                      </Text>
+                    ) : null}
+                  </View>
+                );
+              }}
+              removeClippedSubviews={true}
+              maxToRenderPerBatch={10}
+              updateCellsBatchingPeriod={50}
+              initialNumToRender={15}
+              windowSize={10}
+              contentContainerStyle={{ paddingBottom: scrollPaddingBottom + 24, paddingHorizontal: 16, paddingTop: 12 }}
+            />
+          )}
           <View className="px-4 py-3 border-t border-light-border dark:border-dark-border">
             <Button variant="secondary" onPress={closePicker}>
               Back To Round Builder
@@ -919,43 +1239,161 @@ export default function CreateWorkoutScreen() {
 
     return (
       <View className={cn("flex-1", isDark ? "bg-dark-bg" : "bg-light-bg")}>
+        {renderHeader("Build Rounds")}
         <ScrollView
           className="flex-1 p-4"
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: scrollPaddingBottom }}
         >
-          <View className="flex-row justify-between items-center mb-4">
-            <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              Build Rounds
+          <View
+            className={cn(
+              "rounded-2xl p-4 mb-4 border",
+              isDark
+                ? "bg-dark-surface border-dark-border"
+                : "bg-light-surface border-light-border",
+            )}
+          >
+            <Text className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
+              Builder Overview
             </Text>
-            <Pressable
-              onPress={() => setShowSaveDraftConfirm(true)}
-              className="h-9 w-9 rounded-full items-center justify-center bg-light-surface dark:bg-dark-surface"
-            >
-              <X size={18} color={colors.muted} />
-            </Pressable>
+            <View className="flex-row items-center justify-between">
+              <View>
+                <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {draft.rounds.length}
+                </Text>
+                <Text className="text-xs text-gray-600 dark:text-gray-400">
+                  Rounds
+                </Text>
+              </View>
+              <View>
+                <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100 text-right">
+                  {totalSelectedExercises}
+                </Text>
+                <Text className="text-xs text-gray-600 dark:text-gray-400 text-right">
+                  Exercises
+                </Text>
+              </View>
+              <View>
+                <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100 text-right">
+                  {Math.max(1, Math.ceil(estimatedDuration / 60))}m
+                </Text>
+                <Text className="text-xs text-gray-600 dark:text-gray-400 text-right">
+                  Est. Time
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          <View
+            className={cn(
+              "rounded-3xl border p-5 mb-5",
+              isDark
+                ? "bg-dark-surface border-dark-border"
+                : "bg-light-surface border-light-border",
+            )}
+          >
+            <View className="flex-row items-center justify-between mb-3">
+              <Text className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                Warmup
+              </Text>
+              <Pressable
+                onPress={() =>
+                  setDraft((prev) => ({
+                    ...prev,
+                    warmupEnabled: !prev.warmupEnabled,
+                    warmupItems: !prev.warmupEnabled ? prev.warmupItems : [],
+                  }))
+                }
+                className={cn(
+                  "px-3 py-1.5 rounded-full",
+                  draft.warmupEnabled
+                    ? "bg-cyan-100 dark:bg-cyan-900/40"
+                    : "bg-light-bg dark:bg-dark-bg",
+                )}
+              >
+                <Text className="text-xs font-semibold text-cyan-700 dark:text-cyan-300">
+                  {draft.warmupEnabled ? "Enabled" : "Disabled"}
+                </Text>
+              </Pressable>
+            </View>
+
+            {draft.warmupEnabled ? (
+              <>
+                {draft.warmupItems.length === 0 ? (
+                  <View className="rounded-2xl border border-dashed border-light-border dark:border-dark-border py-6 px-4 mb-3 items-center">
+                    <Text className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
+                      Warmup is empty
+                    </Text>
+                    <Text className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                      Add exercises or rest blocks.
+                    </Text>
+                  </View>
+                ) : (
+                  draft.warmupItems.map((item, itemIndex) =>
+                    renderBuilderItem(
+                      { section: "warmup" },
+                      item,
+                      itemIndex,
+                      draft.warmupItems.length,
+                    ),
+                  )
+                )}
+
+                <View className="flex-row gap-2">
+                  <Pressable
+                    onPress={() => openPickerForTarget({ section: "warmup" })}
+                    className="flex-1 flex-row items-center justify-center gap-2 p-3 rounded-2xl border-2 border-dashed border-cyan-400/60"
+                  >
+                    <CirclePlus size={17} color={colors.primary} />
+                    <Text className="font-semibold text-cyan-600 dark:text-cyan-400">
+                      Add Exercise
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => handleAddRest({ section: "warmup" })}
+                    className="flex-row items-center justify-center gap-2 px-4 p-3 rounded-2xl border-2 border-dashed border-amber-400/60"
+                  >
+                    <CirclePlus size={17} color="#f59e0b" />
+                    <Text className="font-semibold text-amber-600 dark:text-amber-400">
+                      Add Rest
+                    </Text>
+                  </Pressable>
+                </View>
+              </>
+            ) : (
+              <Text className="text-xs text-gray-500 dark:text-gray-400">
+                Optional section
+              </Text>
+            )}
           </View>
 
           {draft.rounds.map((round, roundIndex) => (
             <View
               key={round.id}
               className={cn(
-                "rounded-2xl border p-4 mb-4",
+                "rounded-3xl border p-5 mb-5",
                 isDark
                   ? "bg-dark-surface border-dark-border"
                   : "bg-light-surface border-light-border",
               )}
             >
-              <View className="flex-row items-center justify-between mb-3">
-                <Input
-                  value={round.name}
-                  onChangeText={(text) => updateRound(round.id, { name: text })}
-                  placeholder={`Round ${roundIndex + 1}`}
-                  containerClassName="flex-1"
-                />
-                <View className="flex-row ml-2 gap-1">
+              <View className="flex-row items-start justify-between mb-3">
+                <View className="flex-1 pr-2">
+                  <Text className="text-xs font-semibold uppercase tracking-wide text-cyan-600 dark:text-cyan-400 mb-1">
+                    Round {roundIndex + 1}
+                  </Text>
+                  <Input
+                    value={round.name}
+                    onChangeText={(text) =>
+                      updateRound(round.id, { name: text })
+                    }
+                    placeholder={`Round ${roundIndex + 1}`}
+                    containerClassName="flex-1"
+                  />
+                </View>
+                <View className="flex-row mt-6 gap-1">
                   <Pressable
-                    className="h-9 w-9 items-center justify-center rounded-lg bg-light-bg dark:bg-dark-bg"
+                    className="h-9 w-9 items-center justify-center rounded-xl bg-light-bg dark:bg-dark-bg"
                     onPress={() => handleMoveRound(roundIndex, -1)}
                     disabled={roundIndex === 0}
                   >
@@ -967,7 +1405,7 @@ export default function CreateWorkoutScreen() {
                     />
                   </Pressable>
                   <Pressable
-                    className="h-9 w-9 items-center justify-center rounded-lg bg-light-bg dark:bg-dark-bg"
+                    className="h-9 w-9 items-center justify-center rounded-xl bg-light-bg dark:bg-dark-bg"
                     onPress={() => handleMoveRound(roundIndex, 1)}
                     disabled={roundIndex === draft.rounds.length - 1}
                   >
@@ -981,7 +1419,7 @@ export default function CreateWorkoutScreen() {
                     />
                   </Pressable>
                   <Pressable
-                    className="h-9 w-9 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/20"
+                    className="h-9 w-9 items-center justify-center rounded-xl bg-red-100 dark:bg-red-900/20"
                     onPress={() => handleRemoveRound(round.id)}
                     disabled={draft.rounds.length <= 1}
                   >
@@ -995,192 +1433,152 @@ export default function CreateWorkoutScreen() {
                 </View>
               </View>
 
-              {round.exercises.length === 0 ? (
-                <Text className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                  No exercises in this round yet.
+              <View className="flex-row items-center justify-between mb-3 rounded-2xl px-3 py-2 bg-light-bg dark:bg-dark-bg">
+                <Text className="text-xs font-semibold text-gray-600 dark:text-gray-400">
+                  {
+                    (round.items ?? []).filter((item) => item.type === "exercise").length
+                  } exercise
+                  {
+                    (round.items ?? []).filter((item) => item.type === "exercise").length === 1
+                      ? ""
+                      : "s"
+                  }
                 </Text>
+                <Text className="text-xs font-semibold text-gray-600 dark:text-gray-400">
+                  {(round.items ?? []).filter((item) => item.type === "rest").length} rests
+                </Text>
+              </View>
+
+              {(round.items ?? []).length === 0 ? (
+                <View className="rounded-2xl border border-dashed border-light-border dark:border-dark-border py-6 px-4 mb-3 items-center">
+                  <Text className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
+                    This round is empty
+                  </Text>
+                  <Text className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                    Add at least one exercise before saving your workout.
+                  </Text>
+                </View>
               ) : (
-                round.exercises.map((exercise, exerciseIndex) => (
-                  <View
-                    key={exercise.id}
-                    className={cn(
-                      "rounded-xl border p-3 mb-3",
-                      isDark
-                        ? "bg-dark-bg border-dark-border"
-                        : "bg-light-bg border-light-border",
-                    )}
-                  >
-                    <View className="flex-row items-start justify-between mb-2">
-                      <View className="flex-1 pr-2">
-                        <Text className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                          {exerciseIndex + 1}. {exercise.name}
-                        </Text>
-                        <Text className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 capitalize">
-                          {exercise.muscleGroups.slice(0, 2).join(", ")} •{" "}
-                          {exercise.equipment}
-                        </Text>
-                      </View>
-                      <View className="flex-row gap-1">
-                        <Pressable
-                          onPress={() =>
-                            handleMoveExercise(round.id, exerciseIndex, -1)
-                          }
-                          disabled={exerciseIndex === 0}
-                          className="h-8 w-8 items-center justify-center rounded-md bg-light-surface dark:bg-dark-surface"
-                        >
-                          <ArrowUp
-                            size={13}
-                            color={
-                              exerciseIndex === 0
-                                ? colors.cardBorder
-                                : colors.foreground
-                            }
-                          />
-                        </Pressable>
-                        <Pressable
-                          onPress={() =>
-                            handleMoveExercise(round.id, exerciseIndex, 1)
-                          }
-                          disabled={
-                            exerciseIndex === round.exercises.length - 1
-                          }
-                          className="h-8 w-8 items-center justify-center rounded-md bg-light-surface dark:bg-dark-surface"
-                        >
-                          <ArrowDown
-                            size={13}
-                            color={
-                              exerciseIndex === round.exercises.length - 1
-                                ? colors.cardBorder
-                                : colors.foreground
-                            }
-                          />
-                        </Pressable>
-                        <Pressable
-                          onPress={() =>
-                            handleRemoveExercise(round.id, exercise.id)
-                          }
-                          className="h-8 w-8 items-center justify-center rounded-md bg-red-100 dark:bg-red-900/20"
-                        >
-                          <X size={13} color="#ef4444" />
-                        </Pressable>
-                      </View>
-                    </View>
-
-                    <View className="flex-row gap-2 mb-2">
-                      <Input
-                        label="Sets"
-                        keyboardType="number-pad"
-                        value={String(exercise.sets)}
-                        onChangeText={(text) =>
-                          updateRoundExercise(round.id, exercise.id, {
-                            sets: Number(text || "0") || 1,
-                          })
-                        }
-                        containerClassName="flex-1"
-                      />
-                      <Input
-                        label="Reps"
-                        value={exercise.reps}
-                        onChangeText={(text) =>
-                          updateRoundExercise(round.id, exercise.id, {
-                            reps: text,
-                          })
-                        }
-                        containerClassName="flex-1"
-                      />
-                    </View>
-
-                    <View className="flex-row gap-2 mb-2">
-                      {exercise.hasWeight ? (
-                        <Input
-                          label="Weight (kg)"
-                          keyboardType="decimal-pad"
-                          value={String(exercise.weightKg ?? 0)}
-                          onChangeText={(text) =>
-                            updateRoundExercise(round.id, exercise.id, {
-                              weightKg: Number(text || "0") || 0,
-                            })
-                          }
-                          containerClassName="flex-1"
-                        />
-                      ) : (
-                        <View className="flex-1">
-                          <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                            Weight
-                          </Text>
-                          <View className="rounded-xl border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface px-4 py-3">
-                            <Text className="text-sm text-gray-500 dark:text-gray-400">
-                              Not applicable
-                            </Text>
-                          </View>
-                        </View>
-                      )}
-
-                      <Input
-                        label="Rest between sets (s)"
-                        keyboardType="number-pad"
-                        value={String(exercise.restSeconds)}
-                        onChangeText={(text) =>
-                          updateRoundExercise(round.id, exercise.id, {
-                            restSeconds: Number(text || "0") || 0,
-                          })
-                        }
-                        containerClassName="flex-1"
-                      />
-                    </View>
-
-                    <Input
-                      label="Notes (optional)"
-                      value={exercise.notes ?? ""}
-                      onChangeText={(text) =>
-                        updateRoundExercise(round.id, exercise.id, {
-                          notes: text,
-                        })
-                      }
-                    />
-                  </View>
-                ))
+                (round.items ?? []).map((item, itemIndex) =>
+                  renderBuilderItem(
+                    { section: "round", roundId: round.id },
+                    item,
+                    itemIndex,
+                    (round.items ?? []).length,
+                  ),
+                )
               )}
 
-              <Pressable
-                onPress={() => openPickerForRound(round.id)}
-                className="flex-row items-center justify-center gap-2 p-3 rounded-lg border-2 border-dashed border-cyan-400/60"
-              >
-                <CirclePlus size={17} color={colors.primary} />
-                <Text className="font-semibold text-cyan-600 dark:text-cyan-400">
-                  Add Exercise To {round.name}
-                </Text>
-              </Pressable>
-
-              <View className="mt-3">
-                <Input
-                  label="Rest after this round (seconds)"
-                  keyboardType="number-pad"
-                  value={String(round.restAfterSeconds ?? 0)}
-                  onChangeText={(text) =>
-                    updateRound(round.id, {
-                      restAfterSeconds: Number(text || "0") || 0,
-                    })
-                  }
-                />
+              <View className="flex-row gap-2">
                 <Pressable
-                  onPress={() =>
-                    updateRound(round.id, { restAfterSeconds: null })
-                  }
-                  className="self-start mt-2"
+                  onPress={() => openPickerForTarget({ section: "round", roundId: round.id })}
+                  className="flex-1 flex-row items-center justify-center gap-2 p-3 rounded-2xl border-2 border-dashed border-cyan-400/60"
                 >
-                  <Text className="text-xs font-semibold text-gray-600 dark:text-gray-400">
-                    No rest after this round
+                  <CirclePlus size={17} color={colors.primary} />
+                  <Text className="font-semibold text-cyan-600 dark:text-cyan-400">
+                    Add Exercise
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => handleAddRest({ section: "round", roundId: round.id })}
+                  className="flex-row items-center justify-center gap-2 px-4 p-3 rounded-2xl border-2 border-dashed border-amber-400/60"
+                >
+                  <CirclePlus size={17} color="#f59e0b" />
+                  <Text className="font-semibold text-amber-600 dark:text-amber-400">
+                    Add Rest
                   </Text>
                 </Pressable>
               </View>
             </View>
           ))}
 
+          <View
+            className={cn(
+              "rounded-3xl border p-5 mb-5",
+              isDark
+                ? "bg-dark-surface border-dark-border"
+                : "bg-light-surface border-light-border",
+            )}
+          >
+            <View className="flex-row items-center justify-between mb-3">
+              <Text className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                Cooldown
+              </Text>
+              <Pressable
+                onPress={() =>
+                  setDraft((prev) => ({
+                    ...prev,
+                    cooldownEnabled: !prev.cooldownEnabled,
+                    cooldownItems: !prev.cooldownEnabled ? prev.cooldownItems : [],
+                  }))
+                }
+                className={cn(
+                  "px-3 py-1.5 rounded-full",
+                  draft.cooldownEnabled
+                    ? "bg-cyan-100 dark:bg-cyan-900/40"
+                    : "bg-light-bg dark:bg-dark-bg",
+                )}
+              >
+                <Text className="text-xs font-semibold text-cyan-700 dark:text-cyan-300">
+                  {draft.cooldownEnabled ? "Enabled" : "Disabled"}
+                </Text>
+              </Pressable>
+            </View>
+
+            {draft.cooldownEnabled ? (
+              <>
+                {draft.cooldownItems.length === 0 ? (
+                  <View className="rounded-2xl border border-dashed border-light-border dark:border-dark-border py-6 px-4 mb-3 items-center">
+                    <Text className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
+                      Cooldown is empty
+                    </Text>
+                    <Text className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                      Add exercises or rest blocks.
+                    </Text>
+                  </View>
+                ) : (
+                  draft.cooldownItems.map((item, itemIndex) =>
+                    renderBuilderItem(
+                      { section: "cooldown" },
+                      item,
+                      itemIndex,
+                      draft.cooldownItems.length,
+                    ),
+                  )
+                )}
+
+                <View className="flex-row gap-2">
+                  <Pressable
+                    onPress={() => openPickerForTarget({ section: "cooldown" })}
+                    className="flex-1 flex-row items-center justify-center gap-2 p-3 rounded-2xl border-2 border-dashed border-cyan-400/60"
+                  >
+                    <CirclePlus size={17} color={colors.primary} />
+                    <Text className="font-semibold text-cyan-600 dark:text-cyan-400">
+                      Add Exercise
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => handleAddRest({ section: "cooldown" })}
+                    className="flex-row items-center justify-center gap-2 px-4 p-3 rounded-2xl border-2 border-dashed border-amber-400/60"
+                  >
+                    <CirclePlus size={17} color="#f59e0b" />
+                    <Text className="font-semibold text-amber-600 dark:text-amber-400">
+                      Add Rest
+                    </Text>
+                  </Pressable>
+                </View>
+              </>
+            ) : (
+              <Text className="text-xs text-gray-500 dark:text-gray-400">
+                Optional section
+              </Text>
+            )}
+          </View>
+
           <Pressable
             onPress={handleAddRound}
             className={cn(
-              "flex-row items-center justify-center gap-2 p-3 rounded-lg border-2 border-dashed mb-4",
+              "flex-row items-center justify-center gap-2 p-4 rounded-2xl border-2 border-dashed mb-4",
               "border-cyan-400/60",
             )}
           >
@@ -1201,7 +1599,7 @@ export default function CreateWorkoutScreen() {
               {Math.max(1, Math.ceil(estimatedDuration / 60))} min
             </Text>
             <Text className="text-xs text-gray-600 dark:text-gray-400">
-              Includes sets, rests between sets and rest between rounds.
+              Includes exercise time plus every rest block across sections.
             </Text>
           </View>
         </ScrollView>
@@ -1260,12 +1658,13 @@ export default function CreateWorkoutScreen() {
   // Preview Step
   return (
     <View className={cn("flex-1", isDark ? "bg-dark-bg" : "bg-light-bg")}>
+      {renderHeader("Review Workout")}
       <ScrollView
         className="flex-1 p-4"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: scrollPaddingBottom }}
       >
-        <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+        <Text className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
           {draft.name}
         </Text>
 
@@ -1323,20 +1722,16 @@ export default function CreateWorkoutScreen() {
               {roundIndex + 1}. {round.name}
             </Text>
 
-            {round.exercises.map((exercise, exerciseIndex) => (
+            {(round.items ?? []).map((item, itemIndex) => (
               <Text
-                key={exercise.id}
+                key={item.id}
                 className="text-sm text-gray-600 dark:text-gray-400 mb-1"
               >
-                {exerciseIndex + 1}) {exercise.name} • {exercise.sets} x{" "}
-                {exercise.reps}
-                {exercise.hasWeight ? ` • ${exercise.weightKg ?? 0}kg` : ""}
+                {item.type === "rest"
+                  ? `${itemIndex + 1}) Rest • ${item.durationSeconds}s`
+                  : `${itemIndex + 1}) ${item.name} • ${item.reps}${item.hasWeight ? ` • ${item.weightKg ?? 0}kg` : ""}`}
               </Text>
             ))}
-
-            <Text className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              Rest after round: {round.restAfterSeconds ?? 0}s
-            </Text>
           </View>
         ))}
       </ScrollView>

@@ -78,10 +78,12 @@ export default function CreatePostScreen() {
       showToast("Post published!", "success");
       router.back();
     } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Upload failed";
+      console.error("[community][create-post] Publish failed", e);
       // Save as draft
       const draft = { content, images, visibility, saved_at: new Date().toISOString() };
       await AsyncStorage.setItem(`post_draft:${uid}`, JSON.stringify(draft));
-      showToast("Upload failed. Draft saved.", "warning");
+      showToast(`${message}. Draft saved.`, "warning");
     } finally {
       setPublishing(false);
     }

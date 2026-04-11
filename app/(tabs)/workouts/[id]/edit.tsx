@@ -880,7 +880,7 @@ export default function EditWorkoutScreen() {
                           {exerciseIndex + 1}. {exercise.name}
                         </Text>
                         <Text className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 capitalize">
-                          {exercise.muscleGroups.slice(0, 2).join(", ")} •{" "}
+                          {exercise.muscleGroups.slice(0, 2).join(", ")} ΓÇó{" "}
                           {exercise.equipment}
                         </Text>
                       </View>
@@ -1188,9 +1188,9 @@ export default function EditWorkoutScreen() {
                 key={exercise.id}
                 className="text-sm text-gray-600 dark:text-gray-400 mb-1"
               >
-                {exerciseIndex + 1}) {exercise.name} • {exercise.sets} x{" "}
+                {exerciseIndex + 1}) {exercise.name} ΓÇó {exercise.sets} x{" "}
                 {exercise.reps}
-                {exercise.hasWeight ? ` • ${exercise.weightKg ?? 0}kg` : ""}
+                {exercise.hasWeight ? ` ΓÇó ${exercise.weightKg ?? 0}kg` : ""}
               </Text>
             ))}
 
