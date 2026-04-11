@@ -12,11 +12,11 @@ import * as Updates from "expo-updates";
 import { useThemeStore } from "@/stores/theme.store";
 import { useAuthStore } from "@/stores/auth.store";
 import { useToastStore } from "@/stores/toast.store";
-import { Toggle } from "@/components/ui/Toggle";
 import {
   ArrowLeft,
   Moon,
   Sun,
+  Smartphone,
   Globe,
   Info,
   LogOut,
@@ -31,6 +31,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const colors = useThemeStore((s) => s.colors);
+  const mode = useThemeStore((s) => s.mode);
   const isDark = useThemeStore((s) => s.isDark);
   const setMode = useThemeStore((s) => s.setMode);
   const logout = useAuthStore((s) => s.logout);
@@ -185,13 +186,77 @@ export default function SettingsScreen() {
               <Sun size={18} color={colors.primary} />
             )
           }
-          label="Dark Mode"
+          label="Theme"
           right={
-            <Toggle
-              checked={isDark}
-              onCheckedChange={(checked) => setMode(checked ? "dark" : "light")}
-              variant="default"
-            />
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <Pressable
+                onPress={() => setMode("light")}
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 10,
+                  borderWidth: 1,
+                  borderColor:
+                    mode === "light" ? colors.primary : colors.cardBorder,
+                  backgroundColor:
+                    mode === "light" ? colors.secondary : colors.background,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Sun
+                  size={16}
+                  color={mode === "light" ? colors.primary : colors.mutedForeground}
+                />
+              </Pressable>
+
+              <Pressable
+                onPress={() => setMode("dark")}
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 10,
+                  borderWidth: 1,
+                  borderColor: mode === "dark" ? colors.primary : colors.cardBorder,
+                  backgroundColor:
+                    mode === "dark" ? colors.secondary : colors.background,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Moon
+                  size={16}
+                  color={mode === "dark" ? colors.primary : colors.mutedForeground}
+                />
+              </Pressable>
+
+              <Pressable
+                onPress={() => setMode("system")}
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 10,
+                  borderWidth: 1,
+                  borderColor:
+                    mode === "system" ? colors.primary : colors.cardBorder,
+                  backgroundColor:
+                    mode === "system" ? colors.secondary : colors.background,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Smartphone
+                  size={16}
+                  color={mode === "system" ? colors.primary : colors.mutedForeground}
+                />
+              </Pressable>
+            </View>
           }
         />
       </View>

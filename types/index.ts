@@ -209,25 +209,61 @@ export interface DietPlan {
 
 // ─── Community ──────────────────────────────────────────────────
 export type PostVisibility = "public" | "followers";
-export type ChallengeType =
-  | "weight_loss"
-  | "gym_frequency"
-  | "volume"
-  | "custom";
+export type PostStatus = "published" | "draft" | "flagged" | "removed";
+export type ChallengeType = "workout" | "nutrition" | "activity" | "streak";
+export type ReportReason = "spam" | "harassment" | "inappropriate" | "other";
+export type ReportStatus = "pending" | "approved" | "dismissed";
+export type GroupMembership = "open" | "invite_only";
+export type GroupVisibility = "public" | "private";
+export type Trend = "up" | "down" | "stable";
+
+export interface PostMedia {
+  type: "image";
+  storage_url: string;
+  order: number;
+}
+
+export interface PostLinkedContent {
+  type: "workout" | "nutrition" | "achievement";
+  target_id: string;
+  title: string;
+  preview?: Record<string, unknown>;
+}
 
 export interface CommunityPost {
   id: string;
   author_id: string;
   author_name: string;
-  author_avatar?: string;
+  author_avatar_url?: string;
   content: string;
-  image_url?: string;
-  shared_workout_id?: string;
-  shared_diet_id?: string;
-  likes_count: number;
-  comments_count: number;
+  content_length: number;
+  media: PostMedia[];
+  linked_content?: PostLinkedContent;
   visibility: PostVisibility;
+  like_count: number;
+  comment_count: number;
+  liked_by: string[];
+  status: PostStatus;
   created_at: string;
+  updated_at?: string;
+  flagged_reason?: ReportReason;
+  flagged_count: number;
+  mod_reviewed: boolean;
+  mod_approved?: boolean;
+}
+
+export interface CommunityComment {
+  id: string;
+  post_id: string;
+  author_id: string;
+  author_name: string;
+  author_avatar_url?: string;
+  content: string;
+  reply_to?: string;
+  like_count: number;
+  created_at: string;
+  status: "published" | "flagged" | "removed";
+  replies?: CommunityComment[];
 }
 
 export interface CommunityFollow {
@@ -235,31 +271,112 @@ export interface CommunityFollow {
   follower_id: string;
   following_id: string;
   created_at: string;
+  is_muted: boolean;
+  is_blocked: boolean;
+}
+
+export interface UserBlock {
+  id: string;
+  blocker_id: string;
+  blocked_id: string;
+  created_at: string;
+  reason?: "user_input" | "auto_spam";
+}
+
+export interface UserMute {
+  id: string;
+  muter_id: string;
+  muted_id: string;
+  created_at: string;
+}
+
+export interface ChallengeConfig {
+  goal: string;
+  target_value: number;
+  unit: string;
 }
 
 export interface CommunityGroup {
   id: string;
+  creator_id: string;
   name: string;
   description?: string;
   avatar_url?: string;
-  creator_id: string;
-  members: string[];
   challenge_type: ChallengeType;
-  challenge_goal?: string;
-  start_date: string;
-  end_date: string;
-  is_active: boolean;
+  challenge_config: ChallengeConfig;
+  membership: GroupMembership;
+  visibility: GroupVisibility;
+  member_count: number;
+  created_at: string;
+  started_at?: string;
+  ended_at?: string;
+  status: "active" | "ended";
+}
+
+export interface GroupMember {
+  user_id: string;
+  user_name: string;
+  user_avatar?: string;
+  joined_at: string;
+  current_score: number;
+  current_rank: number;
+  last_activity?: string;
 }
 
 export interface ChallengeParticipant {
   id: string;
-  group_id: string;
   user_id: string;
   user_name: string;
   user_avatar?: string;
-  current_progress: number;
+  group_id: string;
+  score: number;
   rank: number;
-  last_updated: string;
+  progress_history: Array<{ timestamp: string; score: number }>;
+  trend: Trend;
+  completed: boolean;
+  completed_at?: string;
+  updated_at: string;
+}
+
+export interface ContentReport {
+  id: string;
+  reporter_id: string;
+  reported_type: "post" | "comment" | "user";
+  reported_id: string;
+  reason: ReportReason;
+  evidence_url?: string;
+  status: ReportStatus;
+  created_at: string;
+  reviewed_at?: string;
+  reviewer_id?: string;
+}
+
+export interface CommunityNotification {
+  id: string;
+  user_id: string;
+  type: "like" | "comment" | "follow" | "group_invite" | "challenge_started";
+  actor_id: string;
+  actor_name: string;
+  actor_avatar?: string;
+  target_id?: string;
+  target_type?: "post" | "group";
+  read: boolean;
+  created_at: string;
+}
+
+export interface PublicProfile {
+  id: string;
+  name: string;
+  username: string;
+  avatar_url?: string;
+  bio?: string;
+  xp: number;
+  streak_current: number;
+  follower_count: number;
+  following_count: number;
+  public_post_count: number;
+  network_visibility: "public" | "private";
+  profile_visibility: "public" | "private";
 }
 
 // ─── Achievements ───────────────────────────────────────────────

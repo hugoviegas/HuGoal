@@ -8,6 +8,7 @@ import React, {
 import {
   ActivityIndicator,
   Animated,
+  FlatList,
   Image,
   PanResponder,
   Platform,
@@ -36,6 +37,7 @@ import {
 } from "lucide-react-native";
 import {
   listWorkoutTemplates,
+  getPausedWorkoutSession,
   type WorkoutTemplateRecord,
 } from "@/lib/firestore/workouts";
 import { getExerciseCatalog } from "@/lib/workouts/exercise-catalog";
@@ -218,7 +220,9 @@ export default function WorkoutsScreen() {
   });
 
   const weekPagerWidth = Math.max(280, windowWidth - 52);
-  const weekScrollRef = useRef<ScrollView | null>(null);
+  const weekScrollRef = useRef<FlatList<(typeof weekPages)[number]> | null>(
+    null,
+  );
 
   const todayWorkout = workouts[0] ?? null;
   const focusArea = useMemo(
@@ -229,9 +233,65 @@ export default function WorkoutsScreen() {
     () => buildSessionSections(todayWorkout?.exercises ?? []),
     [todayWorkout],
   );
+  const [pausedTemplateId, setPausedTemplateId] = useState<string | null>(null);
+  const [checkingPaused, setCheckingPaused] = useState(false);
+
   const sessionTargetId =
-    sessionActive && sessionTemplateId ? sessionTemplateId : todayWorkout?.id;
-  const startActionLabel = sessionActive ? "Resume" : "Start";
+    sessionActive && sessionTemplateId
+      ? sessionTemplateId
+      : (pausedTemplateId ?? todayWorkout?.id);
+  const startActionLabel =
+    sessionActive || !!pausedTemplateId ? "Resume" : "Start";
+
+  useEffect(() => {
+    let mounted = true;
+    if (!user?.uid) {
+      setPausedTemplateId(null);
+      return () => {
+        mounted = false;
+      };
+    }
+
+    const checkPaused = async () => {
+      setCheckingPaused(true);
+      try {
+        if (sessionActive) {
+          if (mounted) setPausedTemplateId(sessionTemplateId ?? null);
+          return;
+        }
+
+        // prefer to check today's workout first
+        const toCheck: string[] = [];
+        if (todayWorkout?.id) toCheck.push(todayWorkout.id);
+        // include a few recent templates as fallback
+        toCheck.push(...workouts.map((w) => w.id).slice(0, 6));
+
+        const unique = Array.from(new Set(toCheck));
+        const results = await Promise.all(
+          unique.map((tplId) => getPausedWorkoutSession(user.uid, tplId)),
+        );
+
+        const foundIndex = results.findIndex((r) => !!r);
+        if (mounted) {
+          if (foundIndex >= 0) {
+            setPausedTemplateId(unique[foundIndex]);
+          } else {
+            setPausedTemplateId(null);
+          }
+        }
+      } catch (e) {
+        if (mounted) setPausedTemplateId(null);
+      } finally {
+        if (mounted) setCheckingPaused(false);
+      }
+    };
+
+    void checkPaused();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user?.uid, sessionActive, sessionTemplateId, todayWorkout?.id, workouts]);
 
   const weekCompletion = useMemo(() => {
     const todayIdx = toMondayFirstIndex(new Date());
@@ -273,35 +333,6 @@ export default function WorkoutsScreen() {
       });
     });
   }, [initialWeekMonday, weekCompletion.done]);
-
-  useEffect(() => {
-    // ensure current (center) week visible on mount
-    const node = weekScrollRef.current as any;
-    if (!node) return;
-
-    const tryScroll = () => {
-      try {
-        if (Platform.OS === "web") {
-          if (typeof node.scrollTo === "function") {
-            node.scrollTo({ left: weekPagerWidth * 1, behavior: "auto" });
-            return;
-          }
-          if (node && "scrollLeft" in node) {
-            node.scrollLeft = weekPagerWidth * 1;
-            return;
-          }
-        }
-
-        // native ScrollView
-        if (typeof node.scrollTo === "function") {
-          node.scrollTo({ x: weekPagerWidth * 1, animated: false });
-        }
-      } catch (_e) {}
-    };
-
-    const id = setTimeout(tryScroll, 50);
-    return () => clearTimeout(id);
-  }, [weekPagerWidth, weekPages.length]);
 
   const heroImageUri = useMemo(() => {
     const firstExercise = todayWorkout?.exercises[0];
@@ -351,47 +382,6 @@ export default function WorkoutsScreen() {
   useEffect(() => {
     void loadData();
   }, [loadData]);
-
-  useEffect(() => {
-    // After data loads, ensure the week pager is scrolled to the center (current week).
-    if (loading) return;
-
-    let attempts = 0;
-    const maxAttempts = 8;
-
-    const tryScroll = () => {
-      const node = weekScrollRef.current as any;
-      if (!node) {
-        if (++attempts <= maxAttempts) {
-          setTimeout(tryScroll, 80);
-        }
-        return;
-      }
-
-      try {
-        if (Platform.OS === "web") {
-          if (typeof node.scrollTo === "function") {
-            node.scrollTo({ left: weekPagerWidth * 1, behavior: "auto" });
-            return;
-          }
-          if (node && "scrollLeft" in node) {
-            node.scrollLeft = weekPagerWidth * 1;
-            return;
-          }
-        }
-
-        if (typeof node.scrollTo === "function") {
-          node.scrollTo({ x: weekPagerWidth * 1, animated: false });
-        }
-      } catch (_e) {
-        if (++attempts <= maxAttempts) setTimeout(tryScroll, 120);
-      }
-    };
-
-    // give initial render a short window
-    const id = setTimeout(tryScroll, 60);
-    return () => clearTimeout(id);
-  }, [loading, weekPagerWidth, weekPages.length]);
 
   const openPanel = useCallback(() => {
     panelExpandedRef.current = true;
@@ -591,37 +581,44 @@ export default function WorkoutsScreen() {
             onPress={() => router.push("/settings")}
             className={cn(
               "h-10 w-10 rounded-xl items-center justify-center",
-              isDark ? "bg-dark-card" : "bg-light-card",
+              isDark ? "bg-dark-surface" : "bg-light-card",
             )}
           >
             <Settings2 size={18} color={isDark ? "#d1d5db" : "#334155"} />
           </Pressable>
         </View>
 
-        <ScrollView
+        <FlatList
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
           decelerationRate="fast"
           className={cn(
             "mt-3 rounded-2xl",
-            isDark ? "bg-dark-card" : "bg-light-card",
+            isDark ? "bg-dark-surface" : "bg-light-card",
           )}
-          contentContainerStyle={{ width: weekPagerWidth * weekPages.length }}
-          ref={(r) => {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore - platform ScrollView ref type
-            weekScrollRef.current = r;
-          }}
+          data={weekPages}
+          initialScrollIndex={1}
+          getItemLayout={(_, index) => ({
+            length: weekPagerWidth,
+            offset: weekPagerWidth * index,
+            index,
+          })}
+          ref={weekScrollRef}
+          keyExtractor={(_, idx) => `week-${idx}`}
           onMomentumScrollEnd={(event) => {
             const page = Math.round(
               event.nativeEvent.contentOffset.x / weekPagerWidth,
             );
             setWeekOffset(Math.max(0, Math.min(weekPages.length - 1, page)));
           }}
-          contentOffset={{ x: weekPagerWidth, y: 0 }}
-        >
-          {weekPages.map((days, pageIndex) => {
+          onScrollToIndexFailed={(info) => {
+            weekScrollRef.current?.scrollToOffset({
+              offset: info.index * weekPagerWidth,
+              animated: false,
+            });
+          }}
+          renderItem={({ item: days, index: pageIndex }) => {
             return (
               <View
                 key={`week-${pageIndex}`}
@@ -676,8 +673,8 @@ export default function WorkoutsScreen() {
                 </View>
               </View>
             );
-          })}
-        </ScrollView>
+          }}
+        />
       </View>
 
       <ScrollView
@@ -743,7 +740,7 @@ export default function WorkoutsScreen() {
             <View
               className={cn(
                 "rounded-3xl p-4 mb-5",
-                isDark ? "bg-dark-card" : "bg-light-card",
+                isDark ? "bg-dark-surface" : "bg-light-card",
               )}
             >
               <View className="flex-row items-start justify-between mb-3">
@@ -821,7 +818,7 @@ export default function WorkoutsScreen() {
                     key={section.key}
                     className={cn(
                       "rounded-2xl mb-3 overflow-hidden",
-                      isDark ? "bg-dark-card" : "bg-light-card",
+                      isDark ? "bg-dark-surface" : "bg-light-card",
                     )}
                   >
                     <Pressable
@@ -866,7 +863,7 @@ export default function WorkoutsScreen() {
         <View
           className={cn(
             "rounded-3xl p-4",
-            isDark ? "bg-dark-card" : "bg-light-card",
+            isDark ? "bg-dark-surface" : "bg-light-card",
           )}
         >
           <Text className="text-xl font-semibold text-gray-900 dark:text-gray-100">
@@ -932,7 +929,7 @@ export default function WorkoutsScreen() {
           <View
             className={cn(
               "rounded-2xl p-4 mt-4",
-              isDark ? "bg-dark-card" : "bg-light-card",
+              isDark ? "bg-dark-surface" : "bg-light-card",
             )}
           >
             <View className="flex-row items-center justify-between mb-2">
@@ -961,7 +958,9 @@ export default function WorkoutsScreen() {
                       {w.name}
                     </Text>
                     <Text className="text-xs text-gray-500 dark:text-gray-400">
-                      {new Date(w.updated_at || w.created_at).toLocaleDateString()}
+                      {new Date(
+                        w.updated_at || w.created_at,
+                      ).toLocaleDateString()}
                     </Text>
                   </View>
                   <Text className="text-xs text-gray-500 dark:text-gray-400">

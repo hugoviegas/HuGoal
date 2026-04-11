@@ -18,31 +18,32 @@ service cloud.firestore {
     }
 
     // ── Profiles ──────────────────────────────────────────────────────
-    // Users can only read/write their own profile document.
+        // Users can read public profiles and write their own profile.
+        // Non-owners can only touch follower_count for social graph counters.
     match /profiles/{userId} {
-      allow read:   if request.auth != null && request.auth.uid == userId;
+       allow read:   if request.auth != null
+               && (
+                 request.auth.uid == userId
+                 || resource.data.profile_visibility != 'private'
+               );
       allow create: if request.auth != null
                        && request.auth.uid == userId
                        && request.resource.data.email is string
                        && request.resource.data.name is string
                        && request.resource.data.onboarding_complete is bool;
-      allow update: if request.auth != null
-                       && request.auth.uid == userId
-                       && request.resource.data.email is string
-                       && request.resource.data.name is string
-                       && request.resource.data.onboarding_complete is bool
-                       && (
-                            request.resource.data.onboarding_complete == false
-                            || (
-                                 request.resource.data.username is string
-                                 && request.resource.data.username.size() >= 3
-                                 && request.resource.data.username.size() <= 20
-                                 && request.resource.data.sex is string
-                                 && request.resource.data.goal is string
-                                 && request.resource.data.level is string
-                                 && request.resource.data.equipment is string
-                               )
-                          );
+       allow update: if request.auth != null
+               && (
+                 (
+                request.auth.uid == userId
+                 )
+                 || (
+                   request.resource.data.diff(resource.data).affectedKeys().hasOnly(['follower_count'])
+                   && (
+                     request.resource.data.follower_count is int
+                     || request.resource.data.follower_count is float
+                   )
+                 )
+               );
       allow delete: if false; // Never allow profile deletion via client
     }
 
@@ -178,9 +179,106 @@ service cloud.firestore {
       allow create: if request.auth != null
                        && request.resource.data.author_id == request.auth.uid;
       allow update: if request.auth != null
-                       && resource.data.author_id == request.auth.uid;
+                       && (resource.data.author_id == request.auth.uid
+                           || request.resource.data.diff(resource.data).affectedKeys()
+                              .hasOnly(['like_count','liked_by','comment_count','flagged_count','flagged_reason','status']));
       allow delete: if request.auth != null
                        && resource.data.author_id == request.auth.uid;
+    }
+
+    // ── Community Comments ────────────────────────────────────────────
+    match /community_posts/{postId}/comments/{commentId} {
+      allow read:   if request.auth != null;
+      allow create: if request.auth != null
+                       && request.resource.data.author_id == request.auth.uid;
+      allow update: if request.auth != null
+               && (
+                 resource.data.author_id == request.auth.uid
+                 || request.resource.data.diff(resource.data).affectedKeys()
+                   .hasOnly(['like_count'])
+               );
+      allow delete: if request.auth != null
+                       && resource.data.author_id == request.auth.uid;
+    }
+
+    // ── Community Follows ─────────────────────────────────────────────
+    match /community_follows/{followId} {
+      allow read:   if request.auth != null;
+      allow create: if request.auth != null
+                       && request.resource.data.follower_id == request.auth.uid;
+      allow update: if request.auth != null
+                       && resource.data.follower_id == request.auth.uid;
+      allow delete: if request.auth != null
+                       && resource.data.follower_id == request.auth.uid;
+    }
+
+    // ── User Blocks ───────────────────────────────────────────────────
+    match /user_blocks/{blockId} {
+      allow read:   if request.auth != null
+                       && (resource.data.blocker_id == request.auth.uid
+                           || resource.data.blocked_id == request.auth.uid);
+      allow create: if request.auth != null
+                       && request.resource.data.blocker_id == request.auth.uid;
+      allow delete: if request.auth != null
+                       && resource.data.blocker_id == request.auth.uid;
+    }
+
+    // ── User Mutes ────────────────────────────────────────────────────
+    match /user_mutes/{muteId} {
+      allow read:   if request.auth != null
+                       && resource.data.muter_id == request.auth.uid;
+      allow create: if request.auth != null
+                       && request.resource.data.muter_id == request.auth.uid;
+      allow delete: if request.auth != null
+                       && resource.data.muter_id == request.auth.uid;
+    }
+
+    // ── Community Groups ──────────────────────────────────────────────
+    match /community_groups/{groupId} {
+      allow read:   if request.auth != null;
+      allow create: if request.auth != null
+                       && request.resource.data.creator_id == request.auth.uid;
+      allow update: if request.auth != null
+               && (
+                 resource.data.creator_id == request.auth.uid
+                 || request.resource.data.diff(resource.data).affectedKeys()
+                   .hasOnly(['member_count'])
+               );
+      allow delete: if request.auth != null
+                       && resource.data.creator_id == request.auth.uid;
+    }
+
+    // ── Group Members ─────────────────────────────────────────────────
+    match /community_groups/{groupId}/members/{uid} {
+      allow read:   if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == uid;
+      allow update: if request.auth != null && request.auth.uid == uid;
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ── Challenge Participants ────────────────────────────────────────
+    match /challenge_participants/{challengeId}/participants/{uid} {
+      allow read:   if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == uid;
+      allow update: if false;
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ── Content Reports ───────────────────────────────────────────────
+    match /content_reports/{reportId} {
+      allow read:   if request.auth != null
+                       && resource.data.reporter_id == request.auth.uid;
+      allow create: if request.auth != null
+                       && request.resource.data.reporter_id == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // ── Notifications ─────────────────────────────────────────────────
+    match /notifications/{uid}/events/{eventId} {
+      allow read:   if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && request.auth.uid == uid;
+      allow delete: if request.auth != null && request.auth.uid == uid;
     }
 
     // ── Default deny ──────────────────────────────────────────────────
