@@ -34,6 +34,10 @@ function sanitizeFirestoreValue<T>(value: T): T {
   return value;
 }
 
+function sanitizeRecord<T extends Record<string, unknown>>(value: T): T {
+  return sanitizeFirestoreValue(value) as T;
+}
+
 export type WorkoutDifficulty = "beginner" | "intermediate" | "advanced";
 
 export interface WorkoutTemplateExerciseRecord {
@@ -254,7 +258,7 @@ export async function createWorkoutTemplate(
     updated_at: now,
   };
 
-  const writePayload = stripUndefined({
+  const writePayload = sanitizeRecord({
     ...payload,
     created_at: now,
     updated_at: now,
@@ -279,7 +283,7 @@ export async function updateWorkoutTemplate(
       throw new Error("Workout not found");
     }
 
-    const writePatch = stripUndefined({
+    const writePatch = sanitizeRecord({
       ...patch,
       updated_at: new Date().toISOString(),
     });

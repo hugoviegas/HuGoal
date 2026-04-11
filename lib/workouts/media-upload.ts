@@ -1,5 +1,11 @@
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import {
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject,
+} from "firebase/storage";
 import type { ImagePickerAsset } from "expo-image-picker";
+import { storage } from "@/lib/firebase";
 
 const WORKOUT_IMAGE_PATH = "workout-covers";
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -56,8 +62,7 @@ export async function uploadWorkoutCoverImage(
       );
     }
 
-    // Upload to Firebase Storage
-    const storage = getStorage();
+    // Upload to Firebase Storage (use initialized `storage` to ensure correct bucket)
     const fileRef = ref(storage, storagePath);
     await uploadBytes(fileRef, blob);
 
@@ -86,12 +91,10 @@ export async function deleteWorkoutCoverImage(
   storagePath: string,
 ): Promise<void> {
   try {
-    const storage = getStorage();
     const fileRef = ref(storage, storagePath);
-    // Firebase Storage delete is available through deleteObject
-    // For now, we'll log the intent; a proper implementation
-    // would use deleteObject from firebase/storage
-    console.log(`[deleteWorkoutCoverImage] Mark for cleanup: ${storagePath}`);
+    // Attempt to delete the object; if it fails, log and continue
+    await deleteObject(fileRef);
+    console.log(`[deleteWorkoutCoverImage] Deleted: ${storagePath}`);
   } catch (error) {
     console.error("[deleteWorkoutCoverImage] Delete failed", {
       storagePath,

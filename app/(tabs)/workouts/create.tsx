@@ -6,6 +6,7 @@ import {
   ScrollView,
   Pressable,
   TextInput,
+  Image,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -16,6 +17,8 @@ import {
   CirclePlus,
   Copy,
   Dumbbell,
+  ChevronDown,
+  ChevronUp,
   GripVertical,
   Search,
   Sparkles,
@@ -33,6 +36,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
 import { createWorkoutTemplate } from "@/lib/firestore/workouts";
+import { uploadWorkoutCoverImage } from "@/lib/workouts/media-upload";
 import { useHideMainTabBar } from "@/hooks/useHideMainTabBar";
 import type { Difficulty, EquipmentType } from "@/types";
 
@@ -114,8 +118,23 @@ const STEP_LABELS = ["Workflow", "Details", "Exercises", "Preview"];
 const GENERIC_EXERCISE_IMAGE =
   "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1200&q=80";
 
-
 type LibraryExercise = CachedLibraryExercise;
+
+function getExercisePreviewImages(exercise: LibraryExercise): string[] {
+  return (exercise.remote_image_urls ?? [])
+    .filter((url): url is string => Boolean(url))
+    .slice(0, 2);
+}
+
+function getExercisePrimaryImage(exercise: LibraryExercise): string {
+  return getExercisePreviewImages(exercise)[0] ?? GENERIC_EXERCISE_IMAGE;
+}
+
+function getWorkoutCoverImageUri(
+  asset?: WorkoutDraft["cover_image_asset"],
+): string | undefined {
+  return asset?.uri;
+}
 
 function createRound(name: string): WorkoutRound {
   return {
@@ -144,9 +163,20 @@ export default function CreateWorkoutScreen() {
   const [pickerTarget, setPickerTarget] = useState<BuilderTarget | null>(null);
   const [exerciseSearch, setExerciseSearch] = useState("");
   const [showSaveDraftConfirm, setShowSaveDraftConfirm] = useState(false);
-  const [exerciseFilter, setExerciseFilter] = useState<ExerciseFilterKey>("all");
-  const [exerciseLibrary, setExerciseLibrary] = useState<LibraryExercise[] | null>(null);
+  const [selectedExerciseFilters, setSelectedExerciseFilters] = useState<
+    ExerciseFilterKey[]
+  >([]);
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+  const [exerciseLibrary, setExerciseLibrary] = useState<
+    LibraryExercise[] | null
+  >(null);
   const [loadingExerciseLibrary, setLoadingExerciseLibrary] = useState(false);
+  const [selectedExercisePreview, setSelectedExercisePreview] =
+    useState<LibraryExercise | null>(null);
+  const [
+    selectedExercisePreviewImageIndex,
+    setSelectedExercisePreviewImageIndex,
+  ] = useState(0);
   const [draft, setDraft] = useState<WorkoutDraft>({
     name: "",
     description: "",
@@ -174,7 +204,13 @@ export default function CreateWorkoutScreen() {
       (draft.warmupEnabled ? countExercises(draft.warmupItems) : 0) +
       (draft.cooldownEnabled ? countExercises(draft.cooldownItems) : 0)
     );
-  }, [draft.cooldownEnabled, draft.cooldownItems, draft.rounds, draft.warmupEnabled, draft.warmupItems]);
+  }, [
+    draft.cooldownEnabled,
+    draft.cooldownItems,
+    draft.rounds,
+    draft.warmupEnabled,
+    draft.warmupItems,
+  ]);
 
   useEffect(() => {
     let mounted = true;
@@ -217,16 +253,38 @@ export default function CreateWorkoutScreen() {
       }, 0);
 
     return (
-      draft.rounds.reduce((total, round) => total + sectionDuration(round.items ?? []), 0) +
+      draft.rounds.reduce(
+        (total, round) => total + sectionDuration(round.items ?? []),
+        0,
+      ) +
       (draft.warmupEnabled ? sectionDuration(draft.warmupItems) : 0) +
       (draft.cooldownEnabled ? sectionDuration(draft.cooldownItems) : 0)
     );
-  }, [draft.cooldownEnabled, draft.cooldownItems, draft.rounds, draft.warmupEnabled, draft.warmupItems]);
+  }, [
+    draft.cooldownEnabled,
+    draft.cooldownItems,
+    draft.rounds,
+    draft.warmupEnabled,
+    draft.warmupItems,
+  ]);
 
   const exerciseFilterGroups = useMemo(
     () => buildExerciseFilterGroups(exerciseLibrary ?? []),
     [exerciseLibrary],
   );
+
+  const activeExerciseFilterLabel = useMemo(() => {
+    if (selectedExerciseFilters.length === 0) return "All exercises";
+    if (selectedExerciseFilters.length === 1) {
+      const key = selectedExerciseFilters[0];
+      for (const group of exerciseFilterGroups) {
+        const match = group.options.find((option) => option.key === key);
+        if (match) return match.label;
+      }
+      return "Filtered";
+    }
+    return `${selectedExerciseFilters.length} filters`;
+  }, [selectedExerciseFilters, exerciseFilterGroups]);
 
   const groupedExercises = useMemo(() => {
     if (!exerciseLibrary) return {};
@@ -243,7 +301,12 @@ export default function CreateWorkoutScreen() {
 
       const matchesSearch =
         !exerciseSearch || searchable.includes(exerciseSearch.toLowerCase());
-      const matchesFilter = exerciseMatchesFilter(exercise, exerciseFilter);
+      const matchesFilter =
+        selectedExerciseFilters.length === 0
+          ? true
+          : selectedExerciseFilters.some((key) =>
+              exerciseMatchesFilter(exercise, key),
+            );
 
       return matchesSearch && matchesFilter;
     });
@@ -256,13 +319,38 @@ export default function CreateWorkoutScreen() {
       acc[key].push(exercise);
       return acc;
     }, {});
-  }, [exerciseFilter, exerciseLibrary, exerciseSearch]);
+  }, [selectedExerciseFilters, exerciseLibrary, exerciseSearch]);
 
   const flattenedFilteredExercises = useMemo(() => {
     return Object.entries(groupedExercises).flatMap(([group, items]) =>
-      items.map((item) => ({ ...item, group }))
+      items.map((item) => ({ ...item, group })),
     );
   }, [groupedExercises]);
+
+  const selectedExercisePreviewImages = useMemo(
+    () =>
+      selectedExercisePreview
+        ? getExercisePreviewImages(selectedExercisePreview)
+        : [],
+    [selectedExercisePreview],
+  );
+
+  useEffect(() => {
+    setSelectedExercisePreviewImageIndex(0);
+
+    if (!selectedExercisePreview || selectedExercisePreviewImages.length <= 1) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setSelectedExercisePreviewImageIndex(
+        (current) => (current + 1) % selectedExercisePreviewImages.length,
+      );
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [selectedExercisePreview, selectedExercisePreviewImages.length]);
+
   const handleWorkflowSelect = (type: WorkflowType) => {
     setWorkflowType(type);
     setDraft((prev) => ({ ...prev, workflowType: type }));
@@ -283,6 +371,40 @@ export default function CreateWorkoutScreen() {
       return;
     }
     setStep("exercises");
+  };
+
+  const handlePickCoverImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 1,
+      });
+
+      if (!result.canceled && result.assets.length > 0) {
+        const asset = result.assets[0];
+        setDraft((prev) => ({
+          ...prev,
+          cover_image_asset: {
+            uri: asset.uri,
+            width: asset.width,
+            height: asset.height,
+          },
+        }));
+        showToast("Cover image cropped and saved", "success");
+      }
+    } catch (error) {
+      console.error("[handlePickCoverImage] Error picking image", error);
+      showToast("Failed to pick image", "error");
+    }
+  };
+
+  const handleRemoveCoverImage = () => {
+    setDraft((prev) => ({
+      ...prev,
+      cover_image_asset: undefined,
+    }));
   };
 
   const handleGenerateAI = async () => {
@@ -356,9 +478,13 @@ export default function CreateWorkoutScreen() {
 
   const closePicker = () => {
     setPickerTarget(null);
+    setSelectedExercisePreview(null);
   };
 
-  const handleAddExercise = (target: BuilderTarget, exercise: LibraryExercise) => {
+  const handleAddExercise = (
+    target: BuilderTarget,
+    exercise: LibraryExercise,
+  ) => {
     const selectedExercise: BuilderExerciseItem = {
       id: `selected-${exercise.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       type: "exercise",
@@ -368,7 +494,7 @@ export default function CreateWorkoutScreen() {
       equipment: exercise.equipment_label,
       difficulty: exercise.difficulty,
       hasWeight: exercise.has_weight,
-      imageUrl: GENERIC_EXERCISE_IMAGE,
+      imageUrl: getExercisePrimaryImage(exercise),
       reps: "10-12",
       weightKg: exercise.has_weight ? 20 : undefined,
       notes: "",
@@ -400,11 +526,13 @@ export default function CreateWorkoutScreen() {
     });
 
     closePicker();
-    showToast(
-      `Added ${exercise.name}`,
-      "success",
-    );
+    showToast(`Added ${exercise.name}`, "success");
     setExerciseSearch("");
+    setSelectedExercisePreview(null);
+  };
+
+  const handleOpenExercisePreview = (exercise: LibraryExercise) => {
+    setSelectedExercisePreview(exercise);
   };
 
   const handleAddRound = () => {
@@ -513,7 +641,9 @@ export default function CreateWorkoutScreen() {
   };
 
   const handleRemoveItem = (target: BuilderTarget, itemId: string) => {
-    updateItemsForTarget(target, (items) => items.filter((item) => item.id !== itemId));
+    updateItemsForTarget(target, (items) =>
+      items.filter((item) => item.id !== itemId),
+    );
   };
 
   const handleDuplicateItem = (target: BuilderTarget, itemId: string) => {
@@ -679,7 +809,12 @@ export default function CreateWorkoutScreen() {
 
       let coverImageUrl: string | undefined;
       if (draft.cover_image_asset) {
-        coverImageUrl = draft.cover_image_asset.uri;
+        const uploadedCoverImage = await uploadWorkoutCoverImage(
+          user.uid,
+          `workout-${Date.now()}`,
+          draft.cover_image_asset,
+        );
+        coverImageUrl = uploadedCoverImage.imageUrl;
       }
 
       const savedWorkout = await createWorkoutTemplate(user.uid, {
@@ -742,16 +877,22 @@ export default function CreateWorkoutScreen() {
       key={item.id}
       className={cn(
         "rounded-2xl border p-4 mb-3",
-        isDark ? "bg-dark-bg border-dark-border" : "bg-light-bg border-light-border",
+        isDark
+          ? "bg-dark-bg border-dark-border"
+          : "bg-light-bg border-light-border",
       )}
     >
       <View className="flex-row items-start justify-between mb-3">
         <View className="flex-1 pr-2">
           <Text className="text-xs font-semibold uppercase tracking-wide text-cyan-600 dark:text-cyan-400 mb-1">
-            {item.type === "exercise" ? `Exercise ${itemIndex + 1}` : `Rest ${itemIndex + 1}`}
+            {item.type === "exercise"
+              ? `Exercise ${itemIndex + 1}`
+              : `Rest ${itemIndex + 1}`}
           </Text>
           <Text className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-5">
-            {item.type === "exercise" ? item.name : `Rest ${item.durationSeconds}s`}
+            {item.type === "exercise"
+              ? item.name
+              : `Rest ${item.durationSeconds}s`}
           </Text>
           {item.type === "exercise" ? (
             <Text className="text-xs text-gray-600 dark:text-gray-400 mt-1 capitalize">
@@ -787,7 +928,11 @@ export default function CreateWorkoutScreen() {
           >
             <ArrowDown
               size={13}
-              color={itemIndex === totalItems - 1 ? colors.cardBorder : colors.foreground}
+              color={
+                itemIndex === totalItems - 1
+                  ? colors.cardBorder
+                  : colors.foreground
+              }
             />
           </Pressable>
           <Pressable
@@ -807,7 +952,9 @@ export default function CreateWorkoutScreen() {
           <Input
             label="Reps"
             value={item.reps}
-            onChangeText={(text) => updateBuilderItem(target, item.id, { reps: text })}
+            onChangeText={(text) =>
+              updateBuilderItem(target, item.id, { reps: text })
+            }
             containerClassName="flex-1"
           />
           {item.hasWeight ? (
@@ -816,7 +963,9 @@ export default function CreateWorkoutScreen() {
               keyboardType="decimal-pad"
               value={String(item.weightKg ?? 0)}
               onChangeText={(text) =>
-                updateBuilderItem(target, item.id, { weightKg: Number(text || "0") || 0 })
+                updateBuilderItem(target, item.id, {
+                  weightKg: Number(text || "0") || 0,
+                })
               }
               containerClassName="flex-1"
             />
@@ -826,7 +975,9 @@ export default function CreateWorkoutScreen() {
                 Weight
               </Text>
               <View className="rounded-xl border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface px-4 py-3">
-                <Text className="text-sm text-gray-500 dark:text-gray-400">Not applicable</Text>
+                <Text className="text-sm text-gray-500 dark:text-gray-400">
+                  Not applicable
+                </Text>
               </View>
             </View>
           )}
@@ -848,7 +999,9 @@ export default function CreateWorkoutScreen() {
       <Input
         label="Notes (optional)"
         value={item.notes ?? ""}
-        onChangeText={(text) => updateBuilderItem(target, item.id, { notes: text })}
+        onChangeText={(text) =>
+          updateBuilderItem(target, item.id, { notes: text })
+        }
       />
     </View>
   );
@@ -950,43 +1103,109 @@ export default function CreateWorkoutScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: tabBarClearance + 16 }}
         >
-          <Input
-            label="Workout Name"
-            placeholder="e.g., Summer Shred"
-            value={draft.name}
-            onChangeText={(text) =>
-              setDraft((prev) => ({ ...prev, name: text }))
-            }
-            containerClassName="mb-4"
-          />
-
-          <View className="mb-4">
-            <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Goal Difficulty
+          <View
+            className={cn(
+              "rounded-3xl border p-4 mb-4",
+              isDark
+                ? "bg-dark-surface border-dark-border"
+                : "bg-light-surface border-light-border",
+            )}
+          >
+            <Text className="text-[11px] font-bold uppercase tracking-[0.3em] text-cyan-700 dark:text-cyan-300 mb-3">
+              Workout Details
             </Text>
-            <View className="flex-row gap-2">
-              {DIFFICULTIES.map((d) => (
-                <Badge
-                  key={d.value}
-                  onPress={() =>
-                    handleDifficultySelect(
-                      d.value as WorkoutDraft["difficulty"],
-                    )
-                  }
-                  className="flex-1 items-center"
-                  textClassName="text-center"
-                  variant={
-                    selectedDifficulty === d.value ? "primary" : "default"
-                  }
+
+            <View className="mb-4">
+              {draft.cover_image_asset ? (
+                <View className="gap-3">
+                  <View className="rounded-3xl overflow-hidden border border-light-border dark:border-dark-border bg-light-bg dark:bg-dark-bg">
+                    <Image
+                      source={{
+                        uri: getWorkoutCoverImageUri(draft.cover_image_asset),
+                      }}
+                      className="w-full h-44"
+                      resizeMode="cover"
+                    />
+                  </View>
+                  <View className="flex-row gap-2">
+                    <Button variant="secondary" onPress={handlePickCoverImage}>
+                      Crop / replace
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onPress={handleRemoveCoverImage}
+                    >
+                      Remove
+                    </Button>
+                  </View>
+                </View>
+              ) : (
+                <Pressable
+                  onPress={handlePickCoverImage}
+                  className={cn(
+                    "rounded-3xl border-2 border-dashed p-4 min-h-[164px] items-center justify-center",
+                    isDark
+                      ? "bg-dark-bg border-dark-border"
+                      : "bg-light-bg border-light-border",
+                  )}
                 >
-                  {d.label}
-                </Badge>
-              ))}
+                  <Text className="text-base font-semibold text-gray-900 dark:text-gray-100 text-center">
+                    Add workout image
+                  </Text>
+                  <Text className="text-sm text-gray-600 dark:text-gray-400 mt-2 text-center">
+                    Crop it before saving. This image will be uploaded when you
+                    save the workout.
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+
+            <Input
+              label="Workout Name"
+              placeholder="e.g., Summer Shred"
+              value={draft.name}
+              onChangeText={(text) =>
+                setDraft((prev) => ({ ...prev, name: text }))
+              }
+              containerClassName="mb-4"
+              className="rounded-2xl px-5 py-4 text-base font-semibold min-h-[60px]"
+            />
+
+            <View className="mb-4">
+              <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Goal Difficulty
+              </Text>
+              <View className="flex-row gap-2">
+                {DIFFICULTIES.map((d) => (
+                  <Badge
+                    key={d.value}
+                    onPress={() =>
+                      handleDifficultySelect(
+                        d.value as WorkoutDraft["difficulty"],
+                      )
+                    }
+                    className="flex-1 items-center py-3 rounded-2xl"
+                    textClassName="text-center text-sm font-semibold"
+                    variant={
+                      selectedDifficulty === d.value ? "primary" : "default"
+                    }
+                  >
+                    {d.label}
+                  </Badge>
+                ))}
+              </View>
             </View>
           </View>
 
           {workflowType === "ai" ? (
-            <View className="mb-4">
+            <View
+              className={cn(
+                "rounded-3xl border p-4 mb-4",
+                isDark
+                  ? "bg-dark-surface border-dark-border"
+                  : "bg-light-surface border-light-border",
+              )}
+            >
               <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Describe Your Workout
               </Text>
@@ -997,24 +1216,37 @@ export default function CreateWorkoutScreen() {
                 value={aiPrompt}
                 onChangeText={setAiPrompt}
                 className={cn(
-                  "rounded-lg p-3 text-base border",
+                  "rounded-2xl border-2 px-5 py-4 text-base leading-6 min-h-[140px]",
                   isDark
-                    ? "bg-dark-surface border-dark-border text-gray-100"
-                    : "bg-light-surface border-light-border text-gray-900",
+                    ? "bg-dark-bg border-dark-border text-gray-100"
+                    : "bg-light-bg border-light-border text-gray-900",
                 )}
                 textAlignVertical="top"
               />
             </View>
           ) : (
-            <Input
-              label="Description (optional)"
-              placeholder="E.g., Strength-focused upper body session"
-              value={draft.description}
-              onChangeText={(text) =>
-                setDraft((prev) => ({ ...prev, description: text }))
-              }
-              containerClassName="mb-4"
-            />
+            <View
+              className={cn(
+                "rounded-3xl border p-4 mb-4",
+                isDark
+                  ? "bg-dark-surface border-dark-border"
+                  : "bg-light-surface border-light-border",
+              )}
+            >
+              <Input
+                label="Description (optional)"
+                placeholder="E.g., Strength-focused upper body session"
+                value={draft.description}
+                onChangeText={(text) =>
+                  setDraft((prev) => ({ ...prev, description: text }))
+                }
+                containerClassName="mb-0"
+                className="rounded-2xl px-5 py-4 text-base leading-6 min-h-[120px]"
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+            </View>
           )}
         </ScrollView>
 
@@ -1070,14 +1302,15 @@ export default function CreateWorkoutScreen() {
 
             <Text className="text-sm text-gray-600 dark:text-gray-400 mb-3">
               {pickerTarget.section === "round"
-                ? draft.rounds.find((round) => round.id === pickerTarget.roundId)
-                    ?.name
+                ? draft.rounds.find(
+                    (round) => round.id === pickerTarget.roundId,
+                  )?.name
                 : pickerTarget.section === "warmup"
                   ? "Warmup"
                   : "Cooldown"}
             </Text>
 
-            <View className="flex-row items-center gap-2 rounded-xl border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface px-3 py-2.5 mb-2">
+            <View className="flex-row items-center gap-2 rounded-2xl border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface px-4 py-3 mb-3">
               <Search size={16} color={colors.muted} />
               <TextInput
                 value={exerciseSearch}
@@ -1085,6 +1318,9 @@ export default function CreateWorkoutScreen() {
                 placeholder="Search by name, muscle or alias"
                 placeholderTextColor={colors.muted}
                 className="flex-1 text-gray-900 dark:text-gray-100"
+                returnKeyType="search"
+                autoCorrect={false}
+                autoCapitalize="none"
               />
               {exerciseSearch ? (
                 <Pressable onPress={() => setExerciseSearch("")}>
@@ -1094,87 +1330,125 @@ export default function CreateWorkoutScreen() {
             </View>
 
             <View className="mb-3 rounded-3xl border border-cyan-200/70 dark:border-cyan-900/40 bg-cyan-50/70 dark:bg-cyan-950/20 px-4 py-4 shadow-sm shadow-cyan-500/10 overflow-hidden">
-              <View className="flex-row items-start justify-between gap-3 mb-3">
-                <View className="flex-1">
+              <View className="flex-row items-center justify-between gap-3">
+                <View className="flex-1 pr-2">
                   <Text className="text-[11px] font-bold uppercase tracking-[0.3em] text-cyan-700 dark:text-cyan-300">
                     Exercise Finder
                   </Text>
-                  <Text className="mt-1 text-lg font-bold text-gray-900 dark:text-gray-100">
-                    One filter for intent and gear
-                  </Text>
                   <Text className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                    Warmups, cooldowns, calisthenics, HIIT and loaded work from the real catalog.
+                    Search, then expand the filter panel if you need a specific
+                    intent or gear.
                   </Text>
                 </View>
-                <View className="items-end gap-2">
-                  <View className="rounded-2xl border border-cyan-200/70 dark:border-cyan-900/40 bg-white/80 dark:bg-black/20 px-3 py-2">
-                    <Text className="text-[10px] font-semibold uppercase tracking-[0.25em] text-gray-500 dark:text-gray-400">
-                      Loaded
-                    </Text>
-                    <Text className="text-base font-bold text-gray-900 dark:text-gray-100">
-                      {exerciseLibrary?.length ?? 0}
-                    </Text>
-                  </View>
-                  {exerciseFilter !== "all" ? (
-                    <Pressable
-                      onPress={() => setExerciseFilter("all")}
-                      className="rounded-full px-3 py-1.5 bg-white/90 dark:bg-black/20 border border-cyan-200/70 dark:border-cyan-900/40"
-                    >
-                      <Text className="text-xs font-semibold text-cyan-700 dark:text-cyan-300">
-                        Reset
-                      </Text>
-                    </Pressable>
-                  ) : null}
-                </View>
+                <Pressable
+                  onPress={() => setIsFilterPanelOpen((prev) => !prev)}
+                  className="flex-row items-center gap-2 rounded-full border border-cyan-200/70 dark:border-cyan-900/40 bg-white/90 dark:bg-black/20 px-4 py-2"
+                >
+                  <Text className="text-sm font-semibold text-cyan-700 dark:text-cyan-300">
+                    Filters
+                  </Text>
+                  {isFilterPanelOpen ? (
+                    <ChevronUp size={14} color={colors.primary} />
+                  ) : (
+                    <ChevronDown size={14} color={colors.primary} />
+                  )}
+                </Pressable>
               </View>
 
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} showsVerticalScrollIndicator={false} className="mb-4">
-                <View className="flex-row gap-2">
-                  <Badge
-                    variant={exerciseFilter === "all" ? "primary" : "secondary"}
-                    size="sm"
-                    onPress={() => setExerciseFilter("all")}
-                  >
-                    {`All • ${exerciseLibrary?.length ?? 0}`}
-                  </Badge>
-                </View>
-              </ScrollView>
-
-              {exerciseFilterGroups.map((group) => (
-                <View key={group.title} className="mb-3 last:mb-0">
-                  <View className="flex-row items-center justify-between mb-2">
-                    <View>
-                      <Text className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                        {group.title}
-                      </Text>
-                      <Text className="text-xs text-gray-600 dark:text-gray-400">
-                        {group.description}
-                      </Text>
-                    </View>
-                    <Text className="text-[10px] font-semibold uppercase tracking-[0.25em] text-gray-500 dark:text-gray-400">
-                      {group.options.length} options
-                    </Text>
+              <View className="mt-3 flex-row items-center justify-between gap-2">
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  showsVerticalScrollIndicator={false}
+                >
+                  <View className="flex-row gap-2 pr-2">
+                    <Badge
+                      variant={
+                        selectedExerciseFilters.length === 0
+                          ? "primary"
+                          : "secondary"
+                      }
+                      size="sm"
+                      onPress={() => setSelectedExerciseFilters([])}
+                    >
+                      {`All • ${exerciseLibrary?.length ?? 0}`}
+                    </Badge>
+                    {selectedExerciseFilters.length > 0 ? (
+                      <Badge
+                        variant="primary"
+                        size="sm"
+                        onPress={() => setSelectedExerciseFilters([])}
+                      >
+                        {activeExerciseFilterLabel}
+                      </Badge>
+                    ) : null}
                   </View>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} showsVerticalScrollIndicator={false}>
-                    <View className="flex-row gap-2">
-                      {group.options.map((option) => (
-                        <Badge
-                          key={option.key}
-                          variant={exerciseFilter === option.key ? "primary" : "secondary"}
-                          size="sm"
-                          onPress={() => setExerciseFilter(option.key)}
-                        >
-                          {`${option.label} • ${option.count}`}
-                        </Badge>
-                      ))}
+                </ScrollView>
+
+                {selectedExerciseFilters.length > 0 ? (
+                  <Pressable
+                    onPress={() => setSelectedExerciseFilters([])}
+                    className="rounded-full px-3 py-1.5 bg-white/90 dark:bg-black/20 border border-cyan-200/70 dark:border-cyan-900/40"
+                  >
+                    <Text className="text-xs font-semibold text-cyan-700 dark:text-cyan-300">
+                      Reset
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
+
+              {isFilterPanelOpen ? (
+                <View className="mt-4">
+                  {exerciseFilterGroups.map((group) => (
+                    <View key={group.title} className="mb-3 last:mb-0">
+                      <View className="flex-row items-center justify-between mb-2">
+                        <View>
+                          <Text className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                            {group.title}
+                          </Text>
+                          <Text className="text-xs text-gray-600 dark:text-gray-400">
+                            {group.description}
+                          </Text>
+                        </View>
+                        <Text className="text-[10px] font-semibold uppercase tracking-[0.25em] text-gray-500 dark:text-gray-400">
+                          {group.options.length} options
+                        </Text>
+                      </View>
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        showsVerticalScrollIndicator={false}
+                      >
+                        <View className="flex-row gap-2">
+                          {group.options.map((option) => {
+                            const isSelected = selectedExerciseFilters.includes(
+                              option.key,
+                            );
+                            return (
+                              <Badge
+                                key={option.key}
+                                variant={isSelected ? "primary" : "secondary"}
+                                size="sm"
+                                onPress={() =>
+                                  setSelectedExerciseFilters((prev) =>
+                                    prev.includes(option.key)
+                                      ? prev.filter((k) => k !== option.key)
+                                      : [...prev, option.key],
+                                  )
+                                }
+                              >
+                                {`${option.label} • ${option.count}`}
+                              </Badge>
+                            );
+                          })}
+                        </View>
+                      </ScrollView>
                     </View>
-                  </ScrollView>
+                  ))}
                 </View>
-              ))}
+              ) : null}
             </View>
           </View>
-
-
 
           {loadingExerciseLibrary ? (
             <View className="flex-1 items-center justify-center">
@@ -1198,23 +1472,27 @@ export default function CreateWorkoutScreen() {
               keyExtractor={(item) => item.id}
               renderItem={({ item, index }) => {
                 const nextItem = flattenedFilteredExercises[index + 1];
-                const showGroupHeader = !nextItem || item.group !== nextItem.group;
+                const showGroupHeader =
+                  !nextItem || item.group !== nextItem.group;
                 return (
                   <View>
                     <ExerciseCard
                       exercise={item}
                       variant="list"
                       showImage
-                      imageUrl={GENERIC_EXERCISE_IMAGE}
+                      imageUrl={getExercisePrimaryImage(item)}
                       onAddPress={() => handleAddExercise(pickerTarget, item)}
-                      onPress={() => handleAddExercise(pickerTarget, item)}
+                      onPress={() => handleOpenExercisePreview(item)}
                     />
                     <Text className="text-xs text-gray-600 dark:text-gray-400 mt-1 px-1 mb-3">
                       {item.short_description}
                     </Text>
-                    {showGroupHeader && index < flattenedFilteredExercises.length - 1 ? (
+                    {showGroupHeader &&
+                    index < flattenedFilteredExercises.length - 1 ? (
                       <Text className="text-sm font-bold uppercase tracking-wide text-gray-600 dark:text-gray-300 mb-2 mt-1">
-                        {muscleKeyToLabel(flattenedFilteredExercises[index + 1].group)}
+                        {muscleKeyToLabel(
+                          flattenedFilteredExercises[index + 1].group,
+                        )}
                       </Text>
                     ) : null}
                   </View>
@@ -1225,7 +1503,11 @@ export default function CreateWorkoutScreen() {
               updateCellsBatchingPeriod={50}
               initialNumToRender={15}
               windowSize={10}
-              contentContainerStyle={{ paddingBottom: scrollPaddingBottom + 24, paddingHorizontal: 16, paddingTop: 12 }}
+              contentContainerStyle={{
+                paddingBottom: scrollPaddingBottom + 24,
+                paddingHorizontal: 16,
+                paddingTop: 12,
+              }}
             />
           )}
           <View className="px-4 py-3 border-t border-light-border dark:border-dark-border">
@@ -1233,6 +1515,114 @@ export default function CreateWorkoutScreen() {
               Back To Round Builder
             </Button>
           </View>
+
+          <Modal
+            visible={Boolean(selectedExercisePreview)}
+            onClose={() => setSelectedExercisePreview(null)}
+          >
+            {selectedExercisePreview
+              ? (() => {
+                  const previewInstructions =
+                    selectedExercisePreview.instructions_pt ??
+                    selectedExercisePreview.instructions_en ??
+                    selectedExercisePreview.instructions
+                      ?.slice(0, 3)
+                      .join("\n\n") ??
+                    "This exercise is available in the official catalog with full metadata and media.";
+
+                  return (
+                    <View className="w-full gap-4">
+                      <View className="flex-row items-start justify-between gap-3">
+                        <View className="flex-1 pr-2">
+                          <Text className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                            {selectedExercisePreview.name}
+                          </Text>
+                          <Text className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                            {selectedExercisePreview.short_description}
+                          </Text>
+                        </View>
+                        <Pressable
+                          onPress={() => setSelectedExercisePreview(null)}
+                          className="h-9 w-9 items-center justify-center rounded-full bg-light-surface dark:bg-dark-surface"
+                        >
+                          <X size={16} color={colors.muted} />
+                        </Pressable>
+                      </View>
+
+                      <View>
+                        {selectedExercisePreviewImages.length > 0 ? (
+                          <Image
+                            key={
+                              selectedExercisePreviewImages[
+                                selectedExercisePreviewImageIndex
+                              ]
+                            }
+                            source={{
+                              uri: selectedExercisePreviewImages[
+                                selectedExercisePreviewImageIndex
+                              ],
+                            }}
+                            className="w-full h-56 rounded-2xl bg-gray-200 dark:bg-gray-700"
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <View className="w-full h-56 items-center justify-center rounded-2xl bg-light-surface dark:bg-dark-surface">
+                            <Text className="text-sm text-gray-500 dark:text-gray-400">
+                              No image available
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+
+                      <View className="flex-row flex-wrap gap-2">
+                        <Badge variant="primary" size="sm">
+                          {selectedExercisePreview.difficulty}
+                        </Badge>
+                        <Badge variant="secondary" size="sm">
+                          {selectedExercisePreview.equipment_label}
+                        </Badge>
+                        {selectedExercisePreview.primary_muscles
+                          .slice(0, 3)
+                          .map((muscle) => (
+                            <Badge key={muscle} variant="secondary" size="sm">
+                              {muscleKeyToLabel(muscle)}
+                            </Badge>
+                          ))}
+                      </View>
+
+                      <ScrollView
+                        className="max-h-40"
+                        showsVerticalScrollIndicator={false}
+                      >
+                        <Text className="text-sm text-gray-700 dark:text-gray-300 leading-6">
+                          {previewInstructions}
+                        </Text>
+                      </ScrollView>
+
+                      <View className="pt-2 border-t border-light-border dark:border-dark-border gap-3">
+                        <Button
+                          onPress={() =>
+                            pickerTarget &&
+                            handleAddExercise(
+                              pickerTarget,
+                              selectedExercisePreview,
+                            )
+                          }
+                        >
+                          Add exercise
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          onPress={() => setSelectedExercisePreview(null)}
+                        >
+                          Close
+                        </Button>
+                      </View>
+                    </View>
+                  );
+                })()
+              : null}
+          </Modal>
         </View>
       );
     }
@@ -1436,16 +1826,23 @@ export default function CreateWorkoutScreen() {
               <View className="flex-row items-center justify-between mb-3 rounded-2xl px-3 py-2 bg-light-bg dark:bg-dark-bg">
                 <Text className="text-xs font-semibold text-gray-600 dark:text-gray-400">
                   {
-                    (round.items ?? []).filter((item) => item.type === "exercise").length
-                  } exercise
-                  {
-                    (round.items ?? []).filter((item) => item.type === "exercise").length === 1
-                      ? ""
-                      : "s"
-                  }
+                    (round.items ?? []).filter(
+                      (item) => item.type === "exercise",
+                    ).length
+                  }{" "}
+                  exercise
+                  {(round.items ?? []).filter(
+                    (item) => item.type === "exercise",
+                  ).length === 1
+                    ? ""
+                    : "s"}
                 </Text>
                 <Text className="text-xs font-semibold text-gray-600 dark:text-gray-400">
-                  {(round.items ?? []).filter((item) => item.type === "rest").length} rests
+                  {
+                    (round.items ?? []).filter((item) => item.type === "rest")
+                      .length
+                  }{" "}
+                  rests
                 </Text>
               </View>
 
@@ -1471,7 +1868,9 @@ export default function CreateWorkoutScreen() {
 
               <View className="flex-row gap-2">
                 <Pressable
-                  onPress={() => openPickerForTarget({ section: "round", roundId: round.id })}
+                  onPress={() =>
+                    openPickerForTarget({ section: "round", roundId: round.id })
+                  }
                   className="flex-1 flex-row items-center justify-center gap-2 p-3 rounded-2xl border-2 border-dashed border-cyan-400/60"
                 >
                   <CirclePlus size={17} color={colors.primary} />
@@ -1480,7 +1879,9 @@ export default function CreateWorkoutScreen() {
                   </Text>
                 </Pressable>
                 <Pressable
-                  onPress={() => handleAddRest({ section: "round", roundId: round.id })}
+                  onPress={() =>
+                    handleAddRest({ section: "round", roundId: round.id })
+                  }
                   className="flex-row items-center justify-center gap-2 px-4 p-3 rounded-2xl border-2 border-dashed border-amber-400/60"
                 >
                   <CirclePlus size={17} color="#f59e0b" />
@@ -1509,7 +1910,9 @@ export default function CreateWorkoutScreen() {
                   setDraft((prev) => ({
                     ...prev,
                     cooldownEnabled: !prev.cooldownEnabled,
-                    cooldownItems: !prev.cooldownEnabled ? prev.cooldownItems : [],
+                    cooldownItems: !prev.cooldownEnabled
+                      ? prev.cooldownItems
+                      : [],
                   }))
                 }
                 className={cn(

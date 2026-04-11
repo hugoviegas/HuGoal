@@ -196,7 +196,7 @@ export function ToastContainer() {
   );
 
   return (
-    <View style={{ pointerEvents: "box-none" }} className="absolute inset-0 z-50">
+    <View pointerEvents="box-none" className="absolute inset-0 z-50">
       {topToasts.length > 0 ? (
         <View
           style={{
@@ -204,8 +204,8 @@ export function ToastContainer() {
             left: 16,
             right: 16,
             alignItems: "center",
-            pointerEvents: "box-none",
           }}
+          pointerEvents="box-none"
           className="absolute gap-3"
         >
           {topToasts.map((toast) => (
@@ -229,8 +229,8 @@ export function ToastContainer() {
             left: 16,
             right: 16,
             alignItems: "center",
-            pointerEvents: "box-none",
           }}
+          pointerEvents="box-none"
           className="absolute gap-3"
         >
           {bottomToasts.map((toast) => (
@@ -249,4 +249,3 @@ export function ToastContainer() {
     </View>
   );
 }
-

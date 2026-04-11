@@ -19,12 +19,31 @@ export type ExerciseFilterKey =
   | "cable"
   | "band"
   | "kettlebell"
-  | "accessory";
+  | "accessory"
+  | "beginner"
+  | "intermediate"
+  | "advanced"
+  | "chest"
+  | "back"
+  | "shoulders"
+  | "arms"
+  | "biceps"
+  | "triceps"
+  | "legs"
+  | "quadriceps"
+  | "hamstrings"
+  | "glutes"
+  | "calves"
+  | "core"
+  | "abdominals"
+  | "upper_body"
+  | "lower_body"
+  | "full_body";
 
 export interface ExerciseFilterOption {
   key: ExerciseFilterKey;
   label: string;
-  category: "intent" | "gear";
+  category: "intent" | "gear" | "level" | "muscle";
   count: number;
 }
 
@@ -58,6 +77,31 @@ const GEAR_ORDER: RenderedExerciseFilterKey[] = [
   "accessory",
 ];
 
+const LEVEL_ORDER: RenderedExerciseFilterKey[] = [
+  "beginner",
+  "intermediate",
+  "advanced",
+];
+
+const MUSCLE_ORDER: RenderedExerciseFilterKey[] = [
+  "chest",
+  "back",
+  "shoulders",
+  "arms",
+  "biceps",
+  "triceps",
+  "legs",
+  "quadriceps",
+  "hamstrings",
+  "glutes",
+  "calves",
+  "core",
+  "abdominals",
+  "upper_body",
+  "lower_body",
+  "full_body",
+];
+
 type RenderedExerciseFilterKey = Exclude<ExerciseFilterKey, "all">;
 
 const FILTER_LABELS: Record<RenderedExerciseFilterKey, string> = {
@@ -79,10 +123,31 @@ const FILTER_LABELS: Record<RenderedExerciseFilterKey, string> = {
   band: "Bands",
   kettlebell: "Kettlebell",
   accessory: "Accessory",
+  beginner: "Beginner",
+  intermediate: "Intermediate",
+  advanced: "Advanced",
+  chest: "Chest",
+  back: "Back",
+  shoulders: "Shoulders",
+  arms: "Arms",
+  biceps: "Biceps",
+  triceps: "Triceps",
+  legs: "Legs",
+  quadriceps: "Quadriceps",
+  hamstrings: "Hamstrings",
+  glutes: "Glutes",
+  calves: "Calves",
+  core: "Core",
+  abdominals: "Abs",
+  upper_body: "Upper Body",
+  lower_body: "Lower Body",
+  full_body: "Full Body",
 };
 
 function normalize(value: string | null | undefined): string {
-  return String(value ?? "").trim().toLowerCase();
+  return String(value ?? "")
+    .trim()
+    .toLowerCase();
 }
 
 function addTag(tags: ExerciseFilterKey[], tag: ExerciseFilterKey): void {
@@ -91,13 +156,62 @@ function addTag(tags: ExerciseFilterKey[], tag: ExerciseFilterKey): void {
   }
 }
 
+function mapMuscleKey(muscle: string): RenderedExerciseFilterKey | null {
+  const normalized = normalize(muscle)
+    .replace(/\s+/g, "_")
+    .replace(/[^a-z0-9_]/g, "");
+
+  switch (normalized) {
+    case "chest":
+    case "back":
+    case "shoulders":
+    case "arms":
+    case "biceps":
+    case "triceps":
+    case "legs":
+    case "quadriceps":
+    case "hamstrings":
+    case "glutes":
+    case "calves":
+    case "core":
+    case "abdominals":
+    case "upper_body":
+    case "lower_body":
+    case "full_body":
+      return normalized;
+    default:
+      return null;
+  }
+}
+
+function addMuscleTags(tags: ExerciseFilterKey[], muscles: string[]): void {
+  const mappedMuscles = muscles
+    .map((muscle) => mapMuscleKey(muscle))
+    .filter((muscle): muscle is RenderedExerciseFilterKey => Boolean(muscle));
+
+  for (const muscle of mappedMuscles) {
+    addTag(tags, muscle);
+  }
+}
+
 export function getExerciseFilterTags(
   exercise: CachedLibraryExercise,
 ): ExerciseFilterKey[] {
   const tags: ExerciseFilterKey[] = [];
-  const sourceCategory = normalize(exercise.source_category ?? exercise.category);
+  const sourceCategory = normalize(
+    exercise.source_category ?? exercise.category,
+  );
   const sourceEquipment = normalize(exercise.source_equipment);
   const exerciseType = normalize(exercise.type);
+  const level = normalize(exercise.difficulty);
+
+  if (
+    level === "beginner" ||
+    level === "intermediate" ||
+    level === "advanced"
+  ) {
+    addTag(tags, level);
+  }
 
   if (sourceCategory === "stretching") {
     addTag(tags, "mobility");
@@ -149,12 +263,19 @@ export function getExerciseFilterTags(
   if (exercise.equipment_label === "kettlebell") addTag(tags, "kettlebell");
 
   if (
-    ["other", "medicine ball", "exercise ball", "foam roll", "e-z curl bar"].includes(
-      sourceEquipment,
-    )
+    [
+      "other",
+      "medicine ball",
+      "exercise ball",
+      "foam roll",
+      "e-z curl bar",
+    ].includes(sourceEquipment)
   ) {
     addTag(tags, "accessory");
   }
+
+  addMuscleTags(tags, exercise.primary_muscles ?? []);
+  addMuscleTags(tags, exercise.secondary_muscles ?? []);
 
   return tags;
 }
@@ -183,7 +304,7 @@ export function buildExerciseFilterGroups(
 
   const buildOptions = (
     keys: RenderedExerciseFilterKey[],
-    category: "intent" | "gear",
+    category: ExerciseFilterOption["category"],
   ): ExerciseFilterOption[] =>
     keys
       .map((key) => ({
@@ -196,6 +317,11 @@ export function buildExerciseFilterGroups(
 
   return [
     {
+      title: "Level",
+      description: "Beginner, intermediate, and advanced exercises.",
+      options: buildOptions(LEVEL_ORDER, "level"),
+    },
+    {
       title: "Training intent",
       description: "Warmups, conditioning, and core training styles.",
       options: buildOptions(INTENT_ORDER, "intent"),
@@ -204,6 +330,11 @@ export function buildExerciseFilterGroups(
       title: "Gear",
       description: "Filter by the equipment the exercise actually uses.",
       options: buildOptions(GEAR_ORDER, "gear"),
+    },
+    {
+      title: "Muscle groups",
+      description: "Find exercises by the main muscle group involved.",
+      options: buildOptions(MUSCLE_ORDER, "muscle"),
     },
   ];
 }

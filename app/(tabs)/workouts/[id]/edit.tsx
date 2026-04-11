@@ -203,12 +203,12 @@ export default function EditWorkoutScreen() {
   const [step, setStep] = useState<EditStep>("details");
   const [pickerRoundId, setPickerRoundId] = useState<string | null>(null);
   const [exerciseSearch, setExerciseSearch] = useState("");
-  const [equipmentFilter, setEquipmentFilter] = useState<"all" | EquipmentType>(
-    "all",
+  const [selectedEquipments, setSelectedEquipments] = useState<EquipmentType[]>(
+    [],
   );
-  const [difficultyFilter, setDifficultyFilter] = useState<"all" | Difficulty>(
-    "all",
-  );
+  const [selectedDifficulties, setSelectedDifficulties] = useState<
+    Difficulty[]
+  >([]);
   const [showSaveDraftConfirm, setShowSaveDraftConfirm] = useState(false);
   const [isHydrating, setIsHydrating] = useState(true);
 
@@ -301,13 +301,23 @@ export default function EditWorkoutScreen() {
 
       const matchesSearch =
         !exerciseSearch || searchable.includes(exerciseSearch.toLowerCase());
-      const matchesEquipment =
-        equipmentFilter === "all" ||
-        exercise.equipment.includes(equipmentFilter as EquipmentType);
-      const matchesDifficulty =
-        difficultyFilter === "all" || exercise.difficulty === difficultyFilter;
 
-      return matchesSearch && matchesEquipment && matchesDifficulty;
+      const activeEquipment = selectedEquipments.length > 0;
+      const activeDifficulty = selectedDifficulties.length > 0;
+
+      const matchesAnyEquipment = activeEquipment
+        ? selectedEquipments.some((eq) => exercise.equipment.includes(eq))
+        : false;
+      const matchesAnyDifficulty = activeDifficulty
+        ? selectedDifficulties.some((d) => exercise.difficulty === d)
+        : false;
+
+      const matchesFilters =
+        !activeEquipment && !activeDifficulty
+          ? true
+          : matchesAnyEquipment || matchesAnyDifficulty;
+
+      return matchesSearch && matchesFilters;
     });
 
     return filtered.reduce<Record<string, typeof filtered>>((acc, exercise) => {
@@ -318,7 +328,7 @@ export default function EditWorkoutScreen() {
       acc[key].push(exercise);
       return acc;
     }, {});
-  }, [difficultyFilter, equipmentFilter, exerciseSearch]);
+  }, [selectedDifficulties, selectedEquipments, exerciseSearch]);
 
   const handleContinueToExercises = () => {
     if (!draft.name.trim()) {
@@ -680,20 +690,42 @@ export default function EditWorkoutScreen() {
               className="mb-3"
             >
               <View className="flex-row gap-2">
-                {DIFFICULTY_FILTERS.map((filter) => (
-                  <Badge
-                    key={filter}
-                    variant={
-                      difficultyFilter === filter ? "primary" : "secondary"
-                    }
-                    size="sm"
-                    onPress={() => setDifficultyFilter(filter)}
-                  >
-                    {filter === "all"
-                      ? "All"
-                      : filter.charAt(0).toUpperCase() + filter.slice(1)}
-                  </Badge>
-                ))}
+                {DIFFICULTY_FILTERS.map((filter) => {
+                  const isAll = filter === "all";
+                  const isSelected =
+                    !isAll &&
+                    selectedDifficulties.includes(filter as Difficulty);
+                  return (
+                    <Badge
+                      key={filter}
+                      variant={
+                        isAll
+                          ? selectedDifficulties.length === 0
+                            ? "primary"
+                            : "secondary"
+                          : isSelected
+                            ? "primary"
+                            : "secondary"
+                      }
+                      size="sm"
+                      onPress={() => {
+                        if (isAll) {
+                          setSelectedDifficulties([]);
+                        } else {
+                          setSelectedDifficulties((prev) =>
+                            prev.includes(filter as Difficulty)
+                              ? prev.filter((p) => p !== filter)
+                              : [...prev, filter as Difficulty],
+                          );
+                        }
+                      }}
+                    >
+                      {isAll
+                        ? "All"
+                        : filter.charAt(0).toUpperCase() + filter.slice(1)}
+                    </Badge>
+                  );
+                })}
               </View>
             </ScrollView>
 
@@ -709,20 +741,42 @@ export default function EditWorkoutScreen() {
               showsVerticalScrollIndicator={false}
             >
               <View className="flex-row gap-2">
-                {EQUIPMENT_FILTERS.map((filter) => (
-                  <Badge
-                    key={filter}
-                    variant={
-                      equipmentFilter === filter ? "primary" : "secondary"
-                    }
-                    size="sm"
-                    onPress={() => setEquipmentFilter(filter)}
-                  >
-                    {filter === "all"
-                      ? "All"
-                      : filter.charAt(0).toUpperCase() + filter.slice(1)}
-                  </Badge>
-                ))}
+                {EQUIPMENT_FILTERS.map((filter) => {
+                  const isAll = filter === "all";
+                  const isSelected =
+                    !isAll &&
+                    selectedEquipments.includes(filter as EquipmentType);
+                  return (
+                    <Badge
+                      key={filter}
+                      variant={
+                        isAll
+                          ? selectedEquipments.length === 0
+                            ? "primary"
+                            : "secondary"
+                          : isSelected
+                            ? "primary"
+                            : "secondary"
+                      }
+                      size="sm"
+                      onPress={() => {
+                        if (isAll) {
+                          setSelectedEquipments([]);
+                        } else {
+                          setSelectedEquipments((prev) =>
+                            prev.includes(filter as EquipmentType)
+                              ? prev.filter((p) => p !== filter)
+                              : [...prev, filter as EquipmentType],
+                          );
+                        }
+                      }}
+                    >
+                      {isAll
+                        ? "All"
+                        : filter.charAt(0).toUpperCase() + filter.slice(1)}
+                    </Badge>
+                  );
+                })}
               </View>
             </ScrollView>
           </View>
