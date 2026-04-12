@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   FlatList,
   Image,
@@ -39,18 +40,27 @@ import {
 } from "lucide-react-native";
 import { ExerciseInspectModal } from "@/components/workouts/ExerciseInspectModal";
 import {
+  clearWorkoutDailyOverride,
+  createWorkoutTemplate,
   listWorkoutTemplates,
   getPausedWorkoutSession,
   getCompletedSessionDates,
-  getWorkoutWeekPlan,
-  upsertWorkoutWeekPlan,
+  upsertWorkoutDailyOverride,
+  type WorkoutDailyOverrideRecord,
+  type WorkoutDifficulty,
   type WorkoutTemplateRecord,
 } from "@/lib/firestore/workouts";
 import { getExerciseCatalog } from "@/lib/workouts/exercise-catalog";
+import { formatLocalDateKey } from "@/lib/workouts/weekly-schedule";
+import { ensureDailyWorkoutResolution } from "@/lib/workouts/daily-workout-resolver";
 import {
-  buildWorkoutWeekPlan,
-  formatLocalDateKey,
-} from "@/lib/workouts/weekly-schedule";
+  buildDifficultyAdjustedExercises,
+  buildTimeAdjustedExercises,
+  filterTemplatesForLocation,
+  selectBestTemplateForWorkoutType,
+  type DifficultyAdjustMode,
+  type WorkoutTypeOption,
+} from "@/lib/workouts/adapt-workout";
 import type { OfficialExerciseRecord } from "@/lib/workouts/generated/official-exercises";
 import { Button } from "@/components/ui/Button";
 import { useAuthStore } from "@/stores/auth.store";
@@ -58,6 +68,18 @@ import { useThemeStore } from "@/stores/theme.store";
 import { useToastStore } from "@/stores/toast.store";
 import { useWorkoutStore } from "@/stores/workout.store";
 import { cn } from "@/lib/utils";
+
+function nextDifficulty(
+  difficulty: WorkoutDifficulty,
+  mode: DifficultyAdjustMode,
+): WorkoutDifficulty {
+  if (mode === "harder") {
+    if (difficulty === "beginner") return "intermediate";
+    return "advanced";
+  }
+  if (difficulty === "advanced") return "intermediate";
+  return "beginner";
+}
 
 type SessionSectionKey = "warmup" | "workout" | "cooldown";
 
@@ -279,6 +301,8 @@ export default function WorkoutsScreen() {
   >(null);
   const [hasResolvedTodayAssignment, setHasResolvedTodayAssignment] =
     useState(false);
+  const [todayOverride, setTodayOverride] =
+    useState<WorkoutDailyOverrideRecord | null>(null);
 
   // Panel slide-up animation
   const COLLAPSED_H = insets.bottom + 144; // pt-3(12) + btn-lg(52) + tabBar(80)
@@ -311,18 +335,32 @@ export default function WorkoutsScreen() {
     null,
   );
 
+  const firstActiveWorkout = useMemo(
+    () => workouts.find((item) => item.is_active !== false) ?? null,
+    [workouts],
+  );
+
   const todayWorkout = useMemo(() => {
     if (hasResolvedTodayAssignment) {
-      if (!todayAssignedTemplateId) {
-        return null;
+      if (todayAssignedTemplateId) {
+        const assigned = workouts.find(
+          (item) => item.id === todayAssignedTemplateId,
+        );
+        if (assigned) return assigned;
       }
-      return (
-        workouts.find((item) => item.id === todayAssignedTemplateId) ?? null
-      );
+
+      // Keep web/mobile resilient when the resolver marks a rest day or
+      // returns a stale template id while templates still exist.
+      return firstActiveWorkout ?? workouts[0] ?? null;
     }
 
-    return workouts[0] ?? null;
-  }, [hasResolvedTodayAssignment, todayAssignedTemplateId, workouts]);
+    return firstActiveWorkout ?? workouts[0] ?? null;
+  }, [
+    firstActiveWorkout,
+    hasResolvedTodayAssignment,
+    todayAssignedTemplateId,
+    workouts,
+  ]);
   const focusArea = useMemo(
     () => resolveFocusArea(todayWorkout),
     [todayWorkout],
@@ -493,51 +531,19 @@ export default function WorkoutsScreen() {
         Array.isArray(workoutSettings.training_days) &&
         workoutSettings.training_days.length > 0
       ) {
-        const currentMonday = startOfWeekMonday(new Date());
-        const nextMonday = new Date(currentMonday);
-        nextMonday.setDate(currentMonday.getDate() + 7);
-
-        const currentWeekStart = formatLocalDateKey(currentMonday);
-        const nextWeekStart = formatLocalDateKey(nextMonday);
-
-        let currentWeekPlan = await getWorkoutWeekPlan(
-          user.uid,
-          currentWeekStart,
-        );
-
-        if (!currentWeekPlan) {
-          currentWeekPlan = buildWorkoutWeekPlan({
-            uid: user.uid,
-            weekStartDate: currentWeekStart,
-            trainingDays: workoutSettings.training_days,
-            templates: sorted,
-            rotationOffset: 0,
-          });
-          await upsertWorkoutWeekPlan(currentWeekPlan);
-        }
-
-        let nextWeekPlan = await getWorkoutWeekPlan(user.uid, nextWeekStart);
-        if (!nextWeekPlan) {
-          nextWeekPlan = buildWorkoutWeekPlan({
-            uid: user.uid,
-            weekStartDate: nextWeekStart,
-            trainingDays: workoutSettings.training_days,
-            templates: sorted,
-            rotationOffset: currentWeekPlan.next_rotation_offset,
-          });
-          await upsertWorkoutWeekPlan(nextWeekPlan);
-        }
-
-        const todayDate = formatLocalDateKey(new Date());
-        const todayAssignment = currentWeekPlan.days.find(
-          (day) => day.date === todayDate,
-        );
+        const resolution = await ensureDailyWorkoutResolution({
+          uid: user.uid,
+          templates: sorted,
+          trainingDays: workoutSettings.training_days,
+        });
 
         setHasResolvedTodayAssignment(true);
-        setTodayAssignedTemplateId(todayAssignment?.template_id ?? null);
+        setTodayAssignedTemplateId(resolution.resolvedTemplateId);
+        setTodayOverride(resolution.override);
       } else {
         setHasResolvedTodayAssignment(false);
         setTodayAssignedTemplateId(null);
+        setTodayOverride(null);
       }
 
       try {
@@ -558,16 +564,266 @@ export default function WorkoutsScreen() {
       }
       setCatalogById(byId);
     } catch (loadError) {
+      const errorWithCode = loadError as
+        | (Error & { code?: string; customData?: unknown })
+        | undefined;
+      console.error("[workouts] loadData failed", {
+        uid: user?.uid,
+        code: errorWithCode?.code,
+        message: errorWithCode?.message,
+        error: loadError,
+      });
+
       const message =
-        loadError instanceof Error
-          ? loadError.message
-          : "Failed to load workouts";
+        errorWithCode?.code != null
+          ? `${errorWithCode.message} (${errorWithCode.code})`
+          : loadError instanceof Error
+            ? loadError.message
+            : "Failed to load workouts";
       setError(message);
       showToast(message, "error");
     } finally {
       setLoading(false);
     }
   }, [initialWeekMonday, profile?.workout_settings, showToast, user?.uid]);
+
+  const applyTemplateOverride = useCallback(
+    async (
+      template: WorkoutTemplateRecord,
+      extra: Partial<WorkoutDailyOverrideRecord>,
+    ) => {
+      if (!user?.uid) return;
+      const date = formatLocalDateKey(new Date());
+      const payload = await upsertWorkoutDailyOverride(user.uid, date, {
+        template_id: template.id,
+        source_template_id: todayWorkout?.id,
+        source_type: extra.source_type,
+        workout_type: extra.workout_type,
+        target_minutes: extra.target_minutes,
+        difficulty_mode: extra.difficulty_mode,
+        location: extra.location,
+      });
+
+      setTodayAssignedTemplateId(template.id);
+      setTodayOverride(payload);
+      setPanelExpanded(false);
+      panelExpandedRef.current = false;
+      Animated.spring(panelHeight, {
+        toValue: COLLAPSED_H,
+        useNativeDriver: false,
+        bounciness: 4,
+        speed: 12,
+      }).start();
+      showToast("Today workout updated", "success");
+    },
+    [COLLAPSED_H, panelHeight, showToast, todayWorkout?.id, user?.uid],
+  );
+
+  const handleChangeWorkoutType = useCallback(() => {
+    if (!todayWorkout) return;
+
+    const options: { label: string; value: WorkoutTypeOption }[] = [
+      { label: "Upper Body", value: "upper_body" },
+      { label: "Lower Body", value: "lower_body" },
+      { label: "Core", value: "core" },
+      { label: "Full Body", value: "full_body" },
+      { label: "Cardio", value: "cardio" },
+    ];
+
+    Alert.alert(
+      "Change workout type",
+      "Which muscle group do you want to train today?",
+      [
+        ...options.map((item) => ({
+          text: item.label,
+          onPress: async () => {
+            const selected = selectBestTemplateForWorkoutType(
+              workouts,
+              item.value,
+              todayWorkout.id,
+            );
+            if (!selected) {
+              showToast("No matching workout type found", "info");
+              return;
+            }
+            await applyTemplateOverride(selected, {
+              source_type: "change_workout_type",
+              workout_type: item.value,
+            });
+          },
+        })),
+        { text: "Cancel", style: "cancel" },
+      ],
+    );
+  }, [applyTemplateOverride, showToast, todayWorkout, workouts]);
+
+  const handleAdjustWorkoutTime = useCallback(() => {
+    if (!user?.uid || !todayWorkout) return;
+
+    const minuteOptions = [20, 30, 45, 60, 75, 90];
+
+    Alert.alert("Adjust workout time", "Select target duration for today", [
+      ...minuteOptions.map((minutes) => ({
+        text: `${minutes} min`,
+        onPress: async () => {
+          const adjustedExercises = buildTimeAdjustedExercises(
+            todayWorkout.exercises,
+            Math.max(10, todayWorkout.estimated_duration_minutes),
+            minutes,
+          );
+
+          const created = await createWorkoutTemplate(user.uid, {
+            name: `${todayWorkout.name} • ${minutes}m`,
+            description: todayWorkout.description,
+            cover_image_url: todayWorkout.cover_image_url,
+            difficulty: todayWorkout.difficulty,
+            is_ai_generated: false,
+            source_prompt: "adapt_workout_adjust_time",
+            exercises: adjustedExercises,
+            sections: undefined,
+            target_muscles: todayWorkout.target_muscles,
+            is_active: false,
+            is_public: false,
+            is_draft: false,
+            location: todayWorkout.location,
+            schedule_day_of_week: undefined,
+            estimated_duration_minutes: minutes,
+            tags: [...(todayWorkout.tags ?? []), "adapted", "adapt_time"],
+          });
+
+          setWorkouts((prev) => [created, ...prev]);
+          await applyTemplateOverride(created, {
+            source_type: "adjust_time",
+            target_minutes: minutes,
+          });
+        },
+      })),
+      { text: "Cancel", style: "cancel" },
+    ]);
+  }, [applyTemplateOverride, todayWorkout, user?.uid]);
+
+  const handleChangeDifficulty = useCallback(() => {
+    if (!user?.uid || !todayWorkout) return;
+
+    const options: { label: string; value: DifficultyAdjustMode }[] = [
+      { label: "Easier", value: "easier" },
+      { label: "Harder", value: "harder" },
+    ];
+
+    Alert.alert("Change difficulty", "Apply for today session only", [
+      ...options.map((item) => ({
+        text: item.label,
+        onPress: async () => {
+          const adjustedExercises = buildDifficultyAdjustedExercises(
+            todayWorkout.exercises,
+            item.value,
+          );
+          const adjustedDifficulty = nextDifficulty(
+            todayWorkout.difficulty,
+            item.value,
+          );
+          const adjustedMinutes = Math.max(
+            10,
+            Math.round(
+              todayWorkout.estimated_duration_minutes *
+                (item.value === "harder" ? 1.12 : 0.88),
+            ),
+          );
+
+          const created = await createWorkoutTemplate(user.uid, {
+            name: `${todayWorkout.name} • ${item.label}`,
+            description: todayWorkout.description,
+            cover_image_url: todayWorkout.cover_image_url,
+            difficulty: adjustedDifficulty,
+            is_ai_generated: false,
+            source_prompt: "adapt_workout_difficulty",
+            exercises: adjustedExercises,
+            sections: undefined,
+            target_muscles: todayWorkout.target_muscles,
+            is_active: false,
+            is_public: false,
+            is_draft: false,
+            location: todayWorkout.location,
+            schedule_day_of_week: undefined,
+            estimated_duration_minutes: adjustedMinutes,
+            tags: [...(todayWorkout.tags ?? []), "adapted", "adapt_difficulty"],
+          });
+
+          setWorkouts((prev) => [created, ...prev]);
+          await applyTemplateOverride(created, {
+            source_type: "change_difficulty",
+            difficulty_mode: item.value,
+          });
+        },
+      })),
+      { text: "Cancel", style: "cancel" },
+    ]);
+  }, [applyTemplateOverride, todayWorkout, user?.uid]);
+
+  const handleUseAnotherLocation = useCallback(() => {
+    if (!todayWorkout) return;
+
+    const locations = profile?.workout_settings?.locations ?? [];
+    if (locations.length === 0) {
+      showToast("No saved locations found in workout settings", "info");
+      return;
+    }
+
+    Alert.alert("Use another location", "Choose location for today", [
+      ...locations.map((location) => ({
+        text: location.charAt(0).toUpperCase() + location.slice(1),
+        onPress: async () => {
+          const allowedEquipment =
+            profile?.workout_settings?.equipment_by_location?.[location] ?? [];
+          const filtered = filterTemplatesForLocation(
+            workouts,
+            location,
+            allowedEquipment,
+            catalogById,
+          );
+
+          const options = filtered
+            .filter((item) => item.id !== todayWorkout.id)
+            .slice(0, 8);
+
+          if (options.length === 0) {
+            showToast("No compatible workout for this location", "info");
+            return;
+          }
+
+          Alert.alert(`Templates for ${location}`, "Select workout for today", [
+            ...options.map((template) => ({
+              text: template.name,
+              onPress: async () => {
+                await applyTemplateOverride(template, {
+                  source_type: "use_another_location",
+                  location,
+                });
+              },
+            })),
+            { text: "Cancel", style: "cancel" },
+          ]);
+        },
+      })),
+      { text: "Cancel", style: "cancel" },
+    ]);
+  }, [
+    applyTemplateOverride,
+    catalogById,
+    profile?.workout_settings?.equipment_by_location,
+    profile?.workout_settings?.locations,
+    showToast,
+    todayWorkout,
+    workouts,
+  ]);
+
+  const handleResetTodayAdaptations = useCallback(async () => {
+    if (!user?.uid) return;
+    const date = formatLocalDateKey(new Date());
+    await clearWorkoutDailyOverride(user.uid, date);
+    showToast("Today adaptation reset", "success");
+    await loadData();
+  }, [loadData, showToast, user?.uid]);
 
   useEffect(() => {
     void loadData();
@@ -1808,6 +2064,7 @@ export default function WorkoutsScreen() {
 
               <View style={{ gap: 8 }}>
                 <Pressable
+                  onPress={handleChangeWorkoutType}
                   style={{
                     borderRadius: 16,
                     paddingVertical: 12,
@@ -1839,6 +2096,7 @@ export default function WorkoutsScreen() {
                 </Pressable>
 
                 <Pressable
+                  onPress={handleAdjustWorkoutTime}
                   style={{
                     borderRadius: 16,
                     paddingVertical: 12,
@@ -1870,6 +2128,7 @@ export default function WorkoutsScreen() {
                 </Pressable>
 
                 <Pressable
+                  onPress={handleChangeDifficulty}
                   style={{
                     borderRadius: 16,
                     paddingVertical: 12,
@@ -1901,6 +2160,7 @@ export default function WorkoutsScreen() {
                 </Pressable>
 
                 <Pressable
+                  onPress={handleUseAnotherLocation}
                   style={{
                     borderRadius: 16,
                     paddingVertical: 12,
@@ -1942,6 +2202,15 @@ export default function WorkoutsScreen() {
                 >
                   Create new session
                 </Button>
+                {todayOverride ? (
+                  <Button
+                    variant="outline"
+                    className="mt-2"
+                    onPress={() => void handleResetTodayAdaptations()}
+                  >
+                    Reset today adaptation
+                  </Button>
+                ) : null}
               </View>
             </Animated.View>
 

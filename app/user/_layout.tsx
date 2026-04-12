@@ -27,7 +27,13 @@ export default function UserLayout() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: colors.background },
+        animation: "slide_from_right",
+      }}
+    >
       <Stack.Screen name="[id]" />
     </Stack>
   );

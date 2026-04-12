@@ -86,7 +86,8 @@ function WorkoutCard({
   discoverMode = false,
 }: WorkoutCardProps) {
   const { isDark, colors } = useThemeStore();
-  const diff = DIFFICULTY_CONFIG[workout.difficulty] ?? DIFFICULTY_CONFIG.intermediate;
+  const diff =
+    DIFFICULTY_CONFIG[workout.difficulty] ?? DIFFICULTY_CONFIG.intermediate;
 
   return (
     <Pressable
@@ -106,7 +107,13 @@ function WorkoutCard({
         {workout.cover_image_url ? (
           <Image
             source={{ uri: workout.cover_image_url }}
-            style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
             resizeMode="cover"
           />
         ) : (
@@ -241,7 +248,12 @@ function WorkoutCard({
           }}
         >
           <View
-            style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: diff.color }}
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: 3,
+              backgroundColor: diff.color,
+            }}
           />
           <Text style={{ fontSize: 11, fontWeight: "600", color: "#fff" }}>
             {diff.label}
@@ -265,13 +277,17 @@ function WorkoutCard({
             }}
           >
             <Sparkles size={10} color="#fff" />
-            <Text style={{ fontSize: 11, fontWeight: "600", color: "#fff" }}>AI</Text>
+            <Text style={{ fontSize: 11, fontWeight: "600", color: "#fff" }}>
+              AI
+            </Text>
           </View>
         )}
       </View>
 
       {/* ── Details ── */}
-      <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 14 }}>
+      <View
+        style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 14 }}
+      >
         <Text
           className="text-base font-bold text-gray-900 dark:text-gray-100"
           numberOfLines={1}
@@ -289,7 +305,14 @@ function WorkoutCard({
         ) : null}
 
         {/* Stats row */}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 14, marginTop: 8 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 14,
+            marginTop: 8,
+          }}
+        >
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
             <Clock3 size={13} color={colors.muted} />
             <Text className="text-xs text-gray-600 dark:text-gray-400">
@@ -303,7 +326,9 @@ function WorkoutCard({
             </Text>
           </View>
           {discoverMode && workout.like_count ? (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+            >
               <Heart size={12} color={colors.muted} />
               <Text className="text-xs text-gray-600 dark:text-gray-400">
                 {workout.like_count}
@@ -311,7 +336,9 @@ function WorkoutCard({
             </View>
           ) : null}
           {discoverMode && workout.saved_by_count ? (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+            >
               <Users size={12} color={colors.muted} />
               <Text className="text-xs text-gray-600 dark:text-gray-400">
                 {workout.saved_by_count}
@@ -322,7 +349,14 @@ function WorkoutCard({
 
         {/* Tags */}
         {workout.tags && workout.tags.length > 0 ? (
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              gap: 6,
+              marginTop: 10,
+            }}
+          >
             {workout.tags.slice(0, 3).map((tag) => (
               <View
                 key={tag}
@@ -330,7 +364,9 @@ function WorkoutCard({
                   paddingHorizontal: 10,
                   paddingVertical: 3,
                   borderRadius: 12,
-                  backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)",
+                  backgroundColor: isDark
+                    ? "rgba(255,255,255,0.06)"
+                    : "rgba(0,0,0,0.05)",
                 }}
               >
                 <Text className="text-[11px] text-gray-500 dark:text-gray-400">
@@ -388,11 +424,15 @@ export default function WorkoutLibraryScreen() {
 
   // Data
   const [myWorkouts, setMyWorkouts] = useState<WorkoutTemplateRecord[]>([]);
-  const [publicWorkouts, setPublicWorkouts] = useState<WorkoutTemplateRecord[]>([]);
+  const [publicWorkouts, setPublicWorkouts] = useState<WorkoutTemplateRecord[]>(
+    [],
+  );
   const [loading, setLoading] = useState(true);
 
   // Action sheet
-  const [menuTarget, setMenuTarget] = useState<WorkoutTemplateRecord | null>(null);
+  const [menuTarget, setMenuTarget] = useState<WorkoutTemplateRecord | null>(
+    null,
+  );
   const [sheetVisible, setSheetVisible] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -507,10 +547,7 @@ export default function WorkoutLibraryScreen() {
     setActionLoading(true);
     try {
       await updateWorkoutTemplate(menuTarget.id, { is_active: next });
-      showToast(
-        next ? "Workout activated" : "Workout deactivated",
-        "success",
-      );
+      showToast(next ? "Workout activated" : "Workout deactivated", "success");
       closeSheet();
       void loadMyWorkouts();
     } catch {
@@ -597,11 +634,7 @@ export default function WorkoutLibraryScreen() {
       return filteredMyWorkouts.length === 0 ? (
         <EmptyState
           icon={<Dumbbell size={52} color={colors.muted} />}
-          title={
-            filter !== "all"
-              ? `No ${filter} workouts`
-              : "No workouts yet"
-          }
+          title={filter !== "all" ? `No ${filter} workouts` : "No workouts yet"}
           subtitle={
             filter !== "all"
               ? "Try a different filter or create a new workout."
@@ -963,14 +996,25 @@ export default function WorkoutLibraryScreen() {
                   <View
                     style={{
                       borderRadius: 16,
-                      backgroundColor: isDark ? "rgba(239,68,68,0.1)" : "rgba(239,68,68,0.06)",
+                      backgroundColor: isDark
+                        ? "rgba(239,68,68,0.1)"
+                        : "rgba(239,68,68,0.06)",
                       borderWidth: 1,
-                      borderColor: isDark ? "rgba(239,68,68,0.3)" : "rgba(239,68,68,0.2)",
+                      borderColor: isDark
+                        ? "rgba(239,68,68,0.3)"
+                        : "rgba(239,68,68,0.2)",
                       padding: 16,
                       marginBottom: 16,
                     }}
                   >
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 10,
+                        marginBottom: 8,
+                      }}
+                    >
                       <View
                         style={{
                           width: 36,
@@ -978,13 +1022,19 @@ export default function WorkoutLibraryScreen() {
                           borderRadius: 10,
                           alignItems: "center",
                           justifyContent: "center",
-                          backgroundColor: isDark ? "rgba(239,68,68,0.2)" : "rgba(239,68,68,0.12)",
+                          backgroundColor: isDark
+                            ? "rgba(239,68,68,0.2)"
+                            : "rgba(239,68,68,0.12)",
                         }}
                       >
                         <Trash2 size={18} color="#ef4444" />
                       </View>
                       <Text
-                        style={{ fontSize: 15, fontWeight: "700", color: "#ef4444" }}
+                        style={{
+                          fontSize: 15,
+                          fontWeight: "700",
+                          color: "#ef4444",
+                        }}
                       >
                         Delete workout?
                       </Text>
@@ -996,10 +1046,17 @@ export default function WorkoutLibraryScreen() {
                         color: isDark ? "#9ca3af" : "#6b7280",
                       }}
                     >
-                      <Text style={{ fontWeight: "600", color: isDark ? "#d1d5db" : "#374151" }}>
-                        "{menuTarget?.name}"
-                      </Text>
-                      {" "}will be permanently deleted. This cannot be undone.
+                      <Text
+                        style={{
+                          fontWeight: "600",
+                          color: isDark ? "#d1d5db" : "#374151",
+                        }}
+                      >
+                        {'"'}
+                        {menuTarget?.name}
+                        {'"'}
+                      </Text>{" "}
+                      will be permanently deleted. This cannot be undone.
                     </Text>
                   </View>
 
@@ -1011,15 +1068,27 @@ export default function WorkoutLibraryScreen() {
                         paddingVertical: 14,
                         borderRadius: 14,
                         alignItems: "center",
-                        backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)",
+                        backgroundColor: isDark
+                          ? "rgba(255,255,255,0.06)"
+                          : "rgba(0,0,0,0.05)",
                       }}
                     >
-                      <Text style={{ fontSize: 15, fontWeight: "600", color: isDark ? "#9ca3af" : "#6b7280" }}>
+                      <Text
+                        style={{
+                          fontSize: 15,
+                          fontWeight: "600",
+                          color: isDark ? "#9ca3af" : "#6b7280",
+                        }}
+                      >
                         Cancel
                       </Text>
                     </Pressable>
                     <Pressable
-                      onPress={actionLoading ? undefined : () => void handleDeleteExecute()}
+                      onPress={
+                        actionLoading
+                          ? undefined
+                          : () => void handleDeleteExecute()
+                      }
                       style={{
                         flex: 1,
                         paddingVertical: 14,
@@ -1033,7 +1102,13 @@ export default function WorkoutLibraryScreen() {
                       {actionLoading ? (
                         <ActivityIndicator size="small" color="#fff" />
                       ) : (
-                        <Text style={{ fontSize: 15, fontWeight: "700", color: "#fff" }}>
+                        <Text
+                          style={{
+                            fontSize: 15,
+                            fontWeight: "700",
+                            color: "#fff",
+                          }}
+                        >
                           Delete
                         </Text>
                       )}
@@ -1062,7 +1137,9 @@ export default function WorkoutLibraryScreen() {
                       ) : (
                         <Check size={18} color="#059669" />
                       ),
-                      label: menuTarget?.is_active ? "Deactivate" : "Set as active",
+                      label: menuTarget?.is_active
+                        ? "Deactivate"
+                        : "Set as active",
                       onPress: () => void handleToggleActive(),
                       hidden: !!menuTarget?.is_draft,
                     },

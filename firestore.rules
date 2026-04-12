@@ -17,6 +17,11 @@ service cloud.firestore {
         && sessionId.matches('^' + request.auth.uid + '_.*$');
     }
 
+    function prefixedDocOwned(docId) {
+      return request.auth != null
+        && docId.matches('^' + request.auth.uid + '_.*$');
+    }
+
     // ── Profiles ──────────────────────────────────────────────────────
         // Users can read public profiles and write their own profile.
         // Non-owners can only touch follower_count for social graph counters.
@@ -84,7 +89,27 @@ service cloud.firestore {
     // Generated week schedules with explicit rest/workout day assignment.
     match /workout_week_plans/{planId} {
       allow read: if request.auth != null
-                     && resource.data.user_id == request.auth.uid;
+                     && (
+                          (resource != null && resource.data.user_id == request.auth.uid)
+                          || (resource == null && prefixedDocOwned(planId))
+                        );
+      allow create: if request.auth != null
+                       && request.resource.data.user_id == request.auth.uid;
+      allow update: if request.auth != null
+                       && resource.data.user_id == request.auth.uid
+                       && request.resource.data.user_id == request.auth.uid;
+      allow delete: if request.auth != null
+                       && resource.data.user_id == request.auth.uid;
+    }
+
+    // ── Workout Daily Overrides ──────────────────────────────────────
+    // Day-level adaptations applied without mutating the weekly base plan.
+    match /workout_daily_overrides/{overrideId} {
+      allow read: if request.auth != null
+                     && (
+                          (resource != null && resource.data.user_id == request.auth.uid)
+                          || (resource == null && prefixedDocOwned(overrideId))
+                        );
       allow create: if request.auth != null
                        && request.resource.data.user_id == request.auth.uid;
       allow update: if request.auth != null

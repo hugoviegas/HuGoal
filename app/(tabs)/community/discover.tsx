@@ -16,7 +16,6 @@ import { PostActionMenu } from "@/components/community/PostActionMenu";
 import { ReportModal } from "@/components/community/ReportModal";
 import { useThemeStore } from "@/stores/theme.store";
 import { useAuthStore } from "@/stores/auth.store";
-import { useCommunityStore } from "@/stores/community.store";
 import { loadTrendingPosts } from "@/lib/community-feed";
 import { getSuggestedUsers } from "@/lib/community-follows";
 import type { CommunityPost, PublicProfile } from "@/types";
@@ -56,7 +55,7 @@ export default function DiscoverScreen() {
 
   useEffect(() => {
     loadData();
-  }, [uid]);
+  }, [loadData]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -76,7 +75,14 @@ export default function DiscoverScreen() {
           borderBottomColor: colors.cardBorder,
         }}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 12,
+            marginBottom: 14,
+          }}
+        >
           <Pressable
             onPress={() => router.back()}
             hitSlop={8}
@@ -93,17 +99,25 @@ export default function DiscoverScreen() {
           >
             <ArrowLeft size={18} color={colors.foreground} />
           </Pressable>
-          <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: "800" }}>
+          <Text
+            style={{
+              color: colors.foreground,
+              fontSize: 20,
+              fontWeight: "800",
+            }}
+          >
             Discover
           </Text>
         </View>
 
         {/* Tabs */}
         <View style={{ flexDirection: "row", gap: 8 }}>
-          {([
-            { key: "trending" as Tab, label: "Trending", Icon: TrendingUp },
-            { key: "people" as Tab, label: "People", Icon: Users },
-          ] as const).map(({ key, label, Icon }) => (
+          {(
+            [
+              { key: "trending" as Tab, label: "Trending", Icon: TrendingUp },
+              { key: "people" as Tab, label: "People", Icon: Users },
+            ] as const
+          ).map(({ key, label, Icon }) => (
             <Pressable
               key={key}
               onPress={() => setActiveTab(key)}
@@ -114,16 +128,24 @@ export default function DiscoverScreen() {
                 paddingHorizontal: 14,
                 paddingVertical: 8,
                 borderRadius: 20,
-                backgroundColor: activeTab === key ? colors.primary : colors.surface,
+                backgroundColor:
+                  activeTab === key ? colors.primary : colors.surface,
               }}
             >
               <Icon
                 size={15}
-                color={activeTab === key ? colors.primaryForeground : colors.mutedForeground}
+                color={
+                  activeTab === key
+                    ? colors.primaryForeground
+                    : colors.mutedForeground
+                }
               />
               <Text
                 style={{
-                  color: activeTab === key ? colors.primaryForeground : colors.mutedForeground,
+                  color:
+                    activeTab === key
+                      ? colors.primaryForeground
+                      : colors.mutedForeground,
                   fontSize: 14,
                   fontWeight: "700",
                 }}
@@ -136,7 +158,9 @@ export default function DiscoverScreen() {
       </View>
 
       {loading ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <View
+          style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+        >
           <ActivityIndicator color={colors.primary} size="large" />
         </View>
       ) : activeTab === "trending" ? (
@@ -149,15 +173,33 @@ export default function DiscoverScreen() {
             paddingBottom: insets.bottom + 112,
           }}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={colors.primary}
+            />
           }
           ListEmptyComponent={
             <View style={{ alignItems: "center", paddingTop: 40 }}>
               <TrendingUp size={40} color={colors.mutedForeground} />
-              <Text style={{ color: colors.mutedForeground, fontSize: 16, fontWeight: "600", marginTop: 12 }}>
+              <Text
+                style={{
+                  color: colors.mutedForeground,
+                  fontSize: 16,
+                  fontWeight: "600",
+                  marginTop: 12,
+                }}
+              >
                 No trending posts today
               </Text>
-              <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 4, textAlign: "center" }}>
+              <Text
+                style={{
+                  color: colors.mutedForeground,
+                  fontSize: 13,
+                  marginTop: 4,
+                  textAlign: "center",
+                }}
+              >
                 Come back later or be the first to post!
               </Text>
             </View>
@@ -181,15 +223,33 @@ export default function DiscoverScreen() {
             paddingBottom: insets.bottom + 112,
           }}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={colors.primary}
+            />
           }
           ListEmptyComponent={
             <View style={{ alignItems: "center", paddingTop: 40 }}>
               <Users size={40} color={colors.mutedForeground} />
-              <Text style={{ color: colors.mutedForeground, fontSize: 16, fontWeight: "600", marginTop: 12 }}>
+              <Text
+                style={{
+                  color: colors.mutedForeground,
+                  fontSize: 16,
+                  fontWeight: "600",
+                  marginTop: 12,
+                }}
+              >
                 No suggestions yet
               </Text>
-              <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 4, textAlign: "center" }}>
+              <Text
+                style={{
+                  color: colors.mutedForeground,
+                  fontSize: 13,
+                  marginTop: 4,
+                  textAlign: "center",
+                }}
+              >
                 Follow more people to get personalized suggestions.
               </Text>
             </View>

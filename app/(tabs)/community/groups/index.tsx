@@ -1,4 +1,4 @@
-import { View, Text, Pressable, RefreshControl, ActivityIndicator } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -34,8 +34,10 @@ export default function GroupsIndexScreen() {
   useEffect(() => {
     if (!uid) return;
     loadGroups(uid);
-    getPublicGroups().then(setDiscoverGroups).catch(() => {});
-  }, [uid]);
+    getPublicGroups()
+      .then(setDiscoverGroups)
+      .catch(() => {});
+  }, [uid, loadGroups]);
 
   const handleRefresh = async () => {
     if (!uid) return;
@@ -109,8 +111,7 @@ export default function GroupsIndexScreen() {
                 alignItems: "center",
                 paddingVertical: 10,
                 borderBottomWidth: 2,
-                borderBottomColor:
-                  tab === key ? colors.primary : "transparent",
+                borderBottomColor: tab === key ? colors.primary : "transparent",
               }}
             >
               <Text
@@ -132,7 +133,9 @@ export default function GroupsIndexScreen() {
         loading={groupsLoading}
         refreshing={refreshing}
         onRefresh={handleRefresh}
-        onPress={(g) => router.push(`/(tabs)/community/groups/${g.id}` as never)}
+        onPress={(g) =>
+          router.push(`/(tabs)/community/groups/${g.id}` as never)
+        }
         emptyMessage={
           tab === "mine"
             ? "Você ainda não entrou em nenhum grupo"

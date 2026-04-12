@@ -1,4 +1,4 @@
-import { Pressable, Text, View } from "react-native";
+import { Pressable, Text } from "react-native";
 import { Heart } from "lucide-react-native";
 import { useThemeStore } from "@/stores/theme.store";
 
@@ -9,7 +9,12 @@ interface LikeButtonProps {
   size?: "sm" | "md";
 }
 
-export function LikeButton({ count, liked, onPress, size = "md" }: LikeButtonProps) {
+export function LikeButton({
+  count,
+  liked,
+  onPress,
+  size = "md",
+}: LikeButtonProps) {
   const colors = useThemeStore((s) => s.colors);
   const iconSize = size === "sm" ? 16 : 20;
   const fontSize = size === "sm" ? 12 : 14;

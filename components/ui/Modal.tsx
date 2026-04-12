@@ -29,7 +29,7 @@ export function Modal({ children, onClose, visible, ...props }: ModalProps) {
     if (visible) {
       try {
         prevFocusRef.current = document.activeElement as HTMLElement | null;
-      } catch (e) {
+      } catch {
         prevFocusRef.current = null;
       }
 
@@ -37,7 +37,7 @@ export function Modal({ children, onClose, visible, ...props }: ModalProps) {
       // any `aria-hidden` toggles will not hide a focused element.
       try {
         blurActiveElementOnWeb();
-      } catch (e) {
+      } catch {
         // ignore
       }
 
@@ -51,7 +51,7 @@ export function Modal({ children, onClose, visible, ...props }: ModalProps) {
     if (prevFocusRef.current) {
       try {
         restoreFocusOnWeb(prevFocusRef.current);
-      } catch (e) {
+      } catch {
         // ignore
       }
       prevFocusRef.current = null;

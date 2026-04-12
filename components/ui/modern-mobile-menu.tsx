@@ -5,6 +5,7 @@ import { BlurView } from "expo-blur";
 import { useThemeStore } from "@/stores/theme.store";
 import { withOpacity } from "@/lib/color";
 import { useNavigationStore } from "@/stores/navigation.store";
+import { FLOATING_TAB_BAR_BOTTOM_OFFSET } from "@/constants/layout";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import {
   LayoutDashboard,
@@ -212,7 +213,7 @@ export function ModernMobileMenu({
       style={[
         styles.animatedContainer,
         {
-          bottom: insets.bottom + 12,
+          bottom: insets.bottom + FLOATING_TAB_BAR_BOTTOM_OFFSET,
           pointerEvents: navbarVisible ? "auto" : "none",
         },
         containerStyle,
@@ -229,12 +230,7 @@ export function ModernMobileMenu({
           </BlurView>
         ) : (
           // Android: opaque background instead of blur — avoids semi-transparent rendering issues
-          <View
-            style={[
-              styles.surfaceClip,
-              { backgroundColor: colors.card },
-            ]}
-          >
+          <View style={[styles.surfaceClip, { backgroundColor: colors.card }]}>
             {menuContent}
           </View>
         )}

@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { View, Text, FlatList, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { format, parseISO, subDays } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ArrowLeft, TrendingUp } from "lucide-react-native";
 
 import { useAuthStore } from "@/stores/auth.store";
@@ -84,17 +84,12 @@ function DaySummaryCard({
         }}
       >
         <View style={{ gap: 2 }}>
-          <Text
-            style={[typography.bodyMedium, { color: colors.foreground }]}
-          >
-            {isToday
-              ? "Today"
-              : format(parseISO(summary.date), "EEEE, MMM d")}
+          <Text style={[typography.bodyMedium, { color: colors.foreground }]}>
+            {isToday ? "Today" : format(parseISO(summary.date), "EEEE, MMM d")}
           </Text>
-          <Text
-            style={[typography.caption, { color: colors.mutedForeground }]}
-          >
-            {summary.mealsCount} {summary.mealsCount === 1 ? "meal" : "meals"} logged
+          <Text style={[typography.caption, { color: colors.mutedForeground }]}>
+            {summary.mealsCount} {summary.mealsCount === 1 ? "meal" : "meals"}{" "}
+            logged
           </Text>
         </View>
 
@@ -107,9 +102,7 @@ function DaySummaryCard({
           >
             {summary.calories} kcal
           </Text>
-          <Text
-            style={[typography.caption, { color: colors.mutedForeground }]}
-          >
+          <Text style={[typography.caption, { color: colors.mutedForeground }]}>
             / {calorieGoal} goal
           </Text>
         </View>
@@ -147,9 +140,7 @@ function DaySummaryCard({
             >
               {macro.label}
             </Text>
-            <Text
-              style={[typography.smallMedium, { color: macro.color }]}
-            >
+            <Text style={[typography.smallMedium, { color: macro.color }]}>
               {macro.value}g
             </Text>
           </View>
@@ -267,12 +258,18 @@ export default function HistoryScreen() {
                 <TrendingUp size={20} color={colors.primary} strokeWidth={2} />
                 <View style={{ flex: 1 }}>
                   <Text
-                    style={[typography.smallMedium, { color: colors.mutedForeground }]}
+                    style={[
+                      typography.smallMedium,
+                      { color: colors.mutedForeground },
+                    ]}
                   >
                     7-day average
                   </Text>
                   <Text
-                    style={[typography.bodyMedium, { color: colors.foreground }]}
+                    style={[
+                      typography.bodyMedium,
+                      { color: colors.foreground },
+                    ]}
                   >
                     {avgCalories} kcal / day
                   </Text>

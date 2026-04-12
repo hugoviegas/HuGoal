@@ -54,10 +54,14 @@ export default function CommunityFeedScreen() {
     loadSocialState(uid);
     startFeedListener(uid);
     loadGroups(uid);
-    getSuggestedUsers(uid).then(setSuggestions).catch(() => {});
-    getPublicGroups().then(setDiscoverGroups).catch(() => {});
+    getSuggestedUsers(uid)
+      .then(setSuggestions)
+      .catch(() => {});
+    getPublicGroups()
+      .then(setDiscoverGroups)
+      .catch(() => {});
     return () => stopFeedListener();
-  }, [uid]);
+  }, [uid, loadSocialState, startFeedListener, loadGroups, stopFeedListener]);
 
   const handleRefresh = useCallback(async () => {
     if (!uid) return;
@@ -70,7 +74,7 @@ export default function CommunityFeedScreen() {
       setDiscoverGroups(pub);
     }
     setRefreshing(false);
-  }, [uid, activeTab]);
+  }, [uid, activeTab, loadFeed, loadGroups]);
 
   const displayedGroups = groupTab === "mine" ? groups : discoverGroups;
 
@@ -97,7 +101,11 @@ export default function CommunityFeedScreen() {
           }}
         >
           <Text
-            style={{ color: colors.foreground, fontSize: 22, fontWeight: "800" }}
+            style={{
+              color: colors.foreground,
+              fontSize: 22,
+              fontWeight: "800",
+            }}
           >
             HuGoal
           </Text>
@@ -154,7 +162,11 @@ export default function CommunityFeedScreen() {
         <>
           {feedLoading && feed.length === 0 ? (
             <View
-              style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+              style={{
+                flex: 1,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
             >
               <ActivityIndicator color={colors.primary} size="large" />
             </View>
@@ -280,9 +292,7 @@ export default function CommunityFeedScreen() {
                 ? {
                     label: "Criar grupo",
                     onPress: () =>
-                      router.push(
-                        "/(tabs)/community/groups/create" as never,
-                      ),
+                      router.push("/(tabs)/community/groups/create" as never),
                   }
                 : undefined
             }
@@ -301,9 +311,7 @@ export default function CommunityFeedScreen() {
               width: 56,
               height: 56,
               borderRadius: 28,
-              backgroundColor: pressed
-                ? colors.primary + "CC"
-                : colors.primary,
+              backgroundColor: pressed ? colors.primary + "CC" : colors.primary,
               alignItems: "center",
               justifyContent: "center",
               shadowColor: "#000",

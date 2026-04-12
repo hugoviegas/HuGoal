@@ -9,8 +9,7 @@ import {
 import { ChevronDown } from "lucide-react-native";
 import { BlurView } from "expo-blur";
 import { useThemeStore } from "@/stores/theme.store";
-import { cn } from "@/lib/utils";
-import { blurActiveElementOnWeb } from "@/lib/utils";
+import { blurActiveElementOnWeb, cn } from "@/lib/utils";
 
 interface DropdownItem {
   id: string;

@@ -21,6 +21,7 @@ import { useThemeStore } from "@/stores/theme.store";
 import { useAuthStore } from "@/stores/auth.store";
 import { useWorkoutStore } from "@/stores/workout.store";
 import { listWorkoutTemplates } from "@/lib/firestore/workouts";
+import { ensureDailyWorkoutResolution } from "@/lib/workouts/daily-workout-resolver";
 import { spacing } from "@/constants/spacing";
 import { typography } from "@/constants/typography";
 import { radius } from "@/constants/radius";
@@ -72,6 +73,7 @@ export function WorkoutWidget({ staggerIndex = 0 }: WorkoutWidgetProps) {
   const colors = useThemeStore((s) => s.colors);
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
+  const profile = useAuthStore((s) => s.profile);
   const { isActive, templateName, exercises, elapsedSeconds } =
     useWorkoutStore();
 
@@ -91,9 +93,6 @@ export function WorkoutWidget({ staggerIndex = 0 }: WorkoutWidgetProps) {
       return;
     }
 
-    // Load all templates (same approach as workouts/index.tsx) and pick the
-    // most recently updated one as "today's workout". Filter by schedule_day_of_week
-    // when available, fall back to the first template otherwise.
     listWorkoutTemplates(user.uid)
       .then((templates) => {
         if (templates.length === 0) {
@@ -101,19 +100,31 @@ export function WorkoutWidget({ staggerIndex = 0 }: WorkoutWidgetProps) {
           return;
         }
 
-        const todayDow = new Date().getDay();
-
-        // Try to find one scheduled for today
-        const scheduled = templates.find(
-          (t) => t.schedule_day_of_week === todayDow,
+        const sorted = [...templates].sort((a, b) =>
+          b.updated_at.localeCompare(a.updated_at),
         );
 
-        // Fall back to the most recently updated template (workouts[0])
-        setTodayTemplate(scheduled ?? templates[0]);
+        const trainingDays = profile?.workout_settings?.training_days ?? [];
+
+        if (trainingDays.length === 0) {
+          setTodayTemplate(sorted[0] ?? null);
+          return;
+        }
+
+        return ensureDailyWorkoutResolution({
+          uid: user.uid,
+          templates: sorted,
+          trainingDays,
+        }).then((resolution) => {
+          const resolved = sorted.find(
+            (item) => item.id === resolution.resolvedTemplateId,
+          );
+          setTodayTemplate(resolved ?? null);
+        });
       })
       .catch(() => setTodayTemplate(null))
       .finally(() => setIsLoading(false));
-  }, [user?.uid, isActive]);
+  }, [isActive, profile?.workout_settings?.training_days, user?.uid]);
 
   const formatElapsed = (secs: number): string => {
     const m = Math.floor(secs / 60);

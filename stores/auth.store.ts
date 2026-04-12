@@ -1,9 +1,10 @@
 import { create } from "zustand";
-import { onAuthStateChanged, signOut, type User } from "firebase/auth";
+import { getAuth, onAuthStateChanged, signOut, type User } from "firebase/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { auth } from "@/lib/firebase";
+import { app, auth as firebaseAuth } from "@/lib/firebase";
 import { getDocument, updateDocument } from "@/lib/firestore";
 import { deleteAllApiKeys } from "@/lib/api-key-store";
+import { phaseDebug } from "@/lib/debug/phase-debug";
 import type { UserProfile, WorkoutSettings } from "@/types";
 
 interface AuthState {
@@ -80,7 +81,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   logout: async () => {
     const uid = get().user?.uid;
-    await signOut(auth);
+    const authInstance = firebaseAuth ?? getAuth(app);
+    await signOut(authInstance);
     await deleteAllApiKeys();
     if (uid) {
       await AsyncStorage.removeItem(`onboarding_draft:${uid}`);
@@ -94,19 +96,71 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   initialize: () => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    let active = true;
+    let firstAuthEvent = true;
+
+    set({ isInitializing: true, isLoading: true });
+    phaseDebug("auth", "initialize:start");
+
+    let authInstance;
+    try {
+      authInstance = firebaseAuth ?? getAuth(app);
+    } catch (e: any) {
       set({
-        user,
-        isAuthenticated: !!user,
         isLoading: false,
         isInitializing: false,
+        profileError: e?.message ?? "Failed to initialize auth",
       });
-      if (user) {
-        await get().fetchProfile(user.uid);
-      } else {
-        set({ profile: null });
+      phaseDebug("auth", "initialize:error", {
+        error: e?.message ?? String(e),
+      });
+      return () => {
+        active = false;
+      };
+    }
+
+    const unsubscribe = onAuthStateChanged(authInstance, async (user) => {
+      if (!active) return;
+
+      set({ user, isAuthenticated: !!user, isLoading: true });
+      phaseDebug("auth", "onAuthStateChanged", {
+        hasUser: !!user,
+        uid: user?.uid ?? null,
+      });
+
+      try {
+        if (user) {
+          await get().fetchProfile(user.uid);
+        } else {
+          set({ profile: null, profileError: null });
+        }
+      } finally {
+        if (active) {
+          set({ isLoading: false, isInitializing: false });
+
+          if (firstAuthEvent) {
+            firstAuthEvent = false;
+            const state = get();
+            phaseDebug("auth", "initialize:ready", {
+              isAuthenticated: state.isAuthenticated,
+              hasProfile: !!state.profile,
+              profileError: state.profileError,
+            });
+          }
+
+          const state = get();
+          phaseDebug("auth", "onAuthStateChanged:done", {
+            isAuthenticated: state.isAuthenticated,
+            hasProfile: !!state.profile,
+            profileError: state.profileError,
+          });
+        }
       }
     });
-    return unsubscribe;
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   },
 }));

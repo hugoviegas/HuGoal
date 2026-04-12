@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { Users, Compass } from "lucide-react-native";
 import { UserSuggestionCard } from "@/components/community/UserSuggestionCard";
@@ -14,7 +14,14 @@ export function FeedEmptyState({ suggestions }: FeedEmptyStateProps) {
   const router = useRouter();
 
   return (
-    <View style={{ alignItems: "center", gap: 20, paddingTop: 24, paddingHorizontal: 4 }}>
+    <View
+      style={{
+        alignItems: "center",
+        gap: 20,
+        paddingTop: 24,
+        paddingHorizontal: 4,
+      }}
+    >
       <View
         style={{
           width: 72,
@@ -29,17 +36,33 @@ export function FeedEmptyState({ suggestions }: FeedEmptyStateProps) {
       </View>
 
       <View style={{ alignItems: "center", gap: 6 }}>
-        <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: "800" }}>
+        <Text
+          style={{ color: colors.foreground, fontSize: 20, fontWeight: "800" }}
+        >
           Your feed is empty
         </Text>
-        <Text style={{ color: colors.mutedForeground, fontSize: 14, textAlign: "center", lineHeight: 20 }}>
-          Follow people to see their posts here. Get started by exploring the community!
+        <Text
+          style={{
+            color: colors.mutedForeground,
+            fontSize: 14,
+            textAlign: "center",
+            lineHeight: 20,
+          }}
+        >
+          Follow people to see their posts here. Get started by exploring the
+          community!
         </Text>
       </View>
 
       {suggestions.length > 0 && (
         <View style={{ width: "100%", gap: 10 }}>
-          <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: "700" }}>
+          <Text
+            style={{
+              color: colors.foreground,
+              fontSize: 15,
+              fontWeight: "700",
+            }}
+          >
             Suggested people
           </Text>
           {suggestions.slice(0, 5).map((p) => (
@@ -61,7 +84,13 @@ export function FeedEmptyState({ suggestions }: FeedEmptyStateProps) {
         })}
       >
         <Compass size={18} color={colors.primaryForeground} />
-        <Text style={{ color: colors.primaryForeground, fontSize: 15, fontWeight: "700" }}>
+        <Text
+          style={{
+            color: colors.primaryForeground,
+            fontSize: 15,
+            fontWeight: "700",
+          }}
+        >
           Discover Community
         </Text>
       </Pressable>

@@ -1,7 +1,6 @@
 import {
   View,
   Text,
-  ScrollView,
   Pressable,
   ActivityIndicator,
   FlatList,
@@ -10,7 +9,13 @@ import {
 import { useEffect, useState, useCallback } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ArrowLeft, MoreHorizontal, Flame, Trophy, Users, FileText } from "lucide-react-native";
+import {
+  ArrowLeft,
+  MoreHorizontal,
+  Flame,
+  Trophy,
+  FileText,
+} from "lucide-react-native";
 import { Avatar } from "@/components/ui/Avatar";
 import { FollowButton } from "@/components/community/FollowButton";
 import { FeedPost } from "@/components/community/FeedPost";
@@ -22,7 +27,7 @@ import { useAuthStore } from "@/stores/auth.store";
 import { useCommunityStore } from "@/stores/community.store";
 import { getDocument } from "@/lib/firestore";
 import { getPostsByAuthor } from "@/lib/community-posts";
-import { getFollowerIds, isFollowing, isBlocked } from "@/lib/community-follows";
+import { isFollowing, isBlocked } from "@/lib/community-follows";
 import { useToastStore } from "@/stores/toast.store";
 import type { CommunityPost, PublicProfile } from "@/types";
 
@@ -50,7 +55,10 @@ export default function PublicProfileScreen() {
   const loadData = useCallback(async () => {
     if (!id || !uid) return;
     try {
-      const rawProfile = await getDocument<Record<string, unknown>>("profiles", id);
+      const rawProfile = await getDocument<Record<string, unknown>>(
+        "profiles",
+        id,
+      );
       if (!rawProfile) return;
 
       const pub: PublicProfile = {
@@ -59,13 +67,15 @@ export default function PublicProfileScreen() {
         username: rawProfile.username as string,
         avatar_url: rawProfile.avatar_url as string | undefined,
         bio: rawProfile.bio as string | undefined,
-        xp: rawProfile.xp as number ?? 0,
-        streak_current: rawProfile.streak_current as number ?? 0,
-        follower_count: rawProfile.follower_count as number ?? 0,
-        following_count: rawProfile.following_count as number ?? 0,
-        public_post_count: rawProfile.public_post_count as number ?? 0,
-        network_visibility: (rawProfile.network_visibility as "public" | "private") ?? "public",
-        profile_visibility: (rawProfile.profile_visibility as "public" | "private") ?? "public",
+        xp: (rawProfile.xp as number) ?? 0,
+        streak_current: (rawProfile.streak_current as number) ?? 0,
+        follower_count: (rawProfile.follower_count as number) ?? 0,
+        following_count: (rawProfile.following_count as number) ?? 0,
+        public_post_count: (rawProfile.public_post_count as number) ?? 0,
+        network_visibility:
+          (rawProfile.network_visibility as "public" | "private") ?? "public",
+        profile_visibility:
+          (rawProfile.profile_visibility as "public" | "private") ?? "public",
       };
       setProfile(pub);
 
@@ -77,7 +87,9 @@ export default function PublicProfileScreen() {
 
       // Filter to public posts only (or followers-only if following)
       const visiblePosts = userPosts.filter(
-        (p) => p.visibility === "public" || (p.visibility === "followers" && isFollow),
+        (p) =>
+          p.visibility === "public" ||
+          (p.visibility === "followers" && isFollow),
       );
 
       setPosts(visiblePosts);
@@ -91,7 +103,7 @@ export default function PublicProfileScreen() {
 
   useEffect(() => {
     loadData();
-  }, [id]);
+  }, [id, loadData]);
 
   const handleBlock = async () => {
     if (!uid || !id) return;
@@ -103,7 +115,14 @@ export default function PublicProfileScreen() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: colors.background,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
         <ActivityIndicator color={colors.primary} size="large" />
       </View>
     );
@@ -111,12 +130,22 @@ export default function PublicProfileScreen() {
 
   if (!profile || blocked) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.background, alignItems: "center", justifyContent: "center", paddingTop: insets.top }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: colors.background,
+          alignItems: "center",
+          justifyContent: "center",
+          paddingTop: insets.top,
+        }}
+      >
         <Text style={{ color: colors.mutedForeground, marginBottom: 12 }}>
           {blocked ? "User blocked" : "User not found"}
         </Text>
         <Pressable onPress={() => router.back()}>
-          <Text style={{ color: colors.primary, fontWeight: "700" }}>Go back</Text>
+          <Text style={{ color: colors.primary, fontWeight: "700" }}>
+            Go back
+          </Text>
         </Pressable>
       </View>
     );
@@ -152,7 +181,15 @@ export default function PublicProfileScreen() {
         >
           <ArrowLeft size={18} color={colors.foreground} />
         </Pressable>
-        <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: "800", flex: 1 }} numberOfLines={1}>
+        <Text
+          style={{
+            color: colors.foreground,
+            fontSize: 18,
+            fontWeight: "800",
+            flex: 1,
+          }}
+          numberOfLines={1}
+        >
           @{profile.username}
         </Text>
         <Pressable
@@ -181,23 +218,47 @@ export default function PublicProfileScreen() {
           paddingBottom: insets.bottom + 80,
         }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(); }} tintColor={colors.primary} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              loadData();
+            }}
+            tintColor={colors.primary}
+          />
         }
         ListHeaderComponent={
           <View style={{ gap: 16, marginBottom: 16 }}>
             {/* Profile card */}
             <GlassCard style={{ padding: 18 }}>
               <View style={{ alignItems: "center", gap: 12 }}>
-                <Avatar source={profile.avatar_url} name={profile.name} size="xl" />
+                <Avatar
+                  source={profile.avatar_url}
+                  name={profile.name}
+                  size="xl"
+                />
                 <View style={{ alignItems: "center", gap: 3 }}>
-                  <Text style={{ color: colors.foreground, fontSize: 22, fontWeight: "800" }}>
+                  <Text
+                    style={{
+                      color: colors.foreground,
+                      fontSize: 22,
+                      fontWeight: "800",
+                    }}
+                  >
                     {profile.name}
                   </Text>
                   <Text style={{ color: colors.mutedForeground, fontSize: 14 }}>
                     @{profile.username}
                   </Text>
                   {profile.bio ? (
-                    <Text style={{ color: colors.mutedForeground, fontSize: 14, textAlign: "center", marginTop: 4 }}>
+                    <Text
+                      style={{
+                        color: colors.mutedForeground,
+                        fontSize: 14,
+                        textAlign: "center",
+                        marginTop: 4,
+                      }}
+                    >
                       {profile.bio}
                     </Text>
                   ) : null}
@@ -207,24 +268,58 @@ export default function PublicProfileScreen() {
                 {profile.network_visibility === "public" && (
                   <View style={{ flexDirection: "row", gap: 24 }}>
                     <View style={{ alignItems: "center" }}>
-                      <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: "800" }}>
+                      <Text
+                        style={{
+                          color: colors.foreground,
+                          fontSize: 18,
+                          fontWeight: "800",
+                        }}
+                      >
                         {profile.follower_count}
                       </Text>
-                      <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Followers</Text>
+                      <Text
+                        style={{ color: colors.mutedForeground, fontSize: 12 }}
+                      >
+                        Followers
+                      </Text>
                     </View>
-                    <View style={{ width: 1, backgroundColor: colors.cardBorder }} />
+                    <View
+                      style={{ width: 1, backgroundColor: colors.cardBorder }}
+                    />
                     <View style={{ alignItems: "center" }}>
-                      <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: "800" }}>
+                      <Text
+                        style={{
+                          color: colors.foreground,
+                          fontSize: 18,
+                          fontWeight: "800",
+                        }}
+                      >
                         {profile.following_count}
                       </Text>
-                      <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Following</Text>
+                      <Text
+                        style={{ color: colors.mutedForeground, fontSize: 12 }}
+                      >
+                        Following
+                      </Text>
                     </View>
-                    <View style={{ width: 1, backgroundColor: colors.cardBorder }} />
+                    <View
+                      style={{ width: 1, backgroundColor: colors.cardBorder }}
+                    />
                     <View style={{ alignItems: "center" }}>
-                      <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: "800" }}>
+                      <Text
+                        style={{
+                          color: colors.foreground,
+                          fontSize: 18,
+                          fontWeight: "800",
+                        }}
+                      >
                         {profile.public_post_count}
                       </Text>
-                      <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Posts</Text>
+                      <Text
+                        style={{ color: colors.mutedForeground, fontSize: 12 }}
+                      >
+                        Posts
+                      </Text>
                     </View>
                   </View>
                 )}
@@ -236,8 +331,18 @@ export default function PublicProfileScreen() {
             {/* Stats */}
             <View style={{ flexDirection: "row", gap: 10 }}>
               {[
-                { label: "XP", value: String(profile.xp), Icon: Flame, color: colors.primary },
-                { label: "Streak", value: String(profile.streak_current), Icon: Trophy, color: colors.accent },
+                {
+                  label: "XP",
+                  value: String(profile.xp),
+                  Icon: Flame,
+                  color: colors.primary,
+                },
+                {
+                  label: "Streak",
+                  value: String(profile.streak_current),
+                  Icon: Trophy,
+                  color: colors.accent,
+                },
               ].map((item) => {
                 const Icon = item.Icon;
                 return (
@@ -256,10 +361,23 @@ export default function PublicProfileScreen() {
                         <Icon size={18} color={item.color} />
                       </View>
                       <View>
-                        <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: "800" }}>
+                        <Text
+                          style={{
+                            color: colors.foreground,
+                            fontSize: 18,
+                            fontWeight: "800",
+                          }}
+                        >
                           {item.value}
                         </Text>
-                        <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>{item.label}</Text>
+                        <Text
+                          style={{
+                            color: colors.mutedForeground,
+                            fontSize: 12,
+                          }}
+                        >
+                          {item.label}
+                        </Text>
                       </View>
                     </View>
                   </GlassCard>
@@ -267,7 +385,13 @@ export default function PublicProfileScreen() {
               })}
             </View>
 
-            <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "700" }}>
+            <Text
+              style={{
+                color: colors.foreground,
+                fontSize: 16,
+                fontWeight: "700",
+              }}
+            >
               Posts
             </Text>
           </View>
@@ -314,23 +438,33 @@ export default function PublicProfileScreen() {
           }}
         >
           <Pressable
-            onPress={() => { setShowMenu(false); setReportUser(true); }}
+            onPress={() => {
+              setShowMenu(false);
+              setReportUser(true);
+            }}
             style={({ pressed }) => ({
               padding: 14,
               backgroundColor: pressed ? colors.surface : "transparent",
             })}
           >
-            <Text style={{ color: "#F59E0B", fontSize: 15, fontWeight: "600" }}>Report user</Text>
+            <Text style={{ color: "#F59E0B", fontSize: 15, fontWeight: "600" }}>
+              Report user
+            </Text>
           </Pressable>
           <View style={{ height: 1, backgroundColor: colors.cardBorder }} />
           <Pressable
-            onPress={() => { setShowMenu(false); handleBlock(); }}
+            onPress={() => {
+              setShowMenu(false);
+              handleBlock();
+            }}
             style={({ pressed }) => ({
               padding: 14,
               backgroundColor: pressed ? colors.surface : "transparent",
             })}
           >
-            <Text style={{ color: "#F87171", fontSize: 15, fontWeight: "600" }}>Block user</Text>
+            <Text style={{ color: "#F87171", fontSize: 15, fontWeight: "600" }}>
+              Block user
+            </Text>
           </Pressable>
           <View style={{ height: 1, backgroundColor: colors.cardBorder }} />
           <Pressable
@@ -340,7 +474,9 @@ export default function PublicProfileScreen() {
               backgroundColor: pressed ? colors.surface : "transparent",
             })}
           >
-            <Text style={{ color: colors.mutedForeground, fontSize: 15 }}>Cancel</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 15 }}>
+              Cancel
+            </Text>
           </Pressable>
         </View>
       )}

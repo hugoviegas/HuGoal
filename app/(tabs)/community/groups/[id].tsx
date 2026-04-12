@@ -82,9 +82,11 @@ export default function GroupDetailScreen() {
   const [activeTab, setActiveTab] = useState<DetailTab>("hoje");
 
   // Comment sheet state
-  const [commentCheckIn, setCommentCheckIn] = useState<GroupCheckIn | null>(null);
+  const [commentCheckIn, setCommentCheckIn] = useState<GroupCheckIn | null>(
+    null,
+  );
 
-  const groupCheckIns = id ? checkIns[id] ?? [] : [];
+  const groupCheckIns = id ? (checkIns[id] ?? []) : [];
   const myTodayCheckIn = id ? todayCheckIn[id] : undefined;
 
   const loadData = useCallback(async () => {
@@ -111,7 +113,7 @@ export default function GroupDetailScreen() {
     loadData();
     loadCheckIns(id);
     loadTodayCheckIn(id, uid);
-  }, [id, uid]);
+  }, [id, uid, loadData, loadCheckIns, loadTodayCheckIn]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -179,9 +181,13 @@ export default function GroupDetailScreen() {
           gap: 12,
         }}
       >
-        <Text style={{ color: colors.mutedForeground }}>Grupo não encontrado</Text>
+        <Text style={{ color: colors.mutedForeground }}>
+          Grupo não encontrado
+        </Text>
         <Pressable onPress={() => router.back()}>
-          <Text style={{ color: colors.primary, fontWeight: "700" }}>Voltar</Text>
+          <Text style={{ color: colors.primary, fontWeight: "700" }}>
+            Voltar
+          </Text>
         </Pressable>
       </View>
     );
@@ -191,7 +197,9 @@ export default function GroupDetailScreen() {
   const iconColor = CHALLENGE_COLORS[group.challenge_type] ?? colors.primary;
   const targetValue = group.challenge_config.target_value;
   const myParticipant = leaderboard.find((p) => p.user_id === uid);
-  const myProgress = myParticipant ? (myParticipant.score / targetValue) * 100 : 0;
+  const myProgress = myParticipant
+    ? (myParticipant.score / targetValue) * 100
+    : 0;
 
   const endDate = group.ended_at ? new Date(group.ended_at) : null;
   const daysLeft = endDate
@@ -235,11 +243,22 @@ export default function GroupDetailScreen() {
 
           <View style={{ flex: 1, gap: 4 }}>
             <Text
-              style={{ color: colors.foreground, fontSize: 18, fontWeight: "800" }}
+              style={{
+                color: colors.foreground,
+                fontSize: 18,
+                fontWeight: "800",
+              }}
             >
               {group.name}
             </Text>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                flexWrap: "wrap",
+              }}
+            >
               <View
                 style={{
                   paddingHorizontal: 8,
@@ -259,7 +278,9 @@ export default function GroupDetailScreen() {
                   {group.challenge_type}
                 </Text>
               </View>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+              >
                 <Users size={13} color={colors.mutedForeground} />
                 <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>
                   {group.member_count}
@@ -282,7 +303,11 @@ export default function GroupDetailScreen() {
 
         {group.description ? (
           <Text
-            style={{ color: colors.mutedForeground, fontSize: 14, lineHeight: 20 }}
+            style={{
+              color: colors.mutedForeground,
+              fontSize: 14,
+              lineHeight: 20,
+            }}
           >
             {group.description}
           </Text>
@@ -308,14 +333,23 @@ export default function GroupDetailScreen() {
               }}
             >
               <Text
-                style={{ color: colors.foreground, fontSize: 14, fontWeight: "700" }}
+                style={{
+                  color: colors.foreground,
+                  fontSize: 14,
+                  fontWeight: "700",
+                }}
               >
                 Meu Progresso
               </Text>
               <Text
-                style={{ color: colors.primary, fontSize: 14, fontWeight: "800" }}
+                style={{
+                  color: colors.primary,
+                  fontSize: 14,
+                  fontWeight: "800",
+                }}
               >
-                {myParticipant.score}/{targetValue} {group.challenge_config.unit}
+                {myParticipant.score}/{targetValue}{" "}
+                {group.challenge_config.unit}
               </Text>
             </View>
             <View
@@ -345,9 +379,7 @@ export default function GroupDetailScreen() {
         {uid && !memberStatus && (
           <Pressable
             onPress={handleJoin}
-            disabled={
-              actionLoading || group.membership === "invite_only"
-            }
+            disabled={actionLoading || group.membership === "invite_only"}
             style={({ pressed }) => ({
               flexDirection: "row",
               alignItems: "center",
@@ -514,9 +546,15 @@ export default function GroupDetailScreen() {
                 <ActivityIndicator color={colors.primary} />
               </View>
             ) : (
-              <View style={{ alignItems: "center", paddingVertical: 40, gap: 8 }}>
+              <View
+                style={{ alignItems: "center", paddingVertical: 40, gap: 8 }}
+              >
                 <Text
-                  style={{ color: colors.mutedForeground, fontSize: 15, fontWeight: "600" }}
+                  style={{
+                    color: colors.mutedForeground,
+                    fontSize: 15,
+                    fontWeight: "600",
+                  }}
                 >
                   Nenhum check-in hoje
                 </Text>
@@ -562,7 +600,11 @@ export default function GroupDetailScreen() {
             <View style={{ alignItems: "center", paddingVertical: 32 }}>
               <Trophy size={36} color={colors.mutedForeground} />
               <Text
-                style={{ color: colors.mutedForeground, fontSize: 14, marginTop: 10 }}
+                style={{
+                  color: colors.mutedForeground,
+                  fontSize: 14,
+                  marginTop: 10,
+                }}
               >
                 Nenhum participante ainda
               </Text>
@@ -649,9 +691,7 @@ export default function GroupDetailScreen() {
               showToast("Já fez check-in hoje!", "info");
               return;
             }
-            router.push(
-              `/(tabs)/community/groups/check-in/${id}` as never,
-            );
+            router.push(`/(tabs)/community/groups/check-in/${id}` as never);
           }}
           style={({ pressed }) => ({
             position: "absolute",

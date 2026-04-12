@@ -12,4 +12,12 @@ const config = getDefaultConfig(__dirname);
 config.resolver.unstable_enablePackageExports = false;
 config.resolver.resolverMainFields = ["react-native", "main", "module"];
 
+// Prevent lucide-react (web-only, SVG DOM) from being bundled on native.
+// lucide-react is only used in explicitly web-targeted files (InteractiveMenuWeb).
+// On native builds, redirect to lucide-react-native to avoid DOM crashes.
+config.resolver.extraNodeModules = {
+  ...config.resolver.extraNodeModules,
+  "lucide-react": require.resolve("lucide-react-native"),
+};
+
 module.exports = withNativeWind(config, { input: "./global.css" });

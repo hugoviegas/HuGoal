@@ -46,7 +46,7 @@ export default function EditGroupScreen() {
       })
       .catch(() => showToast("Erro ao carregar grupo", "error"))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, showToast]);
 
   // Guard: only creator can edit
   useEffect(() => {
@@ -54,7 +54,7 @@ export default function EditGroupScreen() {
       showToast("Sem permissão para editar", "error");
       router.back();
     }
-  }, [group, uid]);
+  }, [group, uid, router, showToast]);
 
   const pickAvatar = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -142,7 +142,9 @@ export default function EditGroupScreen() {
         >
           <ArrowLeft size={18} color={colors.foreground} />
         </Pressable>
-        <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: "700" }}>
+        <Text
+          style={{ color: colors.foreground, fontSize: 18, fontWeight: "700" }}
+        >
           Editar Grupo
         </Text>
         <Pressable
@@ -165,8 +167,9 @@ export default function EditGroupScreen() {
           ) : (
             <Text
               style={{
-                color:
-                  !name.trim() ? colors.mutedForeground : colors.primaryForeground,
+                color: !name.trim()
+                  ? colors.mutedForeground
+                  : colors.primaryForeground,
                 fontSize: 15,
                 fontWeight: "700",
               }}
@@ -230,7 +233,11 @@ export default function EditGroupScreen() {
             </View>
           </Pressable>
           <Text
-            style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 8 }}
+            style={{
+              color: colors.mutedForeground,
+              fontSize: 13,
+              marginTop: 8,
+            }}
           >
             Toque para alterar a foto do grupo
           </Text>
@@ -239,7 +246,11 @@ export default function EditGroupScreen() {
         {/* Name */}
         <View style={{ gap: 8 }}>
           <Text
-            style={{ color: colors.foreground, fontSize: 14, fontWeight: "700" }}
+            style={{
+              color: colors.foreground,
+              fontSize: 14,
+              fontWeight: "700",
+            }}
           >
             Nome do grupo *
           </Text>
@@ -264,7 +275,11 @@ export default function EditGroupScreen() {
         {/* Description */}
         <View style={{ gap: 8 }}>
           <Text
-            style={{ color: colors.foreground, fontSize: 14, fontWeight: "700" }}
+            style={{
+              color: colors.foreground,
+              fontSize: 14,
+              fontWeight: "700",
+            }}
           >
             Descrição
           </Text>

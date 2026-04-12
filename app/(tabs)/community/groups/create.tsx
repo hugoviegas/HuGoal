@@ -11,7 +11,17 @@ import {
 import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { X, ChevronRight, Dumbbell, Utensils, Flame, Calendar, Lock, Globe, Users } from "lucide-react-native";
+import {
+  X,
+  ChevronRight,
+  Dumbbell,
+  Utensils,
+  Flame,
+  Calendar,
+  Lock,
+  Globe,
+  Users,
+} from "lucide-react-native";
 import { useThemeStore } from "@/stores/theme.store";
 import { useAuthStore } from "@/stores/auth.store";
 import { useCommunityStore } from "@/stores/community.store";
@@ -22,11 +32,41 @@ import type { ChallengeType, GroupMembership, GroupVisibility } from "@/types";
 
 type Step = 1 | 2 | 3 | 4;
 
-const CHALLENGE_TYPES: Array<{ key: ChallengeType; label: string; Icon: typeof Dumbbell; color: string; unit: string }> = [
-  { key: "workout", label: "Workout", Icon: Dumbbell, color: "#22C4D5", unit: "sessions" },
-  { key: "nutrition", label: "Nutrition", Icon: Utensils, color: "#4ADE80", unit: "days" },
-  { key: "activity", label: "Activity", Icon: Flame, color: "#F59E0B", unit: "calories" },
-  { key: "streak", label: "Streak", Icon: Calendar, color: "#A78BFA", unit: "days" },
+const CHALLENGE_TYPES: {
+  key: ChallengeType;
+  label: string;
+  Icon: typeof Dumbbell;
+  color: string;
+  unit: string;
+}[] = [
+  {
+    key: "workout",
+    label: "Workout",
+    Icon: Dumbbell,
+    color: "#22C4D5",
+    unit: "sessions",
+  },
+  {
+    key: "nutrition",
+    label: "Nutrition",
+    Icon: Utensils,
+    color: "#4ADE80",
+    unit: "days",
+  },
+  {
+    key: "activity",
+    label: "Activity",
+    Icon: Flame,
+    color: "#F59E0B",
+    unit: "calories",
+  },
+  {
+    key: "streak",
+    label: "Streak",
+    Icon: Calendar,
+    color: "#A78BFA",
+    unit: "days",
+  },
 ];
 
 export default function CreateGroupScreen() {
@@ -45,8 +85,8 @@ export default function CreateGroupScreen() {
   const [challengeType, setChallengeType] = useState<ChallengeType>("workout");
   const [goal, setGoal] = useState("");
   const [targetValue, setTargetValue] = useState("30");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [startDate] = useState("");
+  const [endDate] = useState("");
   const [membership, setMembership] = useState<GroupMembership>("open");
   const [visibility, setVisibility] = useState<GroupVisibility>("public");
   const [creating, setCreating] = useState(false);
@@ -121,24 +161,37 @@ export default function CreateGroupScreen() {
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <X size={22} color={colors.foreground} />
         </Pressable>
-        <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: "800" }}>Create Group</Text>
+        <Text
+          style={{ color: colors.foreground, fontSize: 17, fontWeight: "800" }}
+        >
+          Create Group
+        </Text>
         <View style={{ width: 22 }} />
       </View>
 
       {/* Step indicators */}
-      <View style={{ flexDirection: "row", paddingHorizontal: 16, paddingVertical: 12, gap: 6 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          gap: 6,
+        }}
+      >
         {steps.map((s, idx) => (
           <View key={s} style={{ flex: 1, alignItems: "center", gap: 4 }}>
             <View
               style={{
                 height: 3,
                 borderRadius: 2,
-                backgroundColor: idx + 1 <= step ? colors.primary : colors.surface,
+                backgroundColor:
+                  idx + 1 <= step ? colors.primary : colors.surface,
               }}
             />
             <Text
               style={{
-                color: idx + 1 <= step ? colors.primary : colors.mutedForeground,
+                color:
+                  idx + 1 <= step ? colors.primary : colors.mutedForeground,
                 fontSize: 10,
                 fontWeight: "600",
               }}
@@ -156,13 +209,26 @@ export default function CreateGroupScreen() {
       >
         {step === 1 && (
           <>
-            <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: "800" }}>
+            <Text
+              style={{
+                color: colors.foreground,
+                fontSize: 20,
+                fontWeight: "800",
+              }}
+            >
               Basic Info
             </Text>
 
             <View style={{ gap: 12 }}>
               <View>
-                <Text style={{ color: colors.mutedForeground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>
+                <Text
+                  style={{
+                    color: colors.mutedForeground,
+                    fontSize: 13,
+                    fontWeight: "600",
+                    marginBottom: 6,
+                  }}
+                >
                   Group Name *
                 </Text>
                 <TextInput
@@ -184,7 +250,14 @@ export default function CreateGroupScreen() {
               </View>
 
               <View>
-                <Text style={{ color: colors.mutedForeground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>
+                <Text
+                  style={{
+                    color: colors.mutedForeground,
+                    fontSize: 13,
+                    fontWeight: "600",
+                    marginBottom: 6,
+                  }}
+                >
                   Description (optional)
                 </Text>
                 <TextInput
@@ -213,7 +286,13 @@ export default function CreateGroupScreen() {
 
         {step === 2 && (
           <>
-            <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: "800" }}>
+            <Text
+              style={{
+                color: colors.foreground,
+                fontSize: 20,
+                fontWeight: "800",
+              }}
+            >
               Challenge Type
             </Text>
             <View style={{ gap: 10 }}>
@@ -234,7 +313,8 @@ export default function CreateGroupScreen() {
                           ? colors.surface
                           : colors.card,
                     borderWidth: 1.5,
-                    borderColor: challengeType === key ? color : colors.cardBorder,
+                    borderColor:
+                      challengeType === key ? color : colors.cardBorder,
                   })}
                 >
                   <View
@@ -249,7 +329,13 @@ export default function CreateGroupScreen() {
                   >
                     <Icon size={22} color={color} />
                   </View>
-                  <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "700" }}>
+                  <Text
+                    style={{
+                      color: colors.foreground,
+                      fontSize: 16,
+                      fontWeight: "700",
+                    }}
+                  >
                     {label}
                   </Text>
                   {challengeType === key && (
@@ -264,7 +350,15 @@ export default function CreateGroupScreen() {
                         justifyContent: "center",
                       }}
                     >
-                      <Text style={{ color: "#fff", fontSize: 12, fontWeight: "800" }}>✓</Text>
+                      <Text
+                        style={{
+                          color: "#fff",
+                          fontSize: 12,
+                          fontWeight: "800",
+                        }}
+                      >
+                        ✓
+                      </Text>
                     </View>
                   )}
                 </Pressable>
@@ -275,13 +369,26 @@ export default function CreateGroupScreen() {
 
         {step === 3 && (
           <>
-            <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: "800" }}>
+            <Text
+              style={{
+                color: colors.foreground,
+                fontSize: 20,
+                fontWeight: "800",
+              }}
+            >
               Goal & Dates
             </Text>
 
             <View style={{ gap: 12 }}>
               <View>
-                <Text style={{ color: colors.mutedForeground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>
+                <Text
+                  style={{
+                    color: colors.mutedForeground,
+                    fontSize: 13,
+                    fontWeight: "600",
+                    marginBottom: 6,
+                  }}
+                >
                   Goal Description *
                 </Text>
                 <TextInput
@@ -303,7 +410,14 @@ export default function CreateGroupScreen() {
               </View>
 
               <View>
-                <Text style={{ color: colors.mutedForeground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>
+                <Text
+                  style={{
+                    color: colors.mutedForeground,
+                    fontSize: 13,
+                    fontWeight: "600",
+                    marginBottom: 6,
+                  }}
+                >
                   Target Value * ({selectedType.unit})
                 </Text>
                 <TextInput
@@ -326,7 +440,14 @@ export default function CreateGroupScreen() {
               </View>
 
               <View>
-                <Text style={{ color: colors.mutedForeground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>
+                <Text
+                  style={{
+                    color: colors.mutedForeground,
+                    fontSize: 13,
+                    fontWeight: "600",
+                    marginBottom: 6,
+                  }}
+                >
                   End Date (optional, YYYY-MM-DD)
                 </Text>
                 <TextInput
@@ -352,19 +473,41 @@ export default function CreateGroupScreen() {
 
         {step === 4 && (
           <>
-            <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: "800" }}>
+            <Text
+              style={{
+                color: colors.foreground,
+                fontSize: 20,
+                fontWeight: "800",
+              }}
+            >
               Group Settings
             </Text>
 
             <View style={{ gap: 14 }}>
-              <Text style={{ color: colors.mutedForeground, fontSize: 13, fontWeight: "600" }}>
+              <Text
+                style={{
+                  color: colors.mutedForeground,
+                  fontSize: 13,
+                  fontWeight: "600",
+                }}
+              >
                 Membership
               </Text>
               <View style={{ flexDirection: "row", gap: 10 }}>
-                {([
-                  { key: "open" as GroupMembership, label: "Open Join", Icon: Users },
-                  { key: "invite_only" as GroupMembership, label: "Invite Only", Icon: Lock },
-                ] as const).map(({ key, label, Icon }) => (
+                {(
+                  [
+                    {
+                      key: "open" as GroupMembership,
+                      label: "Open Join",
+                      Icon: Users,
+                    },
+                    {
+                      key: "invite_only" as GroupMembership,
+                      label: "Invite Only",
+                      Icon: Lock,
+                    },
+                  ] as const
+                ).map(({ key, label, Icon }) => (
                   <Pressable
                     key={key}
                     onPress={() => setMembership(key)}
@@ -376,15 +519,29 @@ export default function CreateGroupScreen() {
                       gap: 6,
                       padding: 12,
                       borderRadius: 12,
-                      backgroundColor: membership === key ? colors.primary + "20" : colors.surface,
+                      backgroundColor:
+                        membership === key
+                          ? colors.primary + "20"
+                          : colors.surface,
                       borderWidth: 1.5,
-                      borderColor: membership === key ? colors.primary : colors.cardBorder,
+                      borderColor:
+                        membership === key ? colors.primary : colors.cardBorder,
                     }}
                   >
-                    <Icon size={16} color={membership === key ? colors.primary : colors.mutedForeground} />
+                    <Icon
+                      size={16}
+                      color={
+                        membership === key
+                          ? colors.primary
+                          : colors.mutedForeground
+                      }
+                    />
                     <Text
                       style={{
-                        color: membership === key ? colors.primary : colors.foreground,
+                        color:
+                          membership === key
+                            ? colors.primary
+                            : colors.foreground,
                         fontSize: 13,
                         fontWeight: "700",
                       }}
@@ -395,14 +552,30 @@ export default function CreateGroupScreen() {
                 ))}
               </View>
 
-              <Text style={{ color: colors.mutedForeground, fontSize: 13, fontWeight: "600" }}>
+              <Text
+                style={{
+                  color: colors.mutedForeground,
+                  fontSize: 13,
+                  fontWeight: "600",
+                }}
+              >
                 Visibility
               </Text>
               <View style={{ flexDirection: "row", gap: 10 }}>
-                {([
-                  { key: "public" as GroupVisibility, label: "Public", Icon: Globe },
-                  { key: "private" as GroupVisibility, label: "Private", Icon: Lock },
-                ] as const).map(({ key, label, Icon }) => (
+                {(
+                  [
+                    {
+                      key: "public" as GroupVisibility,
+                      label: "Public",
+                      Icon: Globe,
+                    },
+                    {
+                      key: "private" as GroupVisibility,
+                      label: "Private",
+                      Icon: Lock,
+                    },
+                  ] as const
+                ).map(({ key, label, Icon }) => (
                   <Pressable
                     key={key}
                     onPress={() => setVisibility(key)}
@@ -414,15 +587,29 @@ export default function CreateGroupScreen() {
                       gap: 6,
                       padding: 12,
                       borderRadius: 12,
-                      backgroundColor: visibility === key ? colors.primary + "20" : colors.surface,
+                      backgroundColor:
+                        visibility === key
+                          ? colors.primary + "20"
+                          : colors.surface,
                       borderWidth: 1.5,
-                      borderColor: visibility === key ? colors.primary : colors.cardBorder,
+                      borderColor:
+                        visibility === key ? colors.primary : colors.cardBorder,
                     }}
                   >
-                    <Icon size={16} color={visibility === key ? colors.primary : colors.mutedForeground} />
+                    <Icon
+                      size={16}
+                      color={
+                        visibility === key
+                          ? colors.primary
+                          : colors.mutedForeground
+                      }
+                    />
                     <Text
                       style={{
-                        color: visibility === key ? colors.primary : colors.foreground,
+                        color:
+                          visibility === key
+                            ? colors.primary
+                            : colors.foreground,
                         fontSize: 13,
                         fontWeight: "700",
                       }}
@@ -443,12 +630,36 @@ export default function CreateGroupScreen() {
                 gap: 8,
               }}
             >
-              <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "700" }}>Summary</Text>
+              <Text
+                style={{
+                  color: colors.foreground,
+                  fontSize: 14,
+                  fontWeight: "700",
+                }}
+              >
+                Summary
+              </Text>
               <SummaryRow label="Name" value={name} colors={colors} />
-              <SummaryRow label="Type" value={selectedType.label} colors={colors} />
-              <SummaryRow label="Goal" value={`${targetValue} ${selectedType.unit} — ${goal}`} colors={colors} />
-              <SummaryRow label="Membership" value={membership === "open" ? "Open" : "Invite only"} colors={colors} />
-              <SummaryRow label="Visibility" value={visibility === "public" ? "Public" : "Private"} colors={colors} />
+              <SummaryRow
+                label="Type"
+                value={selectedType.label}
+                colors={colors}
+              />
+              <SummaryRow
+                label="Goal"
+                value={`${targetValue} ${selectedType.unit} — ${goal}`}
+                colors={colors}
+              />
+              <SummaryRow
+                label="Membership"
+                value={membership === "open" ? "Open" : "Invite only"}
+                colors={colors}
+              />
+              <SummaryRow
+                label="Visibility"
+                value={visibility === "public" ? "Public" : "Private"}
+                colors={colors}
+              />
             </View>
           </>
         )}
@@ -479,7 +690,15 @@ export default function CreateGroupScreen() {
               borderColor: colors.cardBorder,
             })}
           >
-            <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "700" }}>Back</Text>
+            <Text
+              style={{
+                color: colors.foreground,
+                fontSize: 16,
+                fontWeight: "700",
+              }}
+            >
+              Back
+            </Text>
           </Pressable>
         )}
 
@@ -495,24 +714,30 @@ export default function CreateGroupScreen() {
               flexDirection: "row",
               justifyContent: "center",
               gap: 6,
-              backgroundColor:
-                !canNext()
-                  ? colors.muted
-                  : pressed
-                    ? colors.primary + "CC"
-                    : colors.primary,
+              backgroundColor: !canNext()
+                ? colors.muted
+                : pressed
+                  ? colors.primary + "CC"
+                  : colors.primary,
             })}
           >
             <Text
               style={{
-                color: !canNext() ? colors.mutedForeground : colors.primaryForeground,
+                color: !canNext()
+                  ? colors.mutedForeground
+                  : colors.primaryForeground,
                 fontSize: 16,
                 fontWeight: "700",
               }}
             >
               Next
             </Text>
-            <ChevronRight size={18} color={!canNext() ? colors.mutedForeground : colors.primaryForeground} />
+            <ChevronRight
+              size={18}
+              color={
+                !canNext() ? colors.mutedForeground : colors.primaryForeground
+              }
+            />
           </Pressable>
         ) : (
           <Pressable
@@ -529,7 +754,13 @@ export default function CreateGroupScreen() {
             {creating ? (
               <ActivityIndicator color={colors.primaryForeground} />
             ) : (
-              <Text style={{ color: colors.primaryForeground, fontSize: 16, fontWeight: "700" }}>
+              <Text
+                style={{
+                  color: colors.primaryForeground,
+                  fontSize: 16,
+                  fontWeight: "700",
+                }}
+              >
                 Create Group
               </Text>
             )}
@@ -540,11 +771,32 @@ export default function CreateGroupScreen() {
   );
 }
 
-function SummaryRow({ label, value, colors }: { label: string; value: string; colors: any }) {
+function SummaryRow({
+  label,
+  value,
+  colors,
+}: {
+  label: string;
+  value: string;
+  colors: any;
+}) {
   return (
-    <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}>
-      <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>{label}</Text>
-      <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", textAlign: "right", flex: 1 }} numberOfLines={1}>
+    <View
+      style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}
+    >
+      <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>
+        {label}
+      </Text>
+      <Text
+        style={{
+          color: colors.foreground,
+          fontSize: 13,
+          fontWeight: "600",
+          textAlign: "right",
+          flex: 1,
+        }}
+        numberOfLines={1}
+      >
         {value}
       </Text>
     </View>

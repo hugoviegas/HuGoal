@@ -1746,8 +1746,8 @@ export default function CreateWorkoutScreen() {
                     Add workout image
                   </Text>
                   <Text className="text-sm text-gray-600 dark:text-gray-400 mt-2 text-center">
-                    Select an image. You can crop it using "Crop / replace" if
-                    needed.
+                    Select an image. You can crop it using &quot;Crop /
+                    replace&quot; if needed.
                   </Text>
                 </Pressable>
               )}

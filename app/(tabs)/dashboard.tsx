@@ -11,6 +11,7 @@ import { useThemeStore } from "@/stores/theme.store";
 import { spacing } from "@/constants/spacing";
 import { radius } from "@/constants/radius";
 import { typography } from "@/constants/typography";
+import { DASHBOARD_EDIT_ACTIONS_BOTTOM_OFFSET } from "@/constants/layout";
 import { withOpacity } from "@/lib/color";
 import type { WidgetConfig, WidgetSize, WidgetType } from "@/types/dashboard";
 
@@ -144,7 +145,7 @@ export default function DashboardScreen() {
             position: "absolute",
             left: spacing.md,
             right: spacing.md,
-            bottom: insets.bottom + 104,
+            bottom: insets.bottom + DASHBOARD_EDIT_ACTIONS_BOTTOM_OFFSET,
             flexDirection: "row",
             gap: spacing.sm,
             padding: spacing.xs,

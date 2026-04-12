@@ -20,7 +20,6 @@ import {
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { useThemeStore } from "@/stores/theme.store";
-import { useAuthStore } from "@/stores/auth.store";
 import { useToastStore } from "@/stores/toast.store";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
@@ -120,7 +119,7 @@ function formatDate(isoString: string): string {
 }
 
 export default function WorkoutSummaryScreen() {
-  const { id, sessionId } = useLocalSearchParams<{
+  const { sessionId } = useLocalSearchParams<{
     id: string;
     sessionId?: string;
   }>();
@@ -128,7 +127,7 @@ export default function WorkoutSummaryScreen() {
   const insets = useSafeAreaInsets();
   const { isDark, colors } = useThemeStore();
   const { show: showToast } = useToastStore();
-  const user = useAuthStore((s) => s.user);
+
   useHideMainTabBar();
 
   const [session, setSession] = useState<CompletedWorkoutSessionRecord | null>(
@@ -191,13 +190,13 @@ export default function WorkoutSummaryScreen() {
 
   const exerciseSummaryRows = useMemo(() => {
     if (!session) {
-      return [] as Array<{
+      return [] as {
         exercise_id: string;
         name: string;
         sets_done: number;
         total_reps: number;
         total_volume_kg: number;
-      }>;
+      }[];
     }
 
     if (session.exercises_summary && session.exercises_summary.length > 0) {

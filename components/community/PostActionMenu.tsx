@@ -1,5 +1,5 @@
 import { View, Text, Pressable, Modal } from "react-native";
-import { Flag, Trash2, Volume2, VolumeX, UserMinus, UserX, X } from "lucide-react-native";
+import { Flag, Trash2, Volume2, VolumeX, UserX, X } from "lucide-react-native";
 import { useThemeStore } from "@/stores/theme.store";
 import { useAuthStore } from "@/stores/auth.store";
 import { useCommunityStore } from "@/stores/community.store";
@@ -13,7 +13,12 @@ interface PostActionMenuProps {
   onReport: () => void;
 }
 
-export function PostActionMenu({ visible, post, onClose, onReport }: PostActionMenuProps) {
+export function PostActionMenu({
+  visible,
+  post,
+  onClose,
+  onReport,
+}: PostActionMenuProps) {
   const colors = useThemeStore((s) => s.colors);
   const uid = useAuthStore((s) => s.user?.uid);
   const showToast = useToastStore((s) => s.show);
@@ -77,9 +82,18 @@ export function PostActionMenu({ visible, post, onClose, onReport }: PostActionM
       ];
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
       <Pressable
-        style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}
+        style={{
+          flex: 1,
+          backgroundColor: "rgba(0,0,0,0.5)",
+          justifyContent: "flex-end",
+        }}
         onPress={onClose}
       >
         <Pressable
@@ -93,8 +107,23 @@ export function PostActionMenu({ visible, post, onClose, onReport }: PostActionM
           }}
           onPress={() => {}}
         >
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-            <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "700" }}>Post options</Text>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 8,
+            }}
+          >
+            <Text
+              style={{
+                color: colors.foreground,
+                fontSize: 16,
+                fontWeight: "700",
+              }}
+            >
+              Post options
+            </Text>
             <Pressable onPress={onClose} hitSlop={8}>
               <X size={22} color={colors.mutedForeground} />
             </Pressable>
@@ -116,7 +145,13 @@ export function PostActionMenu({ visible, post, onClose, onReport }: PostActionM
                 })}
               >
                 <Icon size={20} color={action.color} />
-                <Text style={{ color: action.color, fontSize: 15, fontWeight: "600" }}>
+                <Text
+                  style={{
+                    color: action.color,
+                    fontSize: 15,
+                    fontWeight: "600",
+                  }}
+                >
                   {action.label}
                 </Text>
               </Pressable>

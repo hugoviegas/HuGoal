@@ -26,6 +26,23 @@ export default function AuthLayout() {
     );
   }
 
+  // Native auth/profile hydration can resolve user first and profile shortly
+  // after; keep a neutral loading screen to avoid flashing the login page.
+  if (isAuthenticated && user && !profile && !profileError) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: colors.background,
+        }}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
   if (!isAuthenticated && (isOnboardingRoute || isVerifyEmailRoute)) {
     return <Redirect href="/(auth)/login" />;
   }

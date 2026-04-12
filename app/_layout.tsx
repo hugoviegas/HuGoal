@@ -36,7 +36,7 @@ export default function RootLayout() {
     if (lastAppliedMode.current === mode) return;
     lastAppliedMode.current = mode;
     setColorScheme(mode);
-  }, [mode]);
+  }, [mode, setColorScheme]);
 
   useEffect(() => {
     const subscription = Appearance.addChangeListener(() => {

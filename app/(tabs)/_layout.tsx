@@ -36,6 +36,7 @@ export default function TabsLayout() {
         headerShown: false,
         lazy: true,
         freezeOnBlur: true,
+        sceneStyle: { backgroundColor: colors.background },
       }}
     >
       <Tabs.Screen name="dashboard" />

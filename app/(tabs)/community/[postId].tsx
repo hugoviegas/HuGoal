@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   Platform,
 } from "react-native";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ArrowLeft, Send, MessageCircle } from "lucide-react-native";
@@ -22,7 +22,12 @@ import { ReportModal } from "@/components/community/ReportModal";
 import { useThemeStore } from "@/stores/theme.store";
 import { useAuthStore } from "@/stores/auth.store";
 import { useCommunityStore } from "@/stores/community.store";
-import { getPost, getComments, createComment, likeComment } from "@/lib/community-posts";
+import {
+  getPost,
+  getComments,
+  createComment,
+  likeComment,
+} from "@/lib/community-posts";
 import { formatDistanceToNow } from "@/lib/community-time";
 import { useToastStore } from "@/stores/toast.store";
 import type { CommunityPost, CommunityComment } from "@/types";
@@ -50,34 +55,48 @@ export default function PostDetailScreen() {
   const [showReport, setShowReport] = useState(false);
   const inputRef = useRef<TextInput>(null);
 
-  useEffect(() => {
+  const loadPostAndComments = useCallback(async () => {
     if (!postId) return;
-    loadPostAndComments();
-  }, [postId]);
-
-  const loadPostAndComments = async () => {
     setLoading(true);
     try {
-      const [p, c] = await Promise.all([
-        getPost(postId!),
-        getComments(postId!),
-      ]);
+      const [p, c] = await Promise.all([getPost(postId), getComments(postId)]);
       setPost(p);
       setComments(c);
     } finally {
       setLoading(false);
     }
-  };
+  }, [postId]);
+
+  useEffect(() => {
+    if (!postId) return;
+    loadPostAndComments();
+  }, [postId, loadPostAndComments]);
 
   const handleLike = () => {
     if (!uid || !post) return;
     const isLiked = post.liked_by.includes(uid);
     if (isLiked) {
       unlikePostAction(post.id, uid);
-      setPost((p) => p ? { ...p, like_count: p.like_count - 1, liked_by: p.liked_by.filter((id) => id !== uid) } : p);
+      setPost((p) =>
+        p
+          ? {
+              ...p,
+              like_count: p.like_count - 1,
+              liked_by: p.liked_by.filter((id) => id !== uid),
+            }
+          : p,
+      );
     } else {
       likePostAction(post.id, uid);
-      setPost((p) => p ? { ...p, like_count: p.like_count + 1, liked_by: [...p.liked_by, uid] } : p);
+      setPost((p) =>
+        p
+          ? {
+              ...p,
+              like_count: p.like_count + 1,
+              liked_by: [...p.liked_by, uid],
+            }
+          : p,
+      );
     }
   };
 
@@ -120,7 +139,14 @@ export default function PostDetailScreen() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: colors.background,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
         <ActivityIndicator color={colors.primary} size="large" />
       </View>
     );
@@ -128,10 +154,20 @@ export default function PostDetailScreen() {
 
   if (!post) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.background, alignItems: "center", justifyContent: "center", paddingTop: insets.top }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: colors.background,
+          alignItems: "center",
+          justifyContent: "center",
+          paddingTop: insets.top,
+        }}
+      >
         <Text style={{ color: colors.mutedForeground }}>Post not found</Text>
         <Pressable onPress={() => router.back()} style={{ marginTop: 12 }}>
-          <Text style={{ color: colors.primary, fontWeight: "700" }}>Go back</Text>
+          <Text style={{ color: colors.primary, fontWeight: "700" }}>
+            Go back
+          </Text>
         </Pressable>
       </View>
     );
@@ -173,7 +209,9 @@ export default function PostDetailScreen() {
         >
           <ArrowLeft size={18} color={colors.foreground} />
         </Pressable>
-        <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: "800" }}>
+        <Text
+          style={{ color: colors.foreground, fontSize: 18, fontWeight: "800" }}
+        >
           Post
         </Text>
       </View>
@@ -184,14 +222,41 @@ export default function PostDetailScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {/* Post content */}
-        <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.cardBorder }}>
+        <View
+          style={{
+            padding: 16,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.cardBorder,
+          }}
+        >
           {/* Author row */}
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 }}>
-            <Pressable onPress={() => uid !== post.author_id && router.push(`/user/${post.author_id}`)}>
-              <Avatar source={post.author_avatar_url} name={post.author_name} size="md" />
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 10,
+              marginBottom: 12,
+            }}
+          >
+            <Pressable
+              onPress={() =>
+                uid !== post.author_id && router.push(`/user/${post.author_id}`)
+              }
+            >
+              <Avatar
+                source={post.author_avatar_url}
+                name={post.author_name}
+                size="md"
+              />
             </Pressable>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "700" }}>
+              <Text
+                style={{
+                  color: colors.foreground,
+                  fontSize: 16,
+                  fontWeight: "700",
+                }}
+              >
                 {post.author_name}
               </Text>
               <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
@@ -199,12 +264,22 @@ export default function PostDetailScreen() {
               </Text>
             </View>
             <Pressable onPress={() => setShowMenu(true)} hitSlop={8}>
-              <Text style={{ color: colors.mutedForeground, fontSize: 20, fontWeight: "700" }}>···</Text>
+              <Text
+                style={{
+                  color: colors.mutedForeground,
+                  fontSize: 20,
+                  fontWeight: "700",
+                }}
+              >
+                ···
+              </Text>
             </Pressable>
           </View>
 
           {/* Text */}
-          <Text style={{ color: colors.foreground, fontSize: 16, lineHeight: 24 }}>
+          <Text
+            style={{ color: colors.foreground, fontSize: 16, lineHeight: 24 }}
+          >
             {post.content}
           </Text>
 
@@ -241,8 +316,14 @@ export default function PostDetailScreen() {
               borderTopColor: colors.cardBorder,
             }}
           >
-            <LikeButton count={post.like_count} liked={isLiked} onPress={handleLike} />
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+            <LikeButton
+              count={post.like_count}
+              liked={isLiked}
+              onPress={handleLike}
+            />
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 5 }}
+            >
               <MessageCircle size={20} color={colors.mutedForeground} />
               <Text style={{ color: colors.mutedForeground, fontSize: 14 }}>
                 {post.comment_count} comments
@@ -253,14 +334,26 @@ export default function PostDetailScreen() {
 
         {/* Comments */}
         <View style={{ padding: 16, gap: 16 }}>
-          <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "700" }}>
+          <Text
+            style={{
+              color: colors.foreground,
+              fontSize: 16,
+              fontWeight: "700",
+            }}
+          >
             Comments
           </Text>
 
           {comments.length === 0 ? (
             <View style={{ alignItems: "center", paddingVertical: 24 }}>
               <MessageCircle size={32} color={colors.mutedForeground} />
-              <Text style={{ color: colors.mutedForeground, fontSize: 14, marginTop: 8 }}>
+              <Text
+                style={{
+                  color: colors.mutedForeground,
+                  fontSize: 14,
+                  marginTop: 8,
+                }}
+              >
                 No comments yet. Be the first!
               </Text>
             </View>
@@ -299,10 +392,20 @@ export default function PostDetailScreen() {
             }}
           >
             <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
-              Replying to <Text style={{ fontWeight: "700", color: colors.primary }}>@{replyingTo.author_name}</Text>
+              Replying to{" "}
+              <Text style={{ fontWeight: "700", color: colors.primary }}>
+                @{replyingTo.author_name}
+              </Text>
             </Text>
-            <Pressable onPress={() => { setReplyingTo(null); setCommentText(""); }}>
-              <Text style={{ color: colors.mutedForeground, fontSize: 16 }}>×</Text>
+            <Pressable
+              onPress={() => {
+                setReplyingTo(null);
+                setCommentText("");
+              }}
+            >
+              <Text style={{ color: colors.mutedForeground, fontSize: 16 }}>
+                ×
+              </Text>
             </Pressable>
           </View>
         )}
@@ -353,9 +456,19 @@ export default function PostDetailScreen() {
             })}
           >
             {submitting ? (
-              <ActivityIndicator size="small" color={colors.primaryForeground} />
+              <ActivityIndicator
+                size="small"
+                color={colors.primaryForeground}
+              />
             ) : (
-              <Send size={18} color={!commentText.trim() ? colors.mutedForeground : colors.primaryForeground} />
+              <Send
+                size={18}
+                color={
+                  !commentText.trim()
+                    ? colors.mutedForeground
+                    : colors.primaryForeground
+                }
+              />
             )}
           </Pressable>
         </View>

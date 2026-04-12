@@ -10,7 +10,6 @@ import Animated, {
 import { useThemeStore } from "@/stores/theme.store";
 import { spacing } from "@/constants/spacing";
 import { radius } from "@/constants/radius";
-import { duration } from "@/constants/animation";
 
 function Shimmer({
   width,
@@ -26,7 +25,7 @@ function Shimmer({
 
   useEffect(() => {
     progress.value = withRepeat(withTiming(1, { duration: 900 }), -1, true);
-  }, []);
+  }, [progress]);
 
   const animStyle = useAnimatedStyle(() => ({
     opacity: interpolate(progress.value, [0, 1], [0.25, 0.6]),

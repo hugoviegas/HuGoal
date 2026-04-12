@@ -5,16 +5,24 @@ import {
   Pressable,
   ScrollView,
   Dimensions,
+  Share,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { MessageCircle, Share2, MoreHorizontal, Dumbbell, UtensilsCrossed, Trophy } from "lucide-react-native";
+import {
+  MessageCircle,
+  Share2,
+  MoreHorizontal,
+  Dumbbell,
+  UtensilsCrossed,
+  Trophy,
+} from "lucide-react-native";
 import { Avatar } from "@/components/ui/Avatar";
 import { LikeButton } from "@/components/community/LikeButton";
 import { useThemeStore } from "@/stores/theme.store";
 import { useCommunityStore } from "@/stores/community.store";
 import { useAuthStore } from "@/stores/auth.store";
 import type { CommunityPost } from "@/types";
-import { Share } from "react-native";
+
 import { formatDistanceToNow } from "@/lib/community-time";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -44,7 +52,9 @@ export function FeedPost({ post, onCommentPress, onMenuPress }: FeedPostProps) {
   };
 
   const handleShare = async () => {
-    await Share.share({ message: `Check out this post on HuGoal: ${post.content}` });
+    await Share.share({
+      message: `Check out this post on HuGoal: ${post.content}`,
+    });
   };
 
   const handleOpenPost = () => {
@@ -81,23 +91,35 @@ export function FeedPost({ post, onCommentPress, onMenuPress }: FeedPostProps) {
         }}
       >
         <Pressable onPress={handleOpenProfile}>
-          <Avatar source={post.author_avatar_url} name={post.author_name} size="md" />
+          <Avatar
+            source={post.author_avatar_url}
+            name={post.author_name}
+            size="md"
+          />
         </Pressable>
 
         <Pressable onPress={handleOpenProfile} style={{ flex: 1 }}>
-          <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: "700" }}>
+          <Text
+            style={{
+              color: colors.foreground,
+              fontSize: 15,
+              fontWeight: "700",
+            }}
+          >
             {post.author_name}
           </Text>
-          <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 1 }}>
+          <Text
+            style={{
+              color: colors.mutedForeground,
+              fontSize: 12,
+              marginTop: 1,
+            }}
+          >
             {formatDistanceToNow(post.created_at)}
           </Text>
         </Pressable>
 
-        <Pressable
-          onPress={onMenuPress}
-          hitSlop={8}
-          style={{ padding: 4 }}
-        >
+        <Pressable onPress={onMenuPress} hitSlop={8} style={{ padding: 4 }}>
           <MoreHorizontal size={20} color={colors.mutedForeground} />
         </Pressable>
       </View>
@@ -111,7 +133,8 @@ export function FeedPost({ post, onCommentPress, onMenuPress }: FeedPostProps) {
               fontSize: 15,
               lineHeight: 22,
               paddingHorizontal: 14,
-              paddingBottom: post.media.length > 0 || post.linked_content ? 10 : 0,
+              paddingBottom:
+                post.media.length > 0 || post.linked_content ? 10 : 0,
             }}
           >
             {post.content}
@@ -161,7 +184,11 @@ export function FeedPost({ post, onCommentPress, onMenuPress }: FeedPostProps) {
           gap: 4,
         }}
       >
-        <LikeButton count={post.like_count} liked={isLiked} onPress={handleLike} />
+        <LikeButton
+          count={post.like_count}
+          liked={isLiked}
+          onPress={handleLike}
+        />
 
         <Pressable
           onPress={onCommentPress ?? handleOpenPost}
@@ -177,7 +204,13 @@ export function FeedPost({ post, onCommentPress, onMenuPress }: FeedPostProps) {
           })}
         >
           <MessageCircle size={20} color={colors.mutedForeground} />
-          <Text style={{ color: colors.mutedForeground, fontSize: 14, fontWeight: "500" }}>
+          <Text
+            style={{
+              color: colors.mutedForeground,
+              fontSize: 14,
+              fontWeight: "500",
+            }}
+          >
             {post.comment_count}
           </Text>
         </Pressable>
@@ -248,10 +281,26 @@ function LinkedContentCard({
         <Icon size={20} color={iconColor} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 }}>
+        <Text
+          style={{
+            color: colors.mutedForeground,
+            fontSize: 11,
+            fontWeight: "600",
+            textTransform: "uppercase",
+            letterSpacing: 0.5,
+          }}
+        >
           {content.type}
         </Text>
-        <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "700", marginTop: 1 }} numberOfLines={1}>
+        <Text
+          style={{
+            color: colors.foreground,
+            fontSize: 14,
+            fontWeight: "700",
+            marginTop: 1,
+          }}
+          numberOfLines={1}
+        >
           {content.title}
         </Text>
       </View>

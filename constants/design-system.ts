@@ -10,12 +10,20 @@
  *   DS.radius.lg        // 16
  */
 
-export { spacing } from './spacing';
-export { typography } from './typography';
-export { duration, easing } from './animation';
-export { elevation } from './elevation';
-export { radius } from './radius';
+export { spacing } from "./spacing";
+export { typography } from "./typography";
+export { duration, easing } from "./animation";
+export { elevation } from "./elevation";
+export { radius } from "./radius";
+export {
+  FLOATING_TAB_BAR_BOTTOM_OFFSET,
+  FLOATING_TAB_BAR_MIN_HEIGHT,
+  FLOATING_TAB_BAR_CLEARANCE,
+  DASHBOARD_EDIT_ACTIONS_BOTTOM_OFFSET,
+  DASHBOARD_EDIT_ACTIONS_MIN_HEIGHT,
+  DASHBOARD_EDIT_ACTIONS_CLEARANCE,
+} from "./layout";
 
 // Re-export color palettes for convenience
-export { lightColors, darkColors } from './colors';
-export type { ThemeColors } from './colors';
+export { lightColors, darkColors } from "./colors";
+export type { ThemeColors } from "./colors";

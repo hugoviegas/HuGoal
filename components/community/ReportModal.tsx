@@ -15,14 +15,20 @@ interface ReportModalProps {
   postId?: string;
 }
 
-const REASONS: Array<{ key: ReportReason; label: string }> = [
+const REASONS: { key: ReportReason; label: string }[] = [
   { key: "spam", label: "Spam or self-promotion" },
   { key: "harassment", label: "Harassment or bullying" },
   { key: "inappropriate", label: "Inappropriate content" },
   { key: "other", label: "Other" },
 ];
 
-export function ReportModal({ visible, onClose, targetId, targetType, postId }: ReportModalProps) {
+export function ReportModal({
+  visible,
+  onClose,
+  targetId,
+  targetType,
+  postId,
+}: ReportModalProps) {
   const colors = useThemeStore((s) => s.colors);
   const showToast = useToastStore((s) => s.show);
   const uid = useAuthStore((s) => s.user?.uid);
@@ -49,9 +55,18 @@ export function ReportModal({ visible, onClose, targetId, targetType, postId }: 
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
       <Pressable
-        style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}
+        style={{
+          flex: 1,
+          backgroundColor: "rgba(0,0,0,0.5)",
+          justifyContent: "flex-end",
+        }}
         onPress={onClose}
       >
         <Pressable
@@ -65,10 +80,24 @@ export function ReportModal({ visible, onClose, targetId, targetType, postId }: 
           }}
           onPress={() => {}}
         >
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+            >
               <AlertTriangle size={20} color="#F59E0B" />
-              <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: "800" }}>
+              <Text
+                style={{
+                  color: colors.foreground,
+                  fontSize: 18,
+                  fontWeight: "800",
+                }}
+              >
                 Report {targetType}
               </Text>
             </View>
@@ -99,7 +128,8 @@ export function ReportModal({ visible, onClose, targetId, targetType, postId }: 
                         ? colors.surface
                         : colors.surface + "80",
                   borderWidth: 1.5,
-                  borderColor: selected === r.key ? colors.primary : colors.cardBorder,
+                  borderColor:
+                    selected === r.key ? colors.primary : colors.cardBorder,
                 })}
               >
                 <View
@@ -108,7 +138,10 @@ export function ReportModal({ visible, onClose, targetId, targetType, postId }: 
                     height: 20,
                     borderRadius: 10,
                     borderWidth: 2,
-                    borderColor: selected === r.key ? colors.primary : colors.mutedForeground,
+                    borderColor:
+                      selected === r.key
+                        ? colors.primary
+                        : colors.mutedForeground,
                     alignItems: "center",
                     justifyContent: "center",
                   }}
@@ -124,7 +157,13 @@ export function ReportModal({ visible, onClose, targetId, targetType, postId }: 
                     />
                   )}
                 </View>
-                <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600" }}>
+                <Text
+                  style={{
+                    color: colors.foreground,
+                    fontSize: 14,
+                    fontWeight: "600",
+                  }}
+                >
                   {r.label}
                 </Text>
               </Pressable>

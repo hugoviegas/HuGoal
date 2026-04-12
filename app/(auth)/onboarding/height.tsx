@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   View,
   ScrollView,
@@ -72,10 +72,13 @@ export default function OnboardingHeightScreen() {
   const currentHeight = watch("height_cm") ?? 175;
   const trackHeight = Math.min(windowWidth - 176, 340);
 
-  const updateHeight = (next: number) => {
-    const clamped = snapHeight(next);
-    setValue("height_cm", clamped, { shouldValidate: true });
-  };
+  const updateHeight = useCallback(
+    (next: number) => {
+      const clamped = snapHeight(next);
+      setValue("height_cm", clamped, { shouldValidate: true });
+    },
+    [setValue],
+  );
 
   const startHeightRef = useRef(currentHeight);
 
@@ -94,7 +97,7 @@ export default function OnboardingHeightScreen() {
           updateHeight(startHeightRef.current + delta);
         },
       }),
-    [currentHeight, trackHeight],
+    [currentHeight, trackHeight, updateHeight],
   );
 
   const heightProgress = (currentHeight - 120) / Math.max(250 - 120, 1);
@@ -226,7 +229,6 @@ export default function OnboardingHeightScreen() {
                     >
                       {Array.from({ length: 15 }).map((_, idx) => {
                         const center = 7;
-                        const distance = Math.abs(idx - center);
                         return (
                           <View
                             key={`height-tick-${idx}`}

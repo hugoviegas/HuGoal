@@ -207,7 +207,7 @@ export default function AIKeysSettingsScreen() {
       try {
         const u = await getUsageThisMonth();
         setUsageSummary(u);
-      } catch (e) {
+      } catch {
         // ignore usage load errors
       }
     })();

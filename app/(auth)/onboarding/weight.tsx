@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   View,
   ScrollView,
@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Minus, Plus, GripHorizontal } from "lucide-react-native";
+import { Minus, Plus } from "lucide-react-native";
 import { FormStepper } from "@/components/ui/FormStepper";
 import { useThemeStore } from "@/stores/theme.store";
 import { useAuthStore } from "@/stores/auth.store";
@@ -79,13 +79,16 @@ export default function OnboardingWeightScreen() {
     stepByUnit,
   );
 
-  const updateWeight = (next: number) => {
-    const clamped = snapToStep(next, minByUnit, maxByUnit, stepByUnit);
-    setValue("weight_value", clamped, {
-      shouldValidate: true,
-      shouldDirty: true,
-    });
-  };
+  const updateWeight = useCallback(
+    (next: number) => {
+      const clamped = snapToStep(next, minByUnit, maxByUnit, stepByUnit);
+      setValue("weight_value", clamped, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    },
+    [maxByUnit, minByUnit, setValue, stepByUnit],
+  );
 
   const startWeightRef = useRef(currentStepWeight);
 
@@ -104,7 +107,7 @@ export default function OnboardingWeightScreen() {
           updateWeight(startWeightRef.current + delta);
         },
       }),
-    [currentStepWeight, maxByUnit, minByUnit, trackWidth],
+    [currentStepWeight, maxByUnit, minByUnit, trackWidth, updateWeight],
   );
 
   const weightProgress =

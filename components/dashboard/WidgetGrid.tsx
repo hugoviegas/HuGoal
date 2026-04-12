@@ -11,6 +11,10 @@ import { useThemeStore } from "@/stores/theme.store";
 import { spacing } from "@/constants/spacing";
 import { typography } from "@/constants/typography";
 import { radius } from "@/constants/radius";
+import {
+  DASHBOARD_EDIT_ACTIONS_CLEARANCE,
+  FLOATING_TAB_BAR_CLEARANCE,
+} from "@/constants/layout";
 import type {
   DashboardConfig,
   WidgetConfig,
@@ -247,8 +251,13 @@ export function WidgetGrid({
     contentContainerStyle: {
       paddingHorizontal: spacing.md,
       paddingTop: spacing.xs,
-      paddingBottom: insets.bottom + (isEditMode ? 212 : 110),
+      paddingBottom:
+        insets.bottom +
+        (isEditMode
+          ? DASHBOARD_EDIT_ACTIONS_CLEARANCE
+          : FLOATING_TAB_BAR_CLEARANCE),
       flexGrow: 1,
+      minHeight: "100%",
     },
   };
 

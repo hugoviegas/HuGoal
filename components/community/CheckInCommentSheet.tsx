@@ -9,12 +9,15 @@ import {
   Platform,
   ActivityIndicator,
 } from "react-native";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { X, Send } from "lucide-react-native";
 import { Avatar } from "@/components/ui/Avatar";
 import { useThemeStore } from "@/stores/theme.store";
 import { useAuthStore } from "@/stores/auth.store";
-import { getCheckInComments, createCheckInComment } from "@/lib/community-checkins";
+import {
+  getCheckInComments,
+  createCheckInComment,
+} from "@/lib/community-checkins";
 import { formatDistanceToNow } from "@/lib/community-time";
 import type { CheckInComment } from "@/types";
 
@@ -44,13 +47,7 @@ export function CheckInCommentSheet({
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
 
-  useEffect(() => {
-    if (visible && checkInId) {
-      loadComments();
-    }
-  }, [visible, checkInId]);
-
-  const loadComments = async () => {
+  const loadComments = useCallback(async () => {
     setLoading(true);
     try {
       const data = await getCheckInComments(groupId, checkInId);
@@ -60,7 +57,13 @@ export function CheckInCommentSheet({
     } finally {
       setLoading(false);
     }
-  };
+  }, [groupId, checkInId]);
+
+  useEffect(() => {
+    if (visible && checkInId) {
+      loadComments();
+    }
+  }, [visible, checkInId, loadComments]);
 
   const sendComment = async (content: string, emoji?: string) => {
     if (!uid || !profile || sending) return;
@@ -130,7 +133,11 @@ export function CheckInCommentSheet({
           }}
         >
           <Text
-            style={{ color: colors.foreground, fontSize: 16, fontWeight: "700" }}
+            style={{
+              color: colors.foreground,
+              fontSize: 16,
+              fontWeight: "700",
+            }}
           >
             Comentários
           </Text>
@@ -169,7 +176,13 @@ export function CheckInCommentSheet({
                   size="sm"
                 />
                 <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: "row", gap: 6, alignItems: "baseline" }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      gap: 6,
+                      alignItems: "baseline",
+                    }}
+                  >
                     <Text
                       style={{
                         color: colors.foreground,
@@ -179,11 +192,19 @@ export function CheckInCommentSheet({
                     >
                       {item.author_name}
                     </Text>
-                    <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+                    <Text
+                      style={{ color: colors.mutedForeground, fontSize: 11 }}
+                    >
                       {formatDistanceToNow(item.created_at)}
                     </Text>
                   </View>
-                  <Text style={{ color: colors.foreground, fontSize: 14, marginTop: 2 }}>
+                  <Text
+                    style={{
+                      color: colors.foreground,
+                      fontSize: 14,
+                      marginTop: 2,
+                    }}
+                  >
                     {item.content}
                   </Text>
                 </View>
@@ -264,7 +285,11 @@ export function CheckInCommentSheet({
               height: 36,
               borderRadius: 18,
               backgroundColor:
-                !text.trim() || sending ? colors.muted : pressed ? colors.primary + "CC" : colors.primary,
+                !text.trim() || sending
+                  ? colors.muted
+                  : pressed
+                    ? colors.primary + "CC"
+                    : colors.primary,
               alignItems: "center",
               justifyContent: "center",
             })}

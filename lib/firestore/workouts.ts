@@ -125,6 +125,26 @@ export interface WorkoutTemplateInput {
   tags?: string[];
 }
 
+export interface WorkoutDailyOverrideRecord {
+  id: string;
+  user_id: string;
+  date: string;
+  template_id: string;
+  source_template_id?: string;
+  source_type?:
+    | "auto_no_active_day"
+    | "change_workout_type"
+    | "adjust_time"
+    | "change_difficulty"
+    | "use_another_location";
+  workout_type?: string;
+  target_minutes?: number;
+  difficulty_mode?: "easier" | "harder";
+  location?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export function aggregateWorkoutMuscles(
   exercises:
     | WorkoutTemplateExerciseRecord[]
@@ -870,4 +890,76 @@ export async function listWorkoutWeekPlans(
   );
 
   return snapshot.docs.map((item) => item.data() as WorkoutWeekPlanRecord);
+}
+
+// ─── Daily Overrides ──────────────────────────────────────────────────────
+
+function workoutDailyOverridesCollection() {
+  return collection(db, "workout_daily_overrides");
+}
+
+function dailyOverrideDocId(uid: string, date: string): string {
+  return `${uid}_${date}`;
+}
+
+export async function getWorkoutDailyOverride(
+  uid: string,
+  date: string,
+): Promise<WorkoutDailyOverrideRecord | null> {
+  const id = dailyOverrideDocId(uid, date);
+  const snapshot = await getDoc(doc(db, "workout_daily_overrides", id));
+  if (!snapshot.exists()) {
+    return null;
+  }
+  return snapshot.data() as WorkoutDailyOverrideRecord;
+}
+
+export async function upsertWorkoutDailyOverride(
+  uid: string,
+  date: string,
+  patch: Omit<
+    WorkoutDailyOverrideRecord,
+    "id" | "user_id" | "date" | "created_at" | "updated_at"
+  >,
+): Promise<WorkoutDailyOverrideRecord> {
+  const id = dailyOverrideDocId(uid, date);
+  const reference = doc(db, "workout_daily_overrides", id);
+  const now = new Date().toISOString();
+
+  const payload: WorkoutDailyOverrideRecord = {
+    id,
+    user_id: uid,
+    date,
+    template_id: patch.template_id,
+    source_template_id: patch.source_template_id,
+    source_type: patch.source_type,
+    workout_type: patch.workout_type,
+    target_minutes: patch.target_minutes,
+    difficulty_mode: patch.difficulty_mode,
+    location: patch.location,
+    created_at: now,
+    updated_at: now,
+  };
+
+  const existing = await getDoc(reference);
+  if (existing.exists()) {
+    payload.created_at = (
+      existing.data() as WorkoutDailyOverrideRecord
+    ).created_at;
+  }
+
+  await setDoc(
+    reference,
+    sanitizeFirestoreValue(payload) as WorkoutDailyOverrideRecord,
+    { merge: true },
+  );
+  return payload;
+}
+
+export async function clearWorkoutDailyOverride(
+  uid: string,
+  date: string,
+): Promise<void> {
+  const id = dailyOverrideDocId(uid, date);
+  await deleteDoc(doc(db, "workout_daily_overrides", id));
 }

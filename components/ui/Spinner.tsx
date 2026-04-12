@@ -19,7 +19,6 @@ export function Spinner({ size = "md", color }: MorphingSpinnerProps) {
   const spinnerColor = color || colors.primary;
   const rotateAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const radiusAnim = useRef(new Animated.Value(50)).current;
 
   const sizeClasses = {
     sm: { width: 24, height: 24 },
