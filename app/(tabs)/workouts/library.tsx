@@ -7,7 +7,6 @@ import React, {
 } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   FlatList,
   Image,
@@ -396,6 +395,7 @@ export default function WorkoutLibraryScreen() {
   const [menuTarget, setMenuTarget] = useState<WorkoutTemplateRecord | null>(null);
   const [sheetVisible, setSheetVisible] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const sheetAnim = useRef(new Animated.Value(0)).current;
 
   // ── Data loaders ──────────────────────────────────────────────────────────
@@ -475,6 +475,7 @@ export default function WorkoutLibraryScreen() {
     }).start(() => {
       setSheetVisible(false);
       setMenuTarget(null);
+      setConfirmDelete(false);
       callback?.();
     });
   };
@@ -521,33 +522,23 @@ export default function WorkoutLibraryScreen() {
 
   const handleDeleteConfirm = () => {
     if (!menuTarget) return;
-    const name = menuTarget.name;
-    const id = menuTarget.id;
+    setConfirmDelete(true);
+  };
 
-    Alert.alert(
-      "Delete workout?",
-      `"${name}" will be permanently deleted. This cannot be undone.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            setActionLoading(true);
-            try {
-              await deleteWorkoutTemplate(id);
-              showToast("Workout deleted", "success");
-              closeSheet();
-              void loadMyWorkouts();
-            } catch {
-              showToast("Could not delete workout", "error");
-            } finally {
-              setActionLoading(false);
-            }
-          },
-        },
-      ],
-    );
+  const handleDeleteExecute = async () => {
+    if (!menuTarget) return;
+    const targetId = menuTarget.id;
+    setActionLoading(true);
+    try {
+      await deleteWorkoutTemplate(targetId);
+      showToast("Workout deleted", "success");
+      closeSheet();
+      void loadMyWorkouts();
+    } catch {
+      showToast("Could not delete workout", "error");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleSaveToLibrary = async (workout: WorkoutTemplateRecord) => {
@@ -966,115 +957,200 @@ export default function WorkoutLibraryScreen() {
                 </Text>
               </View>
 
-              {/* Actions */}
-              {[
-                {
-                  icon: <Edit3 size={18} color={colors.primary} />,
-                  label: "Edit workout",
-                  onPress: handleEdit,
-                  hidden: false,
-                },
-                {
-                  icon: <Copy size={18} color={colors.primary} />,
-                  label: "Duplicate",
-                  onPress: () => void handleDuplicate(),
-                  hidden: false,
-                },
-                {
-                  icon: menuTarget?.is_active ? (
-                    <X size={18} color={colors.muted} />
-                  ) : (
-                    <Check size={18} color="#059669" />
-                  ),
-                  label: menuTarget?.is_active
-                    ? "Deactivate"
-                    : "Set as active",
-                  onPress: () => void handleToggleActive(),
-                  hidden: !!menuTarget?.is_draft,
-                },
-                {
-                  icon: <Trash2 size={18} color="#ef4444" />,
-                  label: "Delete workout",
-                  onPress: handleDeleteConfirm,
-                  destructive: true,
-                  hidden: false,
-                },
-              ]
-                .filter((a) => !a.hidden)
-                .map((action, idx, arr) => (
-                  <Pressable
-                    key={action.label}
-                    onPress={actionLoading ? undefined : action.onPress}
-                    className={cn(
-                      "flex-row items-center gap-4 px-5 py-4",
-                      idx !== arr.length - 1
-                        ? isDark
-                          ? "border-b border-gray-800"
-                          : "border-b border-gray-100"
-                        : "",
-                    )}
+              {confirmDelete ? (
+                /* ── Delete confirmation panel ── */
+                <View className="px-5 pt-4 pb-2">
+                  <View
+                    style={{
+                      borderRadius: 16,
+                      backgroundColor: isDark ? "rgba(239,68,68,0.1)" : "rgba(239,68,68,0.06)",
+                      borderWidth: 1,
+                      borderColor: isDark ? "rgba(239,68,68,0.3)" : "rgba(239,68,68,0.2)",
+                      padding: 16,
+                      marginBottom: 16,
+                    }}
                   >
-                    <View
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 10,
-                        alignItems: "center",
-                        justifyContent: "center",
-                        backgroundColor: action.destructive
-                          ? isDark
-                            ? "rgba(239,68,68,0.15)"
-                            : "rgba(239,68,68,0.08)"
-                          : isDark
-                            ? "rgba(255,255,255,0.06)"
-                            : "rgba(0,0,0,0.04)",
-                      }}
-                    >
-                      {action.icon}
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                      <View
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: 10,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          backgroundColor: isDark ? "rgba(239,68,68,0.2)" : "rgba(239,68,68,0.12)",
+                        }}
+                      >
+                        <Trash2 size={18} color="#ef4444" />
+                      </View>
+                      <Text
+                        style={{ fontSize: 15, fontWeight: "700", color: "#ef4444" }}
+                      >
+                        Delete workout?
+                      </Text>
                     </View>
                     <Text
                       style={{
-                        fontSize: 15,
-                        fontWeight: "500",
-                        color: action.destructive
-                          ? "#ef4444"
-                          : isDark
-                            ? "#f3f4f6"
-                            : "#111827",
+                        fontSize: 13,
+                        lineHeight: 18,
+                        color: isDark ? "#9ca3af" : "#6b7280",
                       }}
                     >
-                      {action.label}
+                      <Text style={{ fontWeight: "600", color: isDark ? "#d1d5db" : "#374151" }}>
+                        "{menuTarget?.name}"
+                      </Text>
+                      {" "}will be permanently deleted. This cannot be undone.
                     </Text>
-                    {actionLoading ? (
-                      <ActivityIndicator
-                        size="small"
-                        color={colors.muted}
-                        style={{ marginLeft: "auto" }}
-                      />
-                    ) : null}
-                  </Pressable>
-                ))}
+                  </View>
 
-              {/* Cancel */}
-              <Pressable
-                onPress={() => closeSheet()}
-                className="mx-5 mt-2 mb-1 rounded-2xl py-4 items-center"
-                style={{
-                  backgroundColor: isDark
-                    ? "rgba(255,255,255,0.06)"
-                    : "rgba(0,0,0,0.04)",
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 15,
-                    fontWeight: "600",
-                    color: isDark ? "#9ca3af" : "#6b7280",
-                  }}
-                >
-                  Cancel
-                </Text>
-              </Pressable>
+                  <View style={{ flexDirection: "row", gap: 10 }}>
+                    <Pressable
+                      onPress={() => setConfirmDelete(false)}
+                      style={{
+                        flex: 1,
+                        paddingVertical: 14,
+                        borderRadius: 14,
+                        alignItems: "center",
+                        backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)",
+                      }}
+                    >
+                      <Text style={{ fontSize: 15, fontWeight: "600", color: isDark ? "#9ca3af" : "#6b7280" }}>
+                        Cancel
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={actionLoading ? undefined : () => void handleDeleteExecute()}
+                      style={{
+                        flex: 1,
+                        paddingVertical: 14,
+                        borderRadius: 14,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        backgroundColor: "#ef4444",
+                        opacity: actionLoading ? 0.6 : 1,
+                      }}
+                    >
+                      {actionLoading ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Text style={{ fontSize: 15, fontWeight: "700", color: "#fff" }}>
+                          Delete
+                        </Text>
+                      )}
+                    </Pressable>
+                  </View>
+                </View>
+              ) : (
+                <>
+                  {/* ── Actions list ── */}
+                  {[
+                    {
+                      icon: <Edit3 size={18} color={colors.primary} />,
+                      label: "Edit workout",
+                      onPress: handleEdit,
+                      hidden: false,
+                    },
+                    {
+                      icon: <Copy size={18} color={colors.primary} />,
+                      label: "Duplicate",
+                      onPress: () => void handleDuplicate(),
+                      hidden: false,
+                    },
+                    {
+                      icon: menuTarget?.is_active ? (
+                        <X size={18} color={colors.muted} />
+                      ) : (
+                        <Check size={18} color="#059669" />
+                      ),
+                      label: menuTarget?.is_active ? "Deactivate" : "Set as active",
+                      onPress: () => void handleToggleActive(),
+                      hidden: !!menuTarget?.is_draft,
+                    },
+                    {
+                      icon: <Trash2 size={18} color="#ef4444" />,
+                      label: "Delete workout",
+                      onPress: handleDeleteConfirm,
+                      destructive: true,
+                      hidden: false,
+                    },
+                  ]
+                    .filter((a) => !a.hidden)
+                    .map((action, idx, arr) => (
+                      <Pressable
+                        key={action.label}
+                        onPress={actionLoading ? undefined : action.onPress}
+                        className={cn(
+                          "flex-row items-center gap-4 px-5 py-4",
+                          idx !== arr.length - 1
+                            ? isDark
+                              ? "border-b border-gray-800"
+                              : "border-b border-gray-100"
+                            : "",
+                        )}
+                      >
+                        <View
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: 10,
+                            alignItems: "center",
+                            justifyContent: "center",
+                            backgroundColor: action.destructive
+                              ? isDark
+                                ? "rgba(239,68,68,0.15)"
+                                : "rgba(239,68,68,0.08)"
+                              : isDark
+                                ? "rgba(255,255,255,0.06)"
+                                : "rgba(0,0,0,0.04)",
+                          }}
+                        >
+                          {action.icon}
+                        </View>
+                        <Text
+                          style={{
+                            fontSize: 15,
+                            fontWeight: "500",
+                            color: action.destructive
+                              ? "#ef4444"
+                              : isDark
+                                ? "#f3f4f6"
+                                : "#111827",
+                          }}
+                        >
+                          {action.label}
+                        </Text>
+                        {actionLoading ? (
+                          <ActivityIndicator
+                            size="small"
+                            color={colors.muted}
+                            style={{ marginLeft: "auto" }}
+                          />
+                        ) : null}
+                      </Pressable>
+                    ))}
+
+                  {/* Cancel */}
+                  <Pressable
+                    onPress={() => closeSheet()}
+                    className="mx-5 mt-2 mb-1 rounded-2xl py-4 items-center"
+                    style={{
+                      backgroundColor: isDark
+                        ? "rgba(255,255,255,0.06)"
+                        : "rgba(0,0,0,0.04)",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 15,
+                        fontWeight: "600",
+                        color: isDark ? "#9ca3af" : "#6b7280",
+                      }}
+                    >
+                      Cancel
+                    </Text>
+                  </Pressable>
+                </>
+              )}
             </Animated.View>
           </View>
         </RNModal>

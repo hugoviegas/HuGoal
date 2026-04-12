@@ -92,6 +92,7 @@ export interface WorkoutTemplateRecord {
   is_active?: boolean;
   is_public?: boolean;
   is_draft?: boolean;
+  location?: string;
   like_count?: number;
   saved_by_count?: number;
   schedule_day_of_week?: number;
@@ -114,6 +115,7 @@ export interface WorkoutTemplateInput {
   is_active?: boolean;
   is_public?: boolean;
   is_draft?: boolean;
+  location?: string;
   schedule_day_of_week?: number;
   estimated_duration_minutes: number;
   tags?: string[];
@@ -329,6 +331,7 @@ export async function duplicateWorkoutTemplate(
     is_active: false,
     is_public: false,
     is_draft: false,
+    location: source.location,
     estimated_duration_minutes: source.estimated_duration_minutes,
     tags: source.tags,
   });

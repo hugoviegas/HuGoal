@@ -14,11 +14,10 @@ import * as ImagePicker from "expo-image-picker";
 import {
   ArrowDown,
   ArrowUp,
-  CirclePlus,
-  Copy,
   Dumbbell,
   ChevronDown,
   ChevronUp,
+  EllipsisVertical,
   GripVertical,
   Search,
   Sparkles,
@@ -101,6 +100,9 @@ interface WorkoutDraft {
   cooldownEnabled: boolean;
   cooldownItems: BuilderItem[];
   tags: string[];
+  isActive: boolean;
+  isPublic: boolean;
+  location: string;
   cover_image_asset?: {
     uri: string;
     width: number;
@@ -113,6 +115,8 @@ const DIFFICULTIES = [
   { label: "Intermediate", value: "intermediate" },
   { label: "Advanced", value: "advanced" },
 ];
+
+const LOCATIONS = ["Home", "Gym", "Outdoor", "Hotel", "Other"] as const;
 
 const STEP_LABELS = ["Workflow", "Details", "Exercises", "Preview"];
 
@@ -173,6 +177,15 @@ export default function CreateWorkoutScreen() {
   const [pickerTarget, setPickerTarget] = useState<BuilderTarget | null>(null);
   const [exerciseSearch, setExerciseSearch] = useState("");
   const [showSaveDraftConfirm, setShowSaveDraftConfirm] = useState(false);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [sectionExpanded, setSectionExpanded] = useState({
+    warmup: true,
+    workouts: true,
+    cooldown: false,
+  });
+  const [collapsedRounds, setCollapsedRounds] = useState<
+    Record<string, boolean>
+  >({});
   const [selectedExerciseFilters, setSelectedExerciseFilters] = useState<
     ExerciseFilterKey[]
   >([]);
@@ -198,6 +211,9 @@ export default function CreateWorkoutScreen() {
     cooldownEnabled: false,
     cooldownItems: [],
     tags: [],
+    isActive: false,
+    isPublic: false,
+    location: "",
   });
 
   const totalSelectedExercises = useMemo(() => {
@@ -633,6 +649,10 @@ export default function CreateWorkoutScreen() {
     }));
   };
 
+  const toggleRoundCollapsed = (roundId: string) => {
+    setCollapsedRounds((prev) => ({ ...prev, [roundId]: !prev[roundId] }));
+  };
+
   const handleRemoveRound = (roundId: string) => {
     setDraft((prev) => {
       if (prev.rounds.length <= 1) {
@@ -914,6 +934,9 @@ export default function CreateWorkoutScreen() {
         cover_image_url: coverImageUrl,
         difficulty: draft.difficulty,
         is_ai_generated: draft.workflowType === "ai",
+        is_active: draft.isActive,
+        is_public: draft.isPublic,
+        location: draft.location || undefined,
         source_prompt:
           workflowType === "ai" ? aiPrompt.trim() || undefined : undefined,
         exercises: flatExercises,
@@ -966,59 +989,62 @@ export default function CreateWorkoutScreen() {
   ) => (
     <View
       key={item.id}
-      className={cn(
-        "rounded-2xl border p-4 mb-3",
-        isDark
-          ? "bg-dark-bg border-dark-border"
-          : "bg-light-bg border-light-border",
-      )}
+      className="pb-3 mb-3 border-b border-light-border dark:border-dark-border"
     >
-      <View className="flex-row items-start justify-between mb-3">
-        <View className="flex-1 pr-2">
-          <Text className="text-xs font-semibold uppercase tracking-wide text-cyan-600 dark:text-cyan-400 mb-1">
-            {item.type === "exercise"
-              ? `Exercise ${itemIndex + 1}`
-              : `Rest ${itemIndex + 1}`}
-          </Text>
-          <Text className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-5">
-            {item.type === "exercise"
-              ? item.name
-              : `Rest ${item.durationSeconds}s`}
-          </Text>
+      <View className="flex-row items-start justify-between gap-2">
+        <View className="flex-row items-center gap-3 flex-1 pr-1">
           {item.type === "exercise" ? (
-            <Text className="text-xs text-gray-600 dark:text-gray-400 mt-1 capitalize">
-              {item.muscleGroups.slice(0, 2).join(", ")} • {item.equipment}
-            </Text>
+            <Image
+              source={{ uri: item.imageUrl || GENERIC_EXERCISE_IMAGE }}
+              style={{ width: 42, height: 42, borderRadius: 10 }}
+              resizeMode="cover"
+            />
           ) : (
-            <Text className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-              Recovery block between exercises
-            </Text>
+            <View className="h-[42px] w-[42px] rounded-full items-center justify-center bg-amber-100 dark:bg-amber-900/30">
+              <Text className="text-xs font-semibold text-amber-700 dark:text-amber-300">
+                Rest
+              </Text>
+            </View>
           )}
+
+          <View className="flex-1">
+            <Text className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              {item.type === "exercise"
+                ? item.name
+                : `Rest ${item.durationSeconds}s`}
+            </Text>
+            <Text className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              {item.type === "exercise"
+                ? `${item.reps}${item.hasWeight ? ` • ${item.weightKg ?? 0}kg` : ""}`
+                : "Recovery block"}
+            </Text>
+          </View>
         </View>
-        <View className="flex-row gap-1 mt-1">
+
+        <View className="flex-row items-center gap-0.5">
           <Pressable
-            onPress={() => handleDuplicateItem(target, item.id)}
-            className="h-8 w-8 items-center justify-center rounded-md bg-light-surface dark:bg-dark-surface"
+            onLongPress={() => handleMoveItem(target, itemIndex, -1)}
+            className="h-8 w-8 items-center justify-center"
           >
-            <Copy size={13} color={colors.foreground} />
+            <GripVertical size={14} color={colors.muted} />
           </Pressable>
           <Pressable
             onPress={() => handleMoveItem(target, itemIndex, -1)}
             disabled={itemIndex === 0}
-            className="h-8 w-8 items-center justify-center rounded-md bg-light-surface dark:bg-dark-surface"
+            className="h-8 w-8 items-center justify-center"
           >
             <ArrowUp
-              size={13}
+              size={14}
               color={itemIndex === 0 ? colors.cardBorder : colors.foreground}
             />
           </Pressable>
           <Pressable
             onPress={() => handleMoveItem(target, itemIndex, 1)}
             disabled={itemIndex === totalItems - 1}
-            className="h-8 w-8 items-center justify-center rounded-md bg-light-surface dark:bg-dark-surface"
+            className="h-8 w-8 items-center justify-center"
           >
             <ArrowDown
-              size={13}
+              size={14}
               color={
                 itemIndex === totalItems - 1
                   ? colors.cardBorder
@@ -1027,73 +1053,82 @@ export default function CreateWorkoutScreen() {
             />
           </Pressable>
           <Pressable
-            onPress={() => handleRemoveItem(target, item.id)}
-            className="h-8 w-8 items-center justify-center rounded-md bg-red-100 dark:bg-red-900/20"
+            onPress={() =>
+              setEditingItemId((prev) => (prev === item.id ? null : item.id))
+            }
+            className="h-8 w-8 items-center justify-center"
           >
-            <X size={13} color="#ef4444" />
+            <EllipsisVertical size={14} color={colors.foreground} />
           </Pressable>
-          <View className="h-8 w-8 items-center justify-center rounded-md bg-light-surface dark:bg-dark-surface">
-            <GripVertical size={13} color={colors.muted} />
-          </View>
         </View>
       </View>
 
-      {item.type === "exercise" ? (
-        <View className="flex-row gap-2 mb-2">
-          <Input
-            label="Reps"
-            value={item.reps}
-            onChangeText={(text) =>
-              updateBuilderItem(target, item.id, { reps: text })
-            }
-            containerClassName="flex-1"
-          />
-          {item.hasWeight ? (
+      {editingItemId === item.id ? (
+        <View className="mt-3 gap-2">
+          {item.type === "exercise" ? (
+            <View className="flex-row gap-2">
+              <Input
+                label="Reps"
+                value={item.reps}
+                onChangeText={(text) =>
+                  updateBuilderItem(target, item.id, { reps: text })
+                }
+                containerClassName="flex-1"
+              />
+              {item.hasWeight ? (
+                <Input
+                  label="Weight (kg)"
+                  keyboardType="decimal-pad"
+                  value={String(item.weightKg ?? 0)}
+                  onChangeText={(text) =>
+                    updateBuilderItem(target, item.id, {
+                      weightKg: Number(text || "0") || 0,
+                    })
+                  }
+                  containerClassName="flex-1"
+                />
+              ) : null}
+            </View>
+          ) : (
             <Input
-              label="Weight (kg)"
-              keyboardType="decimal-pad"
-              value={String(item.weightKg ?? 0)}
+              label="Rest Duration (seconds)"
+              keyboardType="number-pad"
+              value={String(item.durationSeconds)}
               onChangeText={(text) =>
                 updateBuilderItem(target, item.id, {
-                  weightKg: Number(text || "0") || 0,
+                  durationSeconds: Number(text || "0") || 0,
                 })
               }
-              containerClassName="flex-1"
+              containerClassName="mb-0"
             />
-          ) : (
-            <View className="flex-1">
-              <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                Weight
-              </Text>
-              <View className="rounded-xl border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface px-4 py-3">
-                <Text className="text-sm text-gray-500 dark:text-gray-400">
-                  Not applicable
-                </Text>
-              </View>
-            </View>
           )}
-        </View>
-      ) : (
-        <Input
-          label="Rest Duration (seconds)"
-          keyboardType="number-pad"
-          value={String(item.durationSeconds)}
-          onChangeText={(text) =>
-            updateBuilderItem(target, item.id, {
-              durationSeconds: Number(text || "0") || 0,
-            })
-          }
-          containerClassName="mb-2"
-        />
-      )}
 
-      <Input
-        label="Notes (optional)"
-        value={item.notes ?? ""}
-        onChangeText={(text) =>
-          updateBuilderItem(target, item.id, { notes: text })
-        }
-      />
+          <Input
+            label="Notes"
+            value={item.notes ?? ""}
+            onChangeText={(text) =>
+              updateBuilderItem(target, item.id, { notes: text })
+            }
+          />
+
+          <View className="flex-row gap-2">
+            <Button
+              variant="secondary"
+              className="flex-1"
+              onPress={() => handleDuplicateItem(target, item.id)}
+            >
+              Duplicate
+            </Button>
+            <Button
+              variant="secondary"
+              className="flex-1"
+              onPress={() => handleRemoveItem(target, item.id)}
+            >
+              Delete
+            </Button>
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 
@@ -1196,17 +1231,15 @@ export default function CreateWorkoutScreen() {
         >
           <View
             className={cn(
-              "rounded-3xl border p-4 mb-4",
-              isDark
-                ? "bg-dark-surface border-dark-border"
-                : "bg-light-surface border-light-border",
+              "px-1 mb-4",
+              isDark ? "border-dark-border" : "border-light-border",
             )}
           >
             <Text className="text-[11px] font-bold uppercase tracking-[0.3em] text-cyan-700 dark:text-cyan-300 mb-3">
               Workout Details
             </Text>
 
-            <View className="mb-4">
+            <View className="mb-5 pb-4 border-b border-light-border dark:border-dark-border">
               {draft.cover_image_asset ? (
                 <View className="gap-3">
                   <View className="rounded-3xl overflow-hidden border border-light-border dark:border-dark-border bg-light-bg dark:bg-dark-bg">
@@ -1258,11 +1291,11 @@ export default function CreateWorkoutScreen() {
               onChangeText={(text) =>
                 setDraft((prev) => ({ ...prev, name: text }))
               }
-              containerClassName="mb-4"
+              containerClassName="mb-5"
               className="rounded-2xl px-5 py-4 text-base font-semibold min-h-[60px]"
             />
 
-            <View className="mb-4">
+            <View className="mb-5 pb-4 border-b border-light-border dark:border-dark-border">
               <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Goal Difficulty
               </Text>
@@ -1275,7 +1308,7 @@ export default function CreateWorkoutScreen() {
                         d.value as WorkoutDraft["difficulty"],
                       )
                     }
-                    className="flex-1 items-center py-3 rounded-2xl"
+                    className="flex-1 items-center py-3 rounded-full"
                     textClassName="text-center text-sm font-semibold"
                     variant={
                       selectedDifficulty === d.value ? "primary" : "default"
@@ -1286,15 +1319,91 @@ export default function CreateWorkoutScreen() {
                 ))}
               </View>
             </View>
+
+            <View className="mb-5 pb-4 border-b border-light-border dark:border-dark-border">
+              <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Location
+              </Text>
+              <View className="flex-row flex-wrap gap-2">
+                {LOCATIONS.map((loc) => (
+                  <Badge
+                    key={loc}
+                    onPress={() =>
+                      setDraft((prev) => ({
+                        ...prev,
+                        location: prev.location === loc ? "" : loc,
+                      }))
+                    }
+                    variant={draft.location === loc ? "primary" : "default"}
+                  >
+                    {loc}
+                  </Badge>
+                ))}
+              </View>
+            </View>
+
+            <View className="mb-5 pb-4 border-b border-light-border dark:border-dark-border">
+              <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Status
+              </Text>
+              <View className="flex-row gap-2">
+                <Badge
+                  onPress={() =>
+                    setDraft((prev) => ({ ...prev, isActive: false }))
+                  }
+                  className="flex-1 items-center"
+                  textClassName="text-center"
+                  variant={!draft.isActive ? "primary" : "default"}
+                >
+                  Inactive
+                </Badge>
+                <Badge
+                  onPress={() =>
+                    setDraft((prev) => ({ ...prev, isActive: true }))
+                  }
+                  className="flex-1 items-center"
+                  textClassName="text-center"
+                  variant={draft.isActive ? "primary" : "default"}
+                >
+                  Active
+                </Badge>
+              </View>
+            </View>
+
+            <View>
+              <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Visibility
+              </Text>
+              <View className="flex-row gap-2">
+                <Badge
+                  onPress={() =>
+                    setDraft((prev) => ({ ...prev, isPublic: false }))
+                  }
+                  className="flex-1 items-center"
+                  textClassName="text-center"
+                  variant={!draft.isPublic ? "primary" : "default"}
+                >
+                  Private
+                </Badge>
+                <Badge
+                  onPress={() =>
+                    setDraft((prev) => ({ ...prev, isPublic: true }))
+                  }
+                  className="flex-1 items-center"
+                  textClassName="text-center"
+                  variant={draft.isPublic ? "primary" : "default"}
+                >
+                  Public
+                </Badge>
+              </View>
+            </View>
           </View>
 
           {workflowType === "ai" ? (
             <View
               className={cn(
-                "rounded-3xl border p-4 mb-4",
-                isDark
-                  ? "bg-dark-surface border-dark-border"
-                  : "bg-light-surface border-light-border",
+                "mb-4",
+                isDark ? "border-dark-border" : "border-light-border",
               )}
             >
               <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
@@ -1318,10 +1427,8 @@ export default function CreateWorkoutScreen() {
           ) : (
             <View
               className={cn(
-                "rounded-3xl border p-4 mb-4",
-                isDark
-                  ? "bg-dark-surface border-dark-border"
-                  : "bg-light-surface border-light-border",
+                "mb-4",
+                isDark ? "border-dark-border" : "border-light-border",
               )}
             >
               <Input
@@ -1726,58 +1833,62 @@ export default function CreateWorkoutScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: scrollPaddingBottom }}
         >
-          <View
-            className={cn(
-              "rounded-2xl p-4 mb-4 border",
-              isDark
-                ? "bg-dark-surface border-dark-border"
-                : "bg-light-surface border-light-border",
-            )}
-          >
-            <Text className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
+          <View className="mb-5 pb-4 border-b border-light-border dark:border-dark-border">
+            <Text className="text-[11px] font-bold uppercase tracking-[0.3em] text-cyan-700 dark:text-cyan-300 mb-3">
               Builder Overview
             </Text>
-            <View className="flex-row items-center justify-between">
-              <View>
-                <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            <View className="flex-row items-center">
+              <View className="flex-1">
+                <Text className="text-xl font-bold text-gray-900 dark:text-gray-100">
                   {draft.rounds.length}
                 </Text>
                 <Text className="text-xs text-gray-600 dark:text-gray-400">
                   Rounds
                 </Text>
               </View>
-              <View>
-                <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100 text-right">
+              <View className="h-8 w-px bg-light-border dark:bg-dark-border" />
+              <View className="flex-1 items-center">
+                <Text className="text-xl font-bold text-gray-900 dark:text-gray-100">
                   {totalSelectedExercises}
                 </Text>
-                <Text className="text-xs text-gray-600 dark:text-gray-400 text-right">
+                <Text className="text-xs text-gray-600 dark:text-gray-400">
                   Exercises
                 </Text>
               </View>
-              <View>
-                <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100 text-right">
+              <View className="h-8 w-px bg-light-border dark:bg-dark-border" />
+              <View className="flex-1 items-end">
+                <Text className="text-xl font-bold text-gray-900 dark:text-gray-100">
                   {Math.max(1, Math.ceil(estimatedDuration / 60))}m
                 </Text>
-                <Text className="text-xs text-gray-600 dark:text-gray-400 text-right">
+                <Text className="text-xs text-gray-600 dark:text-gray-400">
                   Est. Time
                 </Text>
               </View>
             </View>
           </View>
 
-          <View
-            className={cn(
-              "rounded-3xl border p-5 mb-5",
-              isDark
-                ? "bg-dark-surface border-dark-border"
-                : "bg-light-surface border-light-border",
-            )}
-          >
+          <View className="mb-5 pb-4 border-b border-light-border dark:border-dark-border">
             <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                Warmup
-              </Text>
               <Pressable
+                onPress={() =>
+                  setSectionExpanded((prev) => ({
+                    ...prev,
+                    warmup: !prev.warmup,
+                  }))
+                }
+                className="flex-row items-center gap-2"
+              >
+                <Text className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                  Warmup
+                </Text>
+                {sectionExpanded.warmup ? (
+                  <ChevronUp size={16} color={colors.muted} />
+                ) : (
+                  <ChevronDown size={16} color={colors.muted} />
+                )}
+              </Pressable>
+              <Badge
+                variant={draft.warmupEnabled ? "primary" : "default"}
                 onPress={() =>
                   setDraft((prev) => ({
                     ...prev,
@@ -1785,30 +1896,21 @@ export default function CreateWorkoutScreen() {
                     warmupItems: !prev.warmupEnabled ? prev.warmupItems : [],
                   }))
                 }
-                className={cn(
-                  "px-3 py-1.5 rounded-full",
-                  draft.warmupEnabled
-                    ? "bg-cyan-100 dark:bg-cyan-900/40"
-                    : "bg-light-bg dark:bg-dark-bg",
-                )}
               >
-                <Text className="text-xs font-semibold text-cyan-700 dark:text-cyan-300">
-                  {draft.warmupEnabled ? "Enabled" : "Disabled"}
-                </Text>
-              </Pressable>
+                {draft.warmupEnabled ? "Enabled" : "Disabled"}
+              </Badge>
             </View>
 
-            {draft.warmupEnabled ? (
+            {sectionExpanded.warmup ? (
               <>
-                {draft.warmupItems.length === 0 ? (
-                  <View className="rounded-2xl border border-dashed border-light-border dark:border-dark-border py-6 px-4 mb-3 items-center">
-                    <Text className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
-                      Warmup is empty
-                    </Text>
-                    <Text className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                      Add exercises or rest blocks.
-                    </Text>
-                  </View>
+                {!draft.warmupEnabled ? (
+                  <Text className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                    Warmup is disabled.
+                  </Text>
+                ) : draft.warmupItems.length === 0 ? (
+                  <Text className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                    No warmup items yet.
+                  </Text>
                 ) : (
                   draft.warmupItems.map((item, itemIndex) =>
                     renderBuilderItem(
@@ -1819,184 +1921,216 @@ export default function CreateWorkoutScreen() {
                     ),
                   )
                 )}
-
                 <View className="flex-row gap-2">
-                  <Pressable
+                  <Button
+                    variant="secondary"
+                    className="flex-1"
+                    disabled={!draft.warmupEnabled}
                     onPress={() => openPickerForTarget({ section: "warmup" })}
-                    className="flex-1 flex-row items-center justify-center gap-2 p-3 rounded-2xl border-2 border-dashed border-cyan-400/60"
                   >
-                    <CirclePlus size={17} color={colors.primary} />
-                    <Text className="font-semibold text-cyan-600 dark:text-cyan-400">
-                      Add Exercise
-                    </Text>
-                  </Pressable>
-                  <Pressable
+                    Add Exercise
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className="flex-1"
+                    disabled={!draft.warmupEnabled}
                     onPress={() => handleAddRest({ section: "warmup" })}
-                    className="flex-row items-center justify-center gap-2 px-4 p-3 rounded-2xl border-2 border-dashed border-amber-400/60"
                   >
-                    <CirclePlus size={17} color="#f59e0b" />
-                    <Text className="font-semibold text-amber-600 dark:text-amber-400">
-                      Add Rest
-                    </Text>
-                  </Pressable>
+                    Add Rest
+                  </Button>
                 </View>
               </>
-            ) : (
-              <Text className="text-xs text-gray-500 dark:text-gray-400">
-                Optional section
-              </Text>
-            )}
+            ) : null}
           </View>
 
-          {draft.rounds.map((round, roundIndex) => (
-            <View
-              key={round.id}
-              className={cn(
-                "rounded-3xl border p-5 mb-5",
-                isDark
-                  ? "bg-dark-surface border-dark-border"
-                  : "bg-light-surface border-light-border",
-              )}
+          <View className="mb-5 pb-4 border-b border-light-border dark:border-dark-border">
+            <Pressable
+              onPress={() =>
+                setSectionExpanded((prev) => ({
+                  ...prev,
+                  workouts: !prev.workouts,
+                }))
+              }
+              className="flex-row items-center justify-between mb-3"
             >
-              <View className="flex-row items-start justify-between mb-3">
-                <View className="flex-1 pr-2">
-                  <Text className="text-xs font-semibold uppercase tracking-wide text-cyan-600 dark:text-cyan-400 mb-1">
-                    Round {roundIndex + 1}
-                  </Text>
-                  <Input
-                    value={round.name}
-                    onChangeText={(text) =>
-                      updateRound(round.id, { name: text })
-                    }
-                    placeholder={`Round ${roundIndex + 1}`}
-                    containerClassName="flex-1"
-                  />
-                </View>
-                <View className="flex-row mt-6 gap-1">
-                  <Pressable
-                    className="h-9 w-9 items-center justify-center rounded-xl bg-light-bg dark:bg-dark-bg"
-                    onPress={() => handleMoveRound(roundIndex, -1)}
-                    disabled={roundIndex === 0}
-                  >
-                    <ArrowUp
-                      size={14}
-                      color={
-                        roundIndex === 0 ? colors.cardBorder : colors.foreground
-                      }
-                    />
-                  </Pressable>
-                  <Pressable
-                    className="h-9 w-9 items-center justify-center rounded-xl bg-light-bg dark:bg-dark-bg"
-                    onPress={() => handleMoveRound(roundIndex, 1)}
-                    disabled={roundIndex === draft.rounds.length - 1}
-                  >
-                    <ArrowDown
-                      size={14}
-                      color={
-                        roundIndex === draft.rounds.length - 1
-                          ? colors.cardBorder
-                          : colors.foreground
-                      }
-                    />
-                  </Pressable>
-                  <Pressable
-                    className="h-9 w-9 items-center justify-center rounded-xl bg-red-100 dark:bg-red-900/20"
-                    onPress={() => handleRemoveRound(round.id)}
-                    disabled={draft.rounds.length <= 1}
-                  >
-                    <X
-                      size={14}
-                      color={
-                        draft.rounds.length <= 1 ? colors.cardBorder : "#ef4444"
-                      }
-                    />
-                  </Pressable>
-                </View>
-              </View>
-
-              <View className="flex-row items-center justify-between mb-3 rounded-2xl px-3 py-2 bg-light-bg dark:bg-dark-bg">
-                <Text className="text-xs font-semibold text-gray-600 dark:text-gray-400">
-                  {
-                    (round.items ?? []).filter(
-                      (item) => item.type === "exercise",
-                    ).length
-                  }{" "}
-                  exercise
-                  {(round.items ?? []).filter(
-                    (item) => item.type === "exercise",
-                  ).length === 1
-                    ? ""
-                    : "s"}
-                </Text>
-                <Text className="text-xs font-semibold text-gray-600 dark:text-gray-400">
-                  {
-                    (round.items ?? []).filter((item) => item.type === "rest")
-                      .length
-                  }{" "}
-                  rests
-                </Text>
-              </View>
-
-              {(round.items ?? []).length === 0 ? (
-                <View className="rounded-2xl border border-dashed border-light-border dark:border-dark-border py-6 px-4 mb-3 items-center">
-                  <Text className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
-                    This round is empty
-                  </Text>
-                  <Text className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                    Add at least one exercise before saving your workout.
-                  </Text>
-                </View>
-              ) : (
-                (round.items ?? []).map((item, itemIndex) =>
-                  renderBuilderItem(
-                    { section: "round", roundId: round.id },
-                    item,
-                    itemIndex,
-                    (round.items ?? []).length,
-                  ),
-                )
-              )}
-
-              <View className="flex-row gap-2">
-                <Pressable
-                  onPress={() =>
-                    openPickerForTarget({ section: "round", roundId: round.id })
-                  }
-                  className="flex-1 flex-row items-center justify-center gap-2 p-3 rounded-2xl border-2 border-dashed border-cyan-400/60"
-                >
-                  <CirclePlus size={17} color={colors.primary} />
-                  <Text className="font-semibold text-cyan-600 dark:text-cyan-400">
-                    Add Exercise
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() =>
-                    handleAddRest({ section: "round", roundId: round.id })
-                  }
-                  className="flex-row items-center justify-center gap-2 px-4 p-3 rounded-2xl border-2 border-dashed border-amber-400/60"
-                >
-                  <CirclePlus size={17} color="#f59e0b" />
-                  <Text className="font-semibold text-amber-600 dark:text-amber-400">
-                    Add Rest
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
-          ))}
-
-          <View
-            className={cn(
-              "rounded-3xl border p-5 mb-5",
-              isDark
-                ? "bg-dark-surface border-dark-border"
-                : "bg-light-surface border-light-border",
-            )}
-          >
-            <View className="flex-row items-center justify-between mb-3">
               <Text className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                Cooldown
+                Workouts
               </Text>
+              {sectionExpanded.workouts ? (
+                <ChevronUp size={16} color={colors.muted} />
+              ) : (
+                <ChevronDown size={16} color={colors.muted} />
+              )}
+            </Pressable>
+
+            {sectionExpanded.workouts ? (
+              <>
+                {draft.rounds.map((round, roundIndex) => {
+                  const roundItems = round.items ?? [];
+                  const isCollapsed = collapsedRounds[round.id] ?? false;
+                  return (
+                    <View
+                      key={round.id}
+                      className="mb-4 pb-3 border-b border-light-border dark:border-dark-border"
+                    >
+                      <View className="flex-row items-center justify-between gap-2 mb-2">
+                        <View className="flex-1 flex-row items-center gap-2">
+                          <GripVertical size={15} color={colors.muted} />
+                          <Text className="text-xs uppercase tracking-[0.2em] text-cyan-700 dark:text-cyan-300">
+                            Round {roundIndex + 1}
+                          </Text>
+                        </View>
+                        <View className="flex-row items-center gap-1">
+                          <Pressable
+                            onPress={() => handleMoveRound(roundIndex, -1)}
+                            disabled={roundIndex === 0}
+                            className="h-8 w-8 items-center justify-center"
+                          >
+                            <ArrowUp
+                              size={14}
+                              color={
+                                roundIndex === 0
+                                  ? colors.cardBorder
+                                  : colors.foreground
+                              }
+                            />
+                          </Pressable>
+                          <Pressable
+                            onPress={() => handleMoveRound(roundIndex, 1)}
+                            disabled={roundIndex === draft.rounds.length - 1}
+                            className="h-8 w-8 items-center justify-center"
+                          >
+                            <ArrowDown
+                              size={14}
+                              color={
+                                roundIndex === draft.rounds.length - 1
+                                  ? colors.cardBorder
+                                  : colors.foreground
+                              }
+                            />
+                          </Pressable>
+                          <Pressable
+                            onPress={() => toggleRoundCollapsed(round.id)}
+                            className="h-8 w-8 items-center justify-center"
+                          >
+                            {isCollapsed ? (
+                              <ChevronDown
+                                size={14}
+                                color={colors.foreground}
+                              />
+                            ) : (
+                              <ChevronUp size={14} color={colors.foreground} />
+                            )}
+                          </Pressable>
+                          <Pressable
+                            onPress={() => handleRemoveRound(round.id)}
+                            disabled={draft.rounds.length <= 1}
+                            className="h-8 w-8 items-center justify-center"
+                          >
+                            <X
+                              size={14}
+                              color={
+                                draft.rounds.length <= 1
+                                  ? colors.cardBorder
+                                  : "#ef4444"
+                              }
+                            />
+                          </Pressable>
+                        </View>
+                      </View>
+
+                      <Input
+                        value={round.name}
+                        onChangeText={(text) =>
+                          updateRound(round.id, { name: text })
+                        }
+                        placeholder={`Round ${roundIndex + 1}`}
+                        containerClassName="mb-2"
+                      />
+
+                      {!isCollapsed ? (
+                        <>
+                          {roundItems.length === 0 ? (
+                            <Text className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                              No items in this round.
+                            </Text>
+                          ) : (
+                            roundItems.map((item, itemIndex) => (
+                              <View
+                                key={item.id}
+                                className="pl-4 ml-2 border-l-2 border-cyan-200 dark:border-cyan-900/40"
+                              >
+                                {renderBuilderItem(
+                                  { section: "round", roundId: round.id },
+                                  item,
+                                  itemIndex,
+                                  roundItems.length,
+                                )}
+                              </View>
+                            ))
+                          )}
+
+                          <View className="flex-row gap-2">
+                            <Button
+                              variant="secondary"
+                              className="flex-1"
+                              onPress={() =>
+                                openPickerForTarget({
+                                  section: "round",
+                                  roundId: round.id,
+                                })
+                              }
+                            >
+                              Add Exercise
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              className="flex-1"
+                              onPress={() =>
+                                handleAddRest({
+                                  section: "round",
+                                  roundId: round.id,
+                                })
+                              }
+                            >
+                              Add Rest
+                            </Button>
+                          </View>
+                        </>
+                      ) : null}
+                    </View>
+                  );
+                })}
+
+                <Button variant="secondary" onPress={handleAddRound}>
+                  Add Another Round
+                </Button>
+              </>
+            ) : null}
+          </View>
+
+          <View className="mb-5 pb-4 border-b border-light-border dark:border-dark-border">
+            <View className="flex-row items-center justify-between mb-3">
               <Pressable
+                onPress={() =>
+                  setSectionExpanded((prev) => ({
+                    ...prev,
+                    cooldown: !prev.cooldown,
+                  }))
+                }
+                className="flex-row items-center gap-2"
+              >
+                <Text className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                  Cooldown
+                </Text>
+                {sectionExpanded.cooldown ? (
+                  <ChevronUp size={16} color={colors.muted} />
+                ) : (
+                  <ChevronDown size={16} color={colors.muted} />
+                )}
+              </Pressable>
+              <Badge
+                variant={draft.cooldownEnabled ? "primary" : "default"}
                 onPress={() =>
                   setDraft((prev) => ({
                     ...prev,
@@ -2006,30 +2140,21 @@ export default function CreateWorkoutScreen() {
                       : [],
                   }))
                 }
-                className={cn(
-                  "px-3 py-1.5 rounded-full",
-                  draft.cooldownEnabled
-                    ? "bg-cyan-100 dark:bg-cyan-900/40"
-                    : "bg-light-bg dark:bg-dark-bg",
-                )}
               >
-                <Text className="text-xs font-semibold text-cyan-700 dark:text-cyan-300">
-                  {draft.cooldownEnabled ? "Enabled" : "Disabled"}
-                </Text>
-              </Pressable>
+                {draft.cooldownEnabled ? "Enabled" : "Disabled"}
+              </Badge>
             </View>
 
-            {draft.cooldownEnabled ? (
+            {sectionExpanded.cooldown ? (
               <>
-                {draft.cooldownItems.length === 0 ? (
-                  <View className="rounded-2xl border border-dashed border-light-border dark:border-dark-border py-6 px-4 mb-3 items-center">
-                    <Text className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
-                      Cooldown is empty
-                    </Text>
-                    <Text className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                      Add exercises or rest blocks.
-                    </Text>
-                  </View>
+                {!draft.cooldownEnabled ? (
+                  <Text className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                    Cooldown is disabled.
+                  </Text>
+                ) : draft.cooldownItems.length === 0 ? (
+                  <Text className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                    No cooldown items yet.
+                  </Text>
                 ) : (
                   draft.cooldownItems.map((item, itemIndex) =>
                     renderBuilderItem(
@@ -2040,47 +2165,27 @@ export default function CreateWorkoutScreen() {
                     ),
                   )
                 )}
-
                 <View className="flex-row gap-2">
-                  <Pressable
+                  <Button
+                    variant="secondary"
+                    className="flex-1"
+                    disabled={!draft.cooldownEnabled}
                     onPress={() => openPickerForTarget({ section: "cooldown" })}
-                    className="flex-1 flex-row items-center justify-center gap-2 p-3 rounded-2xl border-2 border-dashed border-cyan-400/60"
                   >
-                    <CirclePlus size={17} color={colors.primary} />
-                    <Text className="font-semibold text-cyan-600 dark:text-cyan-400">
-                      Add Exercise
-                    </Text>
-                  </Pressable>
-                  <Pressable
+                    Add Exercise
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className="flex-1"
+                    disabled={!draft.cooldownEnabled}
                     onPress={() => handleAddRest({ section: "cooldown" })}
-                    className="flex-row items-center justify-center gap-2 px-4 p-3 rounded-2xl border-2 border-dashed border-amber-400/60"
                   >
-                    <CirclePlus size={17} color="#f59e0b" />
-                    <Text className="font-semibold text-amber-600 dark:text-amber-400">
-                      Add Rest
-                    </Text>
-                  </Pressable>
+                    Add Rest
+                  </Button>
                 </View>
               </>
-            ) : (
-              <Text className="text-xs text-gray-500 dark:text-gray-400">
-                Optional section
-              </Text>
-            )}
+            ) : null}
           </View>
-
-          <Pressable
-            onPress={handleAddRound}
-            className={cn(
-              "flex-row items-center justify-center gap-2 p-4 rounded-2xl border-2 border-dashed mb-4",
-              "border-cyan-400/60",
-            )}
-          >
-            <CirclePlus size={18} color={colors.primary} />
-            <Text className="font-semibold text-cyan-600 dark:text-cyan-400">
-              Add Another Round
-            </Text>
-          </Pressable>
 
           <View
             className={cn(
@@ -2157,63 +2262,44 @@ export default function CreateWorkoutScreen() {
     <View className={cn("flex-1", isDark ? "bg-dark-bg" : "bg-light-bg")}>
       {renderHeader("Review Workout")}
       <ScrollView
-        className="flex-1 p-4"
+        className="flex-1"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: scrollPaddingBottom }}
       >
-        <View
-          className={cn(
-            "rounded-3xl border overflow-hidden mb-4",
-            isDark
-              ? "bg-dark-surface border-dark-border"
-              : "bg-light-surface border-light-border",
-          )}
-        >
-          <Image
-            source={{ uri: reviewCoverImageUri }}
-            className="w-full h-48"
-            resizeMode="cover"
-          />
-          <View className="p-4">
-            <Text className="text-xl font-bold text-gray-900 dark:text-gray-100">
-              {draft.name.trim() || "Untitled workout"}
-            </Text>
-            {draft.description?.trim() ? (
-              <Text className="text-sm text-gray-600 dark:text-gray-400 mt-2 leading-6">
-                {draft.description.trim()}
-              </Text>
-            ) : null}
+        <Image
+          source={{ uri: reviewCoverImageUri }}
+          className="w-full h-56"
+          resizeMode="cover"
+        />
 
-            <View className="flex-row flex-wrap gap-2 mt-3">
-              <Badge
-                variant={
-                  draft.difficulty === "beginner"
-                    ? "success"
-                    : draft.difficulty === "intermediate"
-                      ? "secondary"
-                      : "destructive"
-                }
-              >
-                {DIFFICULTIES.find((d) => d.value === draft.difficulty)?.label}
-              </Badge>
-              <Badge variant="secondary">
-                {`${totalSelectedExercises} exercises`}
-              </Badge>
-              <Badge variant="secondary">
-                {`${Math.max(1, Math.ceil(estimatedDuration / 60))} min`}
-              </Badge>
-            </View>
+        <View className="px-4 pt-4 pb-5 border-b border-light-border dark:border-dark-border">
+          <Text className="text-xl font-bold text-gray-900 dark:text-gray-100">
+            {draft.name.trim() || "Untitled workout"}
+          </Text>
+          {draft.description?.trim() ? (
+            <Text className="text-sm text-gray-600 dark:text-gray-400 mt-2 leading-6">
+              {draft.description.trim()}
+            </Text>
+          ) : null}
+
+          <View className="flex-row flex-wrap gap-2 mt-3">
+            <Badge
+              variant={
+                draft.difficulty === "beginner"
+                  ? "success"
+                  : draft.difficulty === "intermediate"
+                    ? "secondary"
+                    : "destructive"
+              }
+            >
+              {DIFFICULTIES.find((d) => d.value === draft.difficulty)?.label}
+            </Badge>
+            <Badge variant="secondary">{`${totalSelectedExercises} exercises`}</Badge>
+            <Badge variant="secondary">{`${Math.max(1, Math.ceil(estimatedDuration / 60))} min`}</Badge>
           </View>
         </View>
 
-        <View
-          className={cn(
-            "p-4 rounded-2xl border mb-4",
-            isDark
-              ? "bg-dark-surface border-dark-border"
-              : "bg-light-surface border-light-border",
-          )}
-        >
+        <View className="px-4 py-5 border-b border-light-border dark:border-dark-border">
           <Text className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">
             Exercises summary
           </Text>
@@ -2225,10 +2311,7 @@ export default function CreateWorkoutScreen() {
             reviewExerciseLines.map((exercise, index) => (
               <View
                 key={exercise.id}
-                className={cn(
-                  "rounded-xl px-3 py-2 mb-2 flex-row items-start justify-between",
-                  isDark ? "bg-dark-bg" : "bg-light-bg",
-                )}
+                className="py-2 border-b border-light-border dark:border-dark-border"
               >
                 <View className="flex-1 pr-3">
                   <Text className="text-sm font-semibold text-gray-900 dark:text-gray-100">
@@ -2244,14 +2327,7 @@ export default function CreateWorkoutScreen() {
           )}
         </View>
 
-        <View
-          className={cn(
-            "p-4 rounded-2xl border",
-            isDark
-              ? "bg-dark-surface border-dark-border"
-              : "bg-light-surface border-light-border",
-          )}
-        >
+        <View className="px-4 py-5">
           <Text className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">
             Muscles worked
           </Text>

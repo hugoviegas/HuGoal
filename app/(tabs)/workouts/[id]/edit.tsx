@@ -67,6 +67,9 @@ interface WorkoutDraft {
   description: string;
   coverImageUrl?: string;
   difficulty: "beginner" | "intermediate" | "advanced";
+  isActive: boolean;
+  isPublic: boolean;
+  location: string;
   rounds: WorkoutRound[];
   tags: string[];
 }
@@ -86,6 +89,8 @@ const DIFFICULTIES = [
   { label: "Intermediate", value: "intermediate" },
   { label: "Advanced", value: "advanced" },
 ];
+
+const LOCATIONS = ["Home", "Gym", "Outdoor", "Hotel", "Other"] as const;
 
 const STEP_LABELS = ["Details", "Exercises", "Preview"];
 
@@ -237,6 +242,9 @@ export default function EditWorkoutScreen() {
     description: "",
     coverImageUrl: undefined,
     difficulty: "intermediate",
+    isActive: false,
+    isPublic: false,
+    location: "",
     rounds: [createRound("Round 1")],
     tags: [],
   });
@@ -277,6 +285,9 @@ export default function EditWorkoutScreen() {
           description: workoutRecord.description ?? "",
           coverImageUrl: workoutRecord.cover_image_url,
           difficulty: workoutRecord.difficulty,
+          isActive: workoutRecord.is_active ?? false,
+          isPublic: workoutRecord.is_public ?? false,
+          location: workoutRecord.location ?? "",
           rounds: [hydratedRound],
           tags: workoutRecord.tags ?? [],
         });
@@ -580,6 +591,9 @@ export default function EditWorkoutScreen() {
         name: draft.name.trim(),
         description: draft.description.trim() || undefined,
         difficulty: draft.difficulty,
+        is_active: draft.isActive,
+        is_public: draft.isPublic,
+        location: draft.location || undefined,
         is_ai_generated: false,
         exercises: flatExercises,
         estimated_duration_minutes: Math.max(
@@ -674,6 +688,76 @@ export default function EditWorkoutScreen() {
                   {d.label}
                 </Badge>
               ))}
+            </View>
+          </View>
+
+          <View className="mb-4">
+            <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              Location
+            </Text>
+            <View className="flex-row flex-wrap gap-2">
+              {LOCATIONS.map((loc) => (
+                <Badge
+                  key={loc}
+                  onPress={() =>
+                    setDraft((prev) => ({
+                      ...prev,
+                      location: prev.location === loc ? "" : loc,
+                    }))
+                  }
+                  variant={draft.location === loc ? "primary" : "default"}
+                >
+                  {loc}
+                </Badge>
+              ))}
+            </View>
+          </View>
+
+          <View className="mb-4">
+            <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              Status
+            </Text>
+            <View className="flex-row gap-2">
+              <Badge
+                onPress={() => setDraft((prev) => ({ ...prev, isActive: false }))}
+                className="flex-1 items-center"
+                textClassName="text-center"
+                variant={!draft.isActive ? "primary" : "default"}
+              >
+                Inactive
+              </Badge>
+              <Badge
+                onPress={() => setDraft((prev) => ({ ...prev, isActive: true }))}
+                className="flex-1 items-center"
+                textClassName="text-center"
+                variant={draft.isActive ? "primary" : "default"}
+              >
+                Active
+              </Badge>
+            </View>
+          </View>
+
+          <View className="mb-4">
+            <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              Visibility
+            </Text>
+            <View className="flex-row gap-2">
+              <Badge
+                onPress={() => setDraft((prev) => ({ ...prev, isPublic: false }))}
+                className="flex-1 items-center"
+                textClassName="text-center"
+                variant={!draft.isPublic ? "primary" : "default"}
+              >
+                Private
+              </Badge>
+              <Badge
+                onPress={() => setDraft((prev) => ({ ...prev, isPublic: true }))}
+                className="flex-1 items-center"
+                textClassName="text-center"
+                variant={draft.isPublic ? "primary" : "default"}
+              >
+                Public
+              </Badge>
             </View>
           </View>
         </ScrollView>

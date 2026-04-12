@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Animated,
   Image,
-  Modal,
+  Modal as RNModal,
   Pressable,
   ScrollView,
   Text,
@@ -12,22 +13,35 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ArrowLeft,
+  Check,
   ChevronDown,
   ChevronRight,
   Clock3,
+  Copy,
   Dumbbell,
+  Edit3,
   Flame,
+  Globe,
+  Lock,
+  MapPin,
+  MoreHorizontal,
   Play,
   Timer,
+  Trash2,
   X,
 } from "lucide-react-native";
 import { Button } from "@/components/ui/Button";
 import { MuscleMap } from "@/components/workouts/MuscleMap";
 import { useAuthStore } from "@/stores/auth.store";
 import { useThemeStore } from "@/stores/theme.store";
+import { useToastStore } from "@/stores/toast.store";
 import {
   clearPausedWorkoutSession,
+  deleteWorkoutTemplate,
+  duplicateWorkoutTemplate,
   getPausedWorkoutSession,
+  getWorkoutTemplate,
+  updateWorkoutTemplate,
   type PausedWorkoutSessionRecord,
   type WorkoutTemplateExerciseRecord,
   type WorkoutTemplateRecord,
@@ -368,6 +382,7 @@ export default function WorkoutDetailScreen() {
   const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
   const { isDark, colors } = useThemeStore();
+  const showToast = useToastStore((state) => state.show);
 
   const [workout, setWorkout] = useState<WorkoutTemplateRecord | null>(null);
   const [catalogLookup, setCatalogLookup] = useState<Record<string, OfficialExerciseRecord>>({});
@@ -385,6 +400,12 @@ export default function WorkoutDetailScreen() {
   // Inspect modal
   const [inspectId, setInspectId] = useState<string | null>(null);
 
+  // Options sheet
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const sheetAnim = useRef(new Animated.Value(0)).current;
+
   const openInspect = (exerciseId: string) => {
     setInspectId(exerciseId);
   };
@@ -401,7 +422,6 @@ export default function WorkoutDetailScreen() {
       setError(null);
 
       try {
-        const { getWorkoutTemplate } = await import("@/lib/firestore/workouts");
         const [workoutRecord, catalog] = await Promise.all([
           getWorkoutTemplate(String(id)),
           getExerciseCatalog(),
@@ -520,6 +540,107 @@ export default function WorkoutDetailScreen() {
     router.push(`/workouts/${id}/run`);
   };
 
+  // ── Sheet helpers ─────────────────────────────────────────────────────────
+
+  const backdropOpacity = sheetAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 0.55],
+  });
+
+  const sheetTranslateY = sheetAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [460, 0],
+  });
+
+  const openSheet = () => {
+    setMenuVisible(true);
+    Animated.spring(sheetAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      bounciness: 1,
+      speed: 14,
+    }).start();
+  };
+
+  const closeSheet = (callback?: () => void) => {
+    Animated.spring(sheetAnim, {
+      toValue: 0,
+      useNativeDriver: true,
+      bounciness: 0,
+      speed: 16,
+    }).start(() => {
+      setMenuVisible(false);
+      setConfirmDelete(false);
+      callback?.();
+    });
+  };
+
+  const handleEdit = () => closeSheet(() => router.push(`/workouts/${id}/edit`));
+
+  const handleDuplicate = async () => {
+    if (!user?.uid || !workout) return;
+    setActionLoading(true);
+    try {
+      const copy = await duplicateWorkoutTemplate(user.uid, String(id));
+      showToast("Workout duplicated", "success");
+      closeSheet(() => router.push(`/workouts/${copy.id}`));
+    } catch {
+      showToast("Could not duplicate workout", "error");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleToggleActive = async () => {
+    if (!workout) return;
+    const next = !workout.is_active;
+    setActionLoading(true);
+    try {
+      await updateWorkoutTemplate(String(id), { is_active: next });
+      setWorkout((prev) => (prev ? { ...prev, is_active: next } : prev));
+      showToast(next ? "Workout activated" : "Workout deactivated", "success");
+      closeSheet();
+    } catch {
+      showToast("Could not update workout", "error");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleTogglePublic = async () => {
+    if (!workout) return;
+    const next = !workout.is_public;
+    setActionLoading(true);
+    try {
+      await updateWorkoutTemplate(String(id), { is_public: next });
+      setWorkout((prev) => (prev ? { ...prev, is_public: next } : prev));
+      showToast(next ? "Workout is now public" : "Workout is now private", "success");
+      closeSheet();
+    } catch {
+      showToast("Could not update workout", "error");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteConfirm = () => {
+    setConfirmDelete(true);
+  };
+
+  const handleDeleteExecute = async () => {
+    const workoutId = String(id);
+    setActionLoading(true);
+    try {
+      await deleteWorkoutTemplate(workoutId);
+      showToast("Workout deleted", "success");
+      closeSheet(() => router.back());
+    } catch {
+      showToast("Could not delete workout", "error");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <View className={cn("flex-1", isDark ? "bg-dark-bg" : "bg-light-bg")}>
@@ -554,8 +675,11 @@ export default function WorkoutDetailScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: tabBarClearance + 40 }}
       >
-        {/* ── Back button ── */}
-        <View style={{ paddingTop: insets.top + 6 }} className="px-4 mb-3">
+        {/* ── Header row ── */}
+        <View
+          style={{ paddingTop: insets.top + 6 }}
+          className="px-4 mb-3 flex-row items-center justify-between"
+        >
           <Pressable
             onPress={() => router.back()}
             className={cn(
@@ -566,6 +690,17 @@ export default function WorkoutDetailScreen() {
             )}
           >
             <ArrowLeft size={20} color={isDark ? "#f3f4f6" : "#0f172a"} />
+          </Pressable>
+          <Pressable
+            onPress={openSheet}
+            className={cn(
+              "h-11 w-11 rounded-2xl border items-center justify-center",
+              isDark
+                ? "bg-dark-surface border-dark-border"
+                : "bg-light-surface border-light-border",
+            )}
+          >
+            <MoreHorizontal size={20} color={isDark ? "#f3f4f6" : "#0f172a"} />
           </Pressable>
         </View>
 
@@ -654,6 +789,109 @@ export default function WorkoutDetailScreen() {
                 </Text>
               </View>
             ))}
+
+            {/* Active / Inactive badge */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 5,
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                borderRadius: 20,
+                backgroundColor: workout.is_active
+                  ? "rgba(5,150,105,0.15)"
+                  : isDark
+                    ? "rgba(255,255,255,0.07)"
+                    : "rgba(0,0,0,0.05)",
+              }}
+            >
+              <View
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: workout.is_active ? "#059669" : "#64748b",
+                }}
+              />
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: "600",
+                  color: workout.is_active
+                    ? "#059669"
+                    : isDark
+                      ? "#9ca3af"
+                      : "#6b7280",
+                }}
+              >
+                {workout.is_active ? "Active" : "Inactive"}
+              </Text>
+            </View>
+
+            {/* Public / Private badge */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 5,
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                borderRadius: 20,
+                backgroundColor: workout.is_public
+                  ? "rgba(2,132,199,0.15)"
+                  : isDark
+                    ? "rgba(255,255,255,0.07)"
+                    : "rgba(0,0,0,0.05)",
+              }}
+            >
+              {workout.is_public ? (
+                <Globe size={11} color="#0284c7" />
+              ) : (
+                <Lock size={11} color={isDark ? "#9ca3af" : "#6b7280"} />
+              )}
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: "600",
+                  color: workout.is_public
+                    ? "#0284c7"
+                    : isDark
+                      ? "#9ca3af"
+                      : "#6b7280",
+                }}
+              >
+                {workout.is_public ? "Public" : "Private"}
+              </Text>
+            </View>
+
+            {/* Location badge */}
+            {workout.location ? (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 5,
+                  paddingHorizontal: 10,
+                  paddingVertical: 6,
+                  borderRadius: 20,
+                  backgroundColor: isDark
+                    ? "rgba(255,255,255,0.07)"
+                    : "rgba(0,0,0,0.05)",
+                }}
+              >
+                <MapPin size={11} color={isDark ? "#9ca3af" : "#6b7280"} />
+                <Text
+                  style={{
+                    fontSize: 11,
+                    fontWeight: "600",
+                    color: isDark ? "#9ca3af" : "#6b7280",
+                  }}
+                >
+                  {workout.location}
+                </Text>
+              </View>
+            ) : null}
           </View>
 
           {/* ── Sections: Warmup / Workout / Cooldown ── */}
@@ -846,8 +1084,283 @@ export default function WorkoutDetailScreen() {
         )}
       </View>
 
+      {/* ── Options action sheet ── */}
+      {menuVisible ? (
+        <RNModal
+          visible
+          transparent
+          animationType="none"
+          onRequestClose={() => closeSheet()}
+        >
+          {/* Backdrop */}
+          <Animated.View
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "#000",
+              opacity: backdropOpacity,
+            }}
+          >
+            <Pressable style={{ flex: 1 }} onPress={() => closeSheet()} />
+          </Animated.View>
+
+          {/* Sheet */}
+          <View
+            style={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              justifyContent: "flex-end",
+            }}
+            pointerEvents="box-none"
+          >
+            <Animated.View
+              style={{
+                transform: [{ translateY: sheetTranslateY }],
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+                overflow: "hidden",
+                backgroundColor: isDark ? "#1c1f27" : "#ffffff",
+                paddingBottom: insets.bottom + 8,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: -4 },
+                shadowOpacity: isDark ? 0.4 : 0.1,
+                shadowRadius: 16,
+                elevation: 12,
+              }}
+            >
+              {/* Drag handle */}
+              <View className="items-center pt-3 pb-1">
+                <View
+                  style={{
+                    width: 36,
+                    height: 4,
+                    borderRadius: 2,
+                    backgroundColor: isDark ? "#374151" : "#d1d5db",
+                  }}
+                />
+              </View>
+
+              {/* Workout name */}
+              <View
+                className="px-5 py-3 border-b"
+                style={{ borderBottomColor: isDark ? "#1f2937" : "#f3f4f6" }}
+              >
+                <Text
+                  className="text-base font-bold text-gray-900 dark:text-gray-100"
+                  numberOfLines={1}
+                >
+                  {workout?.name}
+                </Text>
+                <Text className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  {workout?.estimated_duration_minutes} min ·{" "}
+                  {totalExerciseCount} exercises
+                </Text>
+              </View>
+
+              {confirmDelete ? (
+                /* ── Delete confirmation panel ── */
+                <View className="px-5 pt-4 pb-2">
+                  <View
+                    style={{
+                      borderRadius: 16,
+                      backgroundColor: isDark ? "rgba(239,68,68,0.1)" : "rgba(239,68,68,0.06)",
+                      borderWidth: 1,
+                      borderColor: isDark ? "rgba(239,68,68,0.3)" : "rgba(239,68,68,0.2)",
+                      padding: 16,
+                      marginBottom: 16,
+                    }}
+                  >
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                      <View
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: 10,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          backgroundColor: isDark ? "rgba(239,68,68,0.2)" : "rgba(239,68,68,0.12)",
+                        }}
+                      >
+                        <Trash2 size={18} color="#ef4444" />
+                      </View>
+                      <Text style={{ fontSize: 15, fontWeight: "700", color: "#ef4444" }}>
+                        Delete workout?
+                      </Text>
+                    </View>
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        lineHeight: 18,
+                        color: isDark ? "#9ca3af" : "#6b7280",
+                      }}
+                    >
+                      <Text style={{ fontWeight: "600", color: isDark ? "#d1d5db" : "#374151" }}>
+                        "{workout?.name}"
+                      </Text>
+                      {" "}will be permanently deleted. This cannot be undone.
+                    </Text>
+                  </View>
+
+                  <View style={{ flexDirection: "row", gap: 10 }}>
+                    <Pressable
+                      onPress={() => setConfirmDelete(false)}
+                      style={{
+                        flex: 1,
+                        paddingVertical: 14,
+                        borderRadius: 14,
+                        alignItems: "center",
+                        backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)",
+                      }}
+                    >
+                      <Text style={{ fontSize: 15, fontWeight: "600", color: isDark ? "#9ca3af" : "#6b7280" }}>
+                        Cancel
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={actionLoading ? undefined : () => void handleDeleteExecute()}
+                      style={{
+                        flex: 1,
+                        paddingVertical: 14,
+                        borderRadius: 14,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        backgroundColor: "#ef4444",
+                        opacity: actionLoading ? 0.6 : 1,
+                      }}
+                    >
+                      {actionLoading ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Text style={{ fontSize: 15, fontWeight: "700", color: "#fff" }}>
+                          Delete
+                        </Text>
+                      )}
+                    </Pressable>
+                  </View>
+                </View>
+              ) : (
+                <>
+                  {/* ── Actions list ── */}
+                  {[
+                    {
+                      icon: <Edit3 size={18} color={colors.primary} />,
+                      label: "Edit workout",
+                      onPress: handleEdit,
+                      destructive: false,
+                    },
+                    {
+                      icon: <Copy size={18} color={colors.primary} />,
+                      label: "Duplicate",
+                      onPress: () => void handleDuplicate(),
+                      destructive: false,
+                    },
+                    {
+                      icon: workout?.is_active ? (
+                        <X size={18} color={colors.muted} />
+                      ) : (
+                        <Check size={18} color="#059669" />
+                      ),
+                      label: workout?.is_active ? "Deactivate" : "Set as active",
+                      onPress: () => void handleToggleActive(),
+                      destructive: false,
+                    },
+                    {
+                      icon: workout?.is_public ? (
+                        <Lock size={18} color={colors.muted} />
+                      ) : (
+                        <Globe size={18} color="#0284c7" />
+                      ),
+                      label: workout?.is_public ? "Make private" : "Make public",
+                      onPress: () => void handleTogglePublic(),
+                      destructive: false,
+                    },
+                    {
+                      icon: <Trash2 size={18} color="#ef4444" />,
+                      label: "Delete workout",
+                      onPress: handleDeleteConfirm,
+                      destructive: true,
+                    },
+                  ].map((action, idx, arr) => (
+                    <Pressable
+                      key={action.label}
+                      onPress={actionLoading ? undefined : action.onPress}
+                      className={cn(
+                        "flex-row items-center gap-4 px-5 py-4",
+                        idx !== arr.length - 1
+                          ? isDark
+                            ? "border-b border-gray-800"
+                            : "border-b border-gray-100"
+                          : "",
+                      )}
+                    >
+                      <View
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: 10,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          backgroundColor: action.destructive
+                            ? isDark
+                              ? "rgba(239,68,68,0.15)"
+                              : "rgba(239,68,68,0.08)"
+                            : isDark
+                              ? "rgba(255,255,255,0.06)"
+                              : "rgba(0,0,0,0.04)",
+                        }}
+                      >
+                        {action.icon}
+                      </View>
+                      <Text
+                        style={{
+                          fontSize: 15,
+                          fontWeight: "500",
+                          color: action.destructive
+                            ? "#ef4444"
+                            : isDark
+                              ? "#f3f4f6"
+                              : "#111827",
+                        }}
+                      >
+                        {action.label}
+                      </Text>
+                    </Pressable>
+                  ))}
+
+                  {/* Cancel */}
+                  <Pressable
+                    onPress={() => closeSheet()}
+                    className="mx-5 mt-2 mb-1 rounded-2xl py-4 items-center"
+                    style={{
+                      backgroundColor: isDark
+                        ? "rgba(255,255,255,0.06)"
+                        : "rgba(0,0,0,0.04)",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 15,
+                        fontWeight: "600",
+                        color: isDark ? "#9ca3af" : "#6b7280",
+                      }}
+                    >
+                      Cancel
+                    </Text>
+                  </Pressable>
+                </>
+              )}
+            </Animated.View>
+          </View>
+        </RNModal>
+      ) : null}
+
       {/* ── Exercise Inspect Modal ── */}
-      <Modal
+      <RNModal
         visible={!!inspectId}
         animationType="slide"
         presentationStyle="pageSheet"
@@ -865,7 +1378,7 @@ export default function WorkoutDetailScreen() {
             onClose={closeInspect}
           />
         ) : null}
-      </Modal>
+      </RNModal>
     </View>
   );
 }
