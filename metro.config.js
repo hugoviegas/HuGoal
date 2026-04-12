@@ -1,5 +1,5 @@
-const { getDefaultConfig } = require('expo/metro-config');
-const { withNativeWind } = require('nativewind/metro');
+const { getDefaultConfig } = require("expo/metro-config");
+const { withNativeWind } = require("nativewind/metro");
 
 const config = getDefaultConfig(__dirname);
 
@@ -9,5 +9,6 @@ const config = getDefaultConfig(__dirname);
 // its RN/CJS build — two separate instances — so auth never gets registered.
 // Disabling package exports forces consistent CJS/RN bundle resolution.
 config.resolver.unstable_enablePackageExports = false;
+config.resolver.resolverMainFields = ["react-native", "main", "module"];
 
-module.exports = withNativeWind(config, { input: './global.css' });
+module.exports = withNativeWind(config, { input: "./global.css" });

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import * as Haptics from "expo-haptics";
 import {
   View,
   FlatList,
@@ -33,12 +34,21 @@ import { ExerciseCard } from "@/components/workouts/ExerciseCard";
 import { MuscleMap } from "@/components/workouts/MuscleMap";
 import { ProgressFormIndicator } from "@/components/ui/ProgressFormIndicator";
 import { Modal } from "@/components/ui/Modal";
+import {
+  ResponsiveModal,
+  ResponsiveModalBody,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+} from "@/components/ui/ResponsiveModal";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
 import { createWorkoutTemplate } from "@/lib/firestore/workouts";
 import { uploadWorkoutCoverImage } from "@/lib/workouts/media-upload";
 import { useHideMainTabBar } from "@/hooks/useHideMainTabBar";
 import type { Difficulty, EquipmentType } from "@/types";
+import DraggableFlatList from "react-native-draggable-flatlist";
 
 import { muscleKeyToLabel } from "@/lib/workouts/exercise-catalog";
 import {
@@ -81,6 +91,15 @@ type BuilderItem = BuilderExerciseItem | BuilderRestItem;
 interface BuilderTarget {
   section: BuilderSectionType;
   roundId?: string;
+}
+
+interface BuilderItemActionContext {
+  target: BuilderTarget;
+  itemId: string;
+  itemName: string;
+  itemType: BuilderItem["type"];
+  itemIndex: number;
+  totalItems: number;
 }
 
 interface WorkoutRound {
@@ -186,6 +205,9 @@ export default function CreateWorkoutScreen() {
   const [collapsedRounds, setCollapsedRounds] = useState<
     Record<string, boolean>
   >({});
+  const [isRoundDragging, setIsRoundDragging] = useState(false);
+  const [itemActionContext, setItemActionContext] =
+    useState<BuilderItemActionContext | null>(null);
   const [selectedExerciseFilters, setSelectedExerciseFilters] = useState<
     ExerciseFilterKey[]
   >([]);
@@ -687,6 +709,13 @@ export default function CreateWorkoutScreen() {
     });
   };
 
+  const handleReorderRounds = (rounds: WorkoutRound[]) => {
+    setDraft((prev) => ({
+      ...prev,
+      rounds,
+    }));
+  };
+
   const updateRound = (roundId: string, patch: Pick<WorkoutRound, "name">) => {
     setDraft((prev) => ({
       ...prev,
@@ -1023,7 +1052,17 @@ export default function CreateWorkoutScreen() {
 
         <View className="flex-row items-center gap-0.5">
           <Pressable
-            onLongPress={() => handleMoveItem(target, itemIndex, -1)}
+            onLongPress={() => {
+              void Haptics.selectionAsync();
+              setItemActionContext({
+                target,
+                itemId: item.id,
+                itemName: item.type === "exercise" ? item.name : "Rest",
+                itemType: item.type,
+                itemIndex,
+                totalItems,
+              });
+            }}
             className="h-8 w-8 items-center justify-center"
           >
             <GripVertical size={14} color={colors.muted} />
@@ -1054,7 +1093,14 @@ export default function CreateWorkoutScreen() {
           </Pressable>
           <Pressable
             onPress={() =>
-              setEditingItemId((prev) => (prev === item.id ? null : item.id))
+              setItemActionContext({
+                target,
+                itemId: item.id,
+                itemName: item.type === "exercise" ? item.name : "Rest",
+                itemType: item.type,
+                itemIndex,
+                totalItems,
+              })
             }
             className="h-8 w-8 items-center justify-center"
           >
@@ -1962,145 +2008,182 @@ export default function CreateWorkoutScreen() {
                 <ChevronDown size={16} color={colors.muted} />
               )}
             </Pressable>
+            <Text className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+              Press and hold the grip icon to drag rounds.
+            </Text>
 
             {sectionExpanded.workouts ? (
               <>
-                {draft.rounds.map((round, roundIndex) => {
-                  const roundItems = round.items ?? [];
-                  const isCollapsed = collapsedRounds[round.id] ?? false;
-                  return (
-                    <View
-                      key={round.id}
-                      className="mb-4 pb-3 border-b border-light-border dark:border-dark-border"
-                    >
-                      <View className="flex-row items-center justify-between gap-2 mb-2">
-                        <View className="flex-1 flex-row items-center gap-2">
-                          <GripVertical size={15} color={colors.muted} />
-                          <Text className="text-xs uppercase tracking-[0.2em] text-cyan-700 dark:text-cyan-300">
-                            Round {roundIndex + 1}
-                          </Text>
-                        </View>
-                        <View className="flex-row items-center gap-1">
-                          <Pressable
-                            onPress={() => handleMoveRound(roundIndex, -1)}
-                            disabled={roundIndex === 0}
-                            className="h-8 w-8 items-center justify-center"
-                          >
-                            <ArrowUp
-                              size={14}
-                              color={
-                                roundIndex === 0
-                                  ? colors.cardBorder
-                                  : colors.foreground
-                              }
-                            />
-                          </Pressable>
-                          <Pressable
-                            onPress={() => handleMoveRound(roundIndex, 1)}
-                            disabled={roundIndex === draft.rounds.length - 1}
-                            className="h-8 w-8 items-center justify-center"
-                          >
-                            <ArrowDown
-                              size={14}
-                              color={
-                                roundIndex === draft.rounds.length - 1
-                                  ? colors.cardBorder
-                                  : colors.foreground
-                              }
-                            />
-                          </Pressable>
-                          <Pressable
-                            onPress={() => toggleRoundCollapsed(round.id)}
-                            className="h-8 w-8 items-center justify-center"
-                          >
-                            {isCollapsed ? (
-                              <ChevronDown
-                                size={14}
-                                color={colors.foreground}
-                              />
-                            ) : (
-                              <ChevronUp size={14} color={colors.foreground} />
-                            )}
-                          </Pressable>
-                          <Pressable
-                            onPress={() => handleRemoveRound(round.id)}
-                            disabled={draft.rounds.length <= 1}
-                            className="h-8 w-8 items-center justify-center"
-                          >
-                            <X
-                              size={14}
-                              color={
-                                draft.rounds.length <= 1
-                                  ? colors.cardBorder
-                                  : "#ef4444"
-                              }
-                            />
-                          </Pressable>
-                        </View>
-                      </View>
+                {isRoundDragging ? (
+                  <Text className="text-xs text-cyan-700 dark:text-cyan-300 mb-2">
+                    Dragging round...
+                  </Text>
+                ) : null}
 
-                      <Input
-                        value={round.name}
-                        onChangeText={(text) =>
-                          updateRound(round.id, { name: text })
-                        }
-                        placeholder={`Round ${roundIndex + 1}`}
-                        containerClassName="mb-2"
-                      />
+                <DraggableFlatList
+                  data={draft.rounds}
+                  keyExtractor={(round) => round.id}
+                  onDragBegin={() => {
+                    setIsRoundDragging(true);
+                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }}
+                  onDragEnd={({ data }) => {
+                    setIsRoundDragging(false);
+                    handleReorderRounds(data);
+                    void Haptics.impactAsync(
+                      Haptics.ImpactFeedbackStyle.Medium,
+                    );
+                  }}
+                  scrollEnabled={false}
+                  activationDistance={8}
+                  renderItem={({ item: round, getIndex, drag, isActive }) => {
+                    const roundIndex = getIndex() ?? 0;
+                    const roundItems = round.items ?? [];
+                    const isCollapsed = collapsedRounds[round.id] ?? false;
 
-                      {!isCollapsed ? (
-                        <>
-                          {roundItems.length === 0 ? (
-                            <Text className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                              No items in this round.
+                    return (
+                      <View
+                        className={cn(
+                          "mb-4 pb-3 border-b border-light-border dark:border-dark-border",
+                          isActive ? "opacity-80" : "opacity-100",
+                        )}
+                      >
+                        <View className="flex-row items-center justify-between gap-2 mb-2">
+                          <Pressable
+                            onLongPress={drag}
+                            delayLongPress={180}
+                            className="flex-1 flex-row items-center gap-2"
+                          >
+                            <GripVertical size={15} color={colors.muted} />
+                            <Text className="text-xs uppercase tracking-[0.2em] text-cyan-700 dark:text-cyan-300">
+                              Round {roundIndex + 1}
                             </Text>
-                          ) : (
-                            roundItems.map((item, itemIndex) => (
-                              <View
-                                key={item.id}
-                                className="pl-4 ml-2 border-l-2 border-cyan-200 dark:border-cyan-900/40"
-                              >
-                                {renderBuilderItem(
-                                  { section: "round", roundId: round.id },
-                                  item,
-                                  itemIndex,
-                                  roundItems.length,
-                                )}
-                              </View>
-                            ))
-                          )}
-
-                          <View className="flex-row gap-2">
-                            <Button
-                              variant="secondary"
-                              className="flex-1"
-                              onPress={() =>
-                                openPickerForTarget({
-                                  section: "round",
-                                  roundId: round.id,
-                                })
-                              }
+                          </Pressable>
+                          <View className="flex-row items-center gap-1">
+                            <Pressable
+                              onPress={() => handleMoveRound(roundIndex, -1)}
+                              disabled={roundIndex === 0}
+                              className="h-8 w-8 items-center justify-center"
                             >
-                              Add Exercise
-                            </Button>
-                            <Button
-                              variant="secondary"
-                              className="flex-1"
-                              onPress={() =>
-                                handleAddRest({
-                                  section: "round",
-                                  roundId: round.id,
-                                })
-                              }
+                              <ArrowUp
+                                size={14}
+                                color={
+                                  roundIndex === 0
+                                    ? colors.cardBorder
+                                    : colors.foreground
+                                }
+                              />
+                            </Pressable>
+                            <Pressable
+                              onPress={() => handleMoveRound(roundIndex, 1)}
+                              disabled={roundIndex === draft.rounds.length - 1}
+                              className="h-8 w-8 items-center justify-center"
                             >
-                              Add Rest
-                            </Button>
+                              <ArrowDown
+                                size={14}
+                                color={
+                                  roundIndex === draft.rounds.length - 1
+                                    ? colors.cardBorder
+                                    : colors.foreground
+                                }
+                              />
+                            </Pressable>
+                            <Pressable
+                              onPress={() => toggleRoundCollapsed(round.id)}
+                              className="h-8 w-8 items-center justify-center"
+                            >
+                              {isCollapsed ? (
+                                <ChevronDown
+                                  size={14}
+                                  color={colors.foreground}
+                                />
+                              ) : (
+                                <ChevronUp
+                                  size={14}
+                                  color={colors.foreground}
+                                />
+                              )}
+                            </Pressable>
+                            <Pressable
+                              onPress={() => handleRemoveRound(round.id)}
+                              disabled={draft.rounds.length <= 1}
+                              className="h-8 w-8 items-center justify-center"
+                            >
+                              <X
+                                size={14}
+                                color={
+                                  draft.rounds.length <= 1
+                                    ? colors.cardBorder
+                                    : "#ef4444"
+                                }
+                              />
+                            </Pressable>
                           </View>
-                        </>
-                      ) : null}
-                    </View>
-                  );
-                })}
+                        </View>
+
+                        <Input
+                          value={round.name}
+                          onChangeText={(text) =>
+                            updateRound(round.id, { name: text })
+                          }
+                          placeholder={`Round ${roundIndex + 1}`}
+                          containerClassName="mb-2"
+                        />
+
+                        {!isCollapsed ? (
+                          <>
+                            {roundItems.length === 0 ? (
+                              <Text className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                                No items in this round.
+                              </Text>
+                            ) : (
+                              roundItems.map((item, itemIndex) => (
+                                <View
+                                  key={item.id}
+                                  className="pl-4 ml-2 border-l-2 border-cyan-200 dark:border-cyan-900/40"
+                                >
+                                  {renderBuilderItem(
+                                    { section: "round", roundId: round.id },
+                                    item,
+                                    itemIndex,
+                                    roundItems.length,
+                                  )}
+                                </View>
+                              ))
+                            )}
+
+                            <View className="flex-row gap-2">
+                              <Button
+                                variant="secondary"
+                                className="flex-1"
+                                onPress={() =>
+                                  openPickerForTarget({
+                                    section: "round",
+                                    roundId: round.id,
+                                  })
+                                }
+                              >
+                                Add Exercise
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                className="flex-1"
+                                onPress={() =>
+                                  handleAddRest({
+                                    section: "round",
+                                    roundId: round.id,
+                                  })
+                                }
+                              >
+                                Add Rest
+                              </Button>
+                            </View>
+                          </>
+                        ) : null}
+                      </View>
+                    );
+                  }}
+                />
 
                 <Button variant="secondary" onPress={handleAddRound}>
                   Add Another Round
@@ -2234,6 +2317,123 @@ export default function CreateWorkoutScreen() {
             </Button>
           </View>
         </Modal>
+
+        <ResponsiveModal
+          open={Boolean(itemActionContext)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setItemActionContext(null);
+            }
+          }}
+          position="bottom"
+        >
+          <ResponsiveModalHeader>
+            <ResponsiveModalTitle>Item Actions</ResponsiveModalTitle>
+            <ResponsiveModalDescription>
+              {itemActionContext
+                ? `${itemActionContext.itemName} (${itemActionContext.itemType})`
+                : ""}
+            </ResponsiveModalDescription>
+          </ResponsiveModalHeader>
+          <ResponsiveModalBody className="gap-2">
+            <Button
+              variant="secondary"
+              onPress={() => {
+                if (!itemActionContext) {
+                  return;
+                }
+                setEditingItemId(itemActionContext.itemId);
+                setItemActionContext(null);
+              }}
+            >
+              Edit
+            </Button>
+            <Button
+              variant="secondary"
+              onPress={() => {
+                if (!itemActionContext) {
+                  return;
+                }
+                handleDuplicateItem(
+                  itemActionContext.target,
+                  itemActionContext.itemId,
+                );
+                setItemActionContext(null);
+              }}
+            >
+              Duplicate
+            </Button>
+            <View className="flex-row gap-2">
+              <Button
+                variant="secondary"
+                className="flex-1"
+                disabled={
+                  !itemActionContext || itemActionContext.itemIndex === 0
+                }
+                onPress={() => {
+                  if (!itemActionContext) {
+                    return;
+                  }
+                  handleMoveItem(
+                    itemActionContext.target,
+                    itemActionContext.itemIndex,
+                    -1,
+                  );
+                  setItemActionContext(null);
+                }}
+              >
+                Move Up
+              </Button>
+              <Button
+                variant="secondary"
+                className="flex-1"
+                disabled={
+                  !itemActionContext ||
+                  itemActionContext.itemIndex ===
+                    itemActionContext.totalItems - 1
+                }
+                onPress={() => {
+                  if (!itemActionContext) {
+                    return;
+                  }
+                  handleMoveItem(
+                    itemActionContext.target,
+                    itemActionContext.itemIndex,
+                    1,
+                  );
+                  setItemActionContext(null);
+                }}
+              >
+                Move Down
+              </Button>
+            </View>
+          </ResponsiveModalBody>
+          <ResponsiveModalFooter>
+            <Button
+              variant="secondary"
+              className="flex-1"
+              onPress={() => setItemActionContext(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="secondary"
+              className="flex-1"
+              onPress={() => {
+                if (!itemActionContext) {
+                  return;
+                }
+                handleRemoveItem(
+                  itemActionContext.target,
+                  itemActionContext.itemId,
+                );
+                setItemActionContext(null);
+              }}
+            >
+              Delete
+            </Button>
+          </ResponsiveModalFooter>
+        </ResponsiveModal>
 
         <View
           className="p-4 border-t border-light-border dark:border-dark-border"
