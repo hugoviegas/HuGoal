@@ -96,7 +96,12 @@ export default function OnboardingAgeScreen() {
         onPrevious={onPrevious}
       >
         <ScrollView
-          contentContainerStyle={{ gap: 20 }}
+          contentContainerStyle={{
+            gap: 20,
+            flexGrow: 1,
+            justifyContent: "center",
+            paddingBottom: 8,
+          }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >

@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { View } from "react-native";
+import { ScrollView, View } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -51,9 +51,10 @@ export function DashboardSkeleton() {
   const colors = useThemeStore((s) => s.colors);
 
   return (
-    <View
-      style={{
-        flex: 1,
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{
+        flexGrow: 1,
         backgroundColor: colors.background,
         paddingHorizontal: spacing.md,
         paddingTop: spacing.xl,
@@ -102,6 +103,6 @@ export function DashboardSkeleton() {
           <Shimmer width="100%" height={110} borderRadius={radius.lg} />
         </View>
       </View>
-    </View>
+    </ScrollView>
   );
 }
