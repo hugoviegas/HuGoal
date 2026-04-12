@@ -18,7 +18,6 @@ import {
   Dumbbell,
   ChevronDown,
   ChevronUp,
-  EllipsisVertical,
   GripVertical,
   Search,
   Sparkles,
@@ -34,14 +33,6 @@ import { ExerciseCard } from "@/components/workouts/ExerciseCard";
 import { MuscleMap } from "@/components/workouts/MuscleMap";
 import { ProgressFormIndicator } from "@/components/ui/ProgressFormIndicator";
 import { Modal } from "@/components/ui/Modal";
-import {
-  ResponsiveModal,
-  ResponsiveModalBody,
-  ResponsiveModalDescription,
-  ResponsiveModalFooter,
-  ResponsiveModalHeader,
-  ResponsiveModalTitle,
-} from "@/components/ui/ResponsiveModal";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
 import { createWorkoutTemplate } from "@/lib/firestore/workouts";
@@ -91,15 +82,6 @@ type BuilderItem = BuilderExerciseItem | BuilderRestItem;
 interface BuilderTarget {
   section: BuilderSectionType;
   roundId?: string;
-}
-
-interface BuilderItemActionContext {
-  target: BuilderTarget;
-  itemId: string;
-  itemName: string;
-  itemType: BuilderItem["type"];
-  itemIndex: number;
-  totalItems: number;
 }
 
 interface WorkoutRound {
@@ -206,8 +188,6 @@ export default function CreateWorkoutScreen() {
     Record<string, boolean>
   >({});
   const [isRoundDragging, setIsRoundDragging] = useState(false);
-  const [itemActionContext, setItemActionContext] =
-    useState<BuilderItemActionContext | null>(null);
   const [selectedExerciseFilters, setSelectedExerciseFilters] = useState<
     ExerciseFilterKey[]
   >([]);
@@ -716,6 +696,10 @@ export default function CreateWorkoutScreen() {
     }));
   };
 
+  const handleReorderItems = (target: BuilderTarget, items: BuilderItem[]) => {
+    updateItemsForTarget(target, () => items);
+  };
+
   const updateRound = (roundId: string, patch: Pick<WorkoutRound, "name">) => {
     setDraft((prev) => ({
       ...prev,
@@ -1015,10 +999,14 @@ export default function CreateWorkoutScreen() {
     item: BuilderItem,
     itemIndex: number,
     totalItems: number,
+    drag?: () => void,
+    isActive = false,
   ) => (
     <View
-      key={item.id}
-      className="pb-3 mb-3 border-b border-light-border dark:border-dark-border"
+      className={cn(
+        "pb-3 mb-3 border-b border-light-border dark:border-dark-border",
+        isActive ? "opacity-80" : "opacity-100",
+      )}
     >
       <View className="flex-row items-start justify-between gap-2">
         <View className="flex-row items-center gap-3 flex-1 pr-1">
@@ -1054,15 +1042,9 @@ export default function CreateWorkoutScreen() {
           <Pressable
             onLongPress={() => {
               void Haptics.selectionAsync();
-              setItemActionContext({
-                target,
-                itemId: item.id,
-                itemName: item.type === "exercise" ? item.name : "Rest",
-                itemType: item.type,
-                itemIndex,
-                totalItems,
-              });
+              drag?.();
             }}
+            delayLongPress={170}
             className="h-8 w-8 items-center justify-center"
           >
             <GripVertical size={14} color={colors.muted} />
@@ -1093,18 +1075,13 @@ export default function CreateWorkoutScreen() {
           </Pressable>
           <Pressable
             onPress={() =>
-              setItemActionContext({
-                target,
-                itemId: item.id,
-                itemName: item.type === "exercise" ? item.name : "Rest",
-                itemType: item.type,
-                itemIndex,
-                totalItems,
-              })
+              setEditingItemId((prev) => (prev === item.id ? null : item.id))
             }
             className="h-8 w-8 items-center justify-center"
           >
-            <EllipsisVertical size={14} color={colors.foreground} />
+            <Text className="text-xs font-semibold text-cyan-700 dark:text-cyan-300">
+              Edit
+            </Text>
           </Pressable>
         </View>
       </View>
@@ -1176,6 +1153,36 @@ export default function CreateWorkoutScreen() {
         </View>
       ) : null}
     </View>
+  );
+
+  const renderBuilderItemsList = (
+    target: BuilderTarget,
+    items: BuilderItem[],
+  ) => (
+    <DraggableFlatList
+      data={items}
+      keyExtractor={(item) => item.id}
+      onDragBegin={() => {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }}
+      onDragEnd={({ data }) => {
+        handleReorderItems(target, data);
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }}
+      scrollEnabled={false}
+      activationDistance={8}
+      renderItem={({ item, getIndex, drag, isActive }) => {
+        const itemIndex = getIndex() ?? 0;
+        return renderBuilderItem(
+          target,
+          item,
+          itemIndex,
+          items.length,
+          drag,
+          isActive,
+        );
+      }}
+    />
   );
 
   // Workflow Selection Step
@@ -1958,13 +1965,9 @@ export default function CreateWorkoutScreen() {
                     No warmup items yet.
                   </Text>
                 ) : (
-                  draft.warmupItems.map((item, itemIndex) =>
-                    renderBuilderItem(
-                      { section: "warmup" },
-                      item,
-                      itemIndex,
-                      draft.warmupItems.length,
-                    ),
+                  renderBuilderItemsList(
+                    { section: "warmup" },
+                    draft.warmupItems,
                   )
                 )}
                 <View className="flex-row gap-2">
@@ -2137,19 +2140,12 @@ export default function CreateWorkoutScreen() {
                                 No items in this round.
                               </Text>
                             ) : (
-                              roundItems.map((item, itemIndex) => (
-                                <View
-                                  key={item.id}
-                                  className="pl-4 ml-2 border-l-2 border-cyan-200 dark:border-cyan-900/40"
-                                >
-                                  {renderBuilderItem(
-                                    { section: "round", roundId: round.id },
-                                    item,
-                                    itemIndex,
-                                    roundItems.length,
-                                  )}
-                                </View>
-                              ))
+                              <View className="pl-4 ml-2 border-l-2 border-cyan-200 dark:border-cyan-900/40">
+                                {renderBuilderItemsList(
+                                  { section: "round", roundId: round.id },
+                                  roundItems,
+                                )}
+                              </View>
                             )}
 
                             <View className="flex-row gap-2">
@@ -2239,13 +2235,9 @@ export default function CreateWorkoutScreen() {
                     No cooldown items yet.
                   </Text>
                 ) : (
-                  draft.cooldownItems.map((item, itemIndex) =>
-                    renderBuilderItem(
-                      { section: "cooldown" },
-                      item,
-                      itemIndex,
-                      draft.cooldownItems.length,
-                    ),
+                  renderBuilderItemsList(
+                    { section: "cooldown" },
+                    draft.cooldownItems,
                   )
                 )}
                 <View className="flex-row gap-2">
@@ -2317,123 +2309,6 @@ export default function CreateWorkoutScreen() {
             </Button>
           </View>
         </Modal>
-
-        <ResponsiveModal
-          open={Boolean(itemActionContext)}
-          onOpenChange={(open) => {
-            if (!open) {
-              setItemActionContext(null);
-            }
-          }}
-          position="bottom"
-        >
-          <ResponsiveModalHeader>
-            <ResponsiveModalTitle>Item Actions</ResponsiveModalTitle>
-            <ResponsiveModalDescription>
-              {itemActionContext
-                ? `${itemActionContext.itemName} (${itemActionContext.itemType})`
-                : ""}
-            </ResponsiveModalDescription>
-          </ResponsiveModalHeader>
-          <ResponsiveModalBody className="gap-2">
-            <Button
-              variant="secondary"
-              onPress={() => {
-                if (!itemActionContext) {
-                  return;
-                }
-                setEditingItemId(itemActionContext.itemId);
-                setItemActionContext(null);
-              }}
-            >
-              Edit
-            </Button>
-            <Button
-              variant="secondary"
-              onPress={() => {
-                if (!itemActionContext) {
-                  return;
-                }
-                handleDuplicateItem(
-                  itemActionContext.target,
-                  itemActionContext.itemId,
-                );
-                setItemActionContext(null);
-              }}
-            >
-              Duplicate
-            </Button>
-            <View className="flex-row gap-2">
-              <Button
-                variant="secondary"
-                className="flex-1"
-                disabled={
-                  !itemActionContext || itemActionContext.itemIndex === 0
-                }
-                onPress={() => {
-                  if (!itemActionContext) {
-                    return;
-                  }
-                  handleMoveItem(
-                    itemActionContext.target,
-                    itemActionContext.itemIndex,
-                    -1,
-                  );
-                  setItemActionContext(null);
-                }}
-              >
-                Move Up
-              </Button>
-              <Button
-                variant="secondary"
-                className="flex-1"
-                disabled={
-                  !itemActionContext ||
-                  itemActionContext.itemIndex ===
-                    itemActionContext.totalItems - 1
-                }
-                onPress={() => {
-                  if (!itemActionContext) {
-                    return;
-                  }
-                  handleMoveItem(
-                    itemActionContext.target,
-                    itemActionContext.itemIndex,
-                    1,
-                  );
-                  setItemActionContext(null);
-                }}
-              >
-                Move Down
-              </Button>
-            </View>
-          </ResponsiveModalBody>
-          <ResponsiveModalFooter>
-            <Button
-              variant="secondary"
-              className="flex-1"
-              onPress={() => setItemActionContext(null)}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="secondary"
-              className="flex-1"
-              onPress={() => {
-                if (!itemActionContext) {
-                  return;
-                }
-                handleRemoveItem(
-                  itemActionContext.target,
-                  itemActionContext.itemId,
-                );
-                setItemActionContext(null);
-              }}
-            >
-              Delete
-            </Button>
-          </ResponsiveModalFooter>
-        </ResponsiveModal>
 
         <View
           className="p-4 border-t border-light-border dark:border-dark-border"
