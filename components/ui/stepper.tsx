@@ -1,4 +1,5 @@
-import { Pressable, Text, View } from "react-native";
+import { PureComponent, useRef } from "react";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { cn } from "@/lib/utils";
 
 interface StepperStep {
@@ -10,63 +11,71 @@ interface StepperProps {
   steps: StepperStep[];
   currentStep: number;
   className?: string;
+  onStepPress?: (index: number) => void;
+  isStepPressable?: (index: number) => boolean;
 }
 
-export function Stepper({ steps, currentStep, className }: StepperProps) {
+export function Stepper({
+  steps,
+  currentStep,
+  className,
+  onStepPress,
+  isStepPressable,
+}: StepperProps) {
+  const scrollViewRef = useRef<ScrollView>(null);
+
   return (
     <View className={cn("w-full", className)}>
-      <View className="flex-row items-center gap-2">
+      <ScrollView
+        ref={scrollViewRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        scrollEnabled={steps.length > 6}
+        contentContainerStyle={{
+          alignItems: "center",
+          gap: 12,
+          paddingVertical: 2,
+          paddingHorizontal: 4,
+        }}
+      >
         {steps.map((step, index) => {
           const isActive = index === currentStep;
           const isCompleted = index < currentStep;
+          const canPress = isStepPressable
+            ? isStepPressable(index)
+            : !!onStepPress;
 
           return (
             <Pressable
               key={step.id}
               accessibilityRole="button"
               accessibilityState={isActive ? { selected: true } : {}}
+              disabled={!canPress}
+              onPress={() => onStepPress?.(index)}
               className={cn(
-                "flex-1 rounded-2xl border px-3 py-2",
+                "rounded-full border items-center justify-center",
+                "h-10 w-10",
                 isActive
-                  ? "bg-cyan-500/15 border-cyan-500"
-                  : isCompleted
-                    ? "bg-green-500/10 border-green-500/30"
-                    : "bg-transparent border-light-border dark:border-dark-border",
+                  ? "bg-cyan-500/15 border-cyan-500 border-2"
+                  : "border-transparent",
+                !isActive && isCompleted && "bg-green-500",
+                !isActive && !isCompleted && "bg-gray-300 dark:bg-gray-600",
+                !canPress && "opacity-60",
               )}
             >
-              <View className="flex-row items-center justify-center gap-2">
-                <View
-                  className={cn(
-                    "h-5 w-5 items-center justify-center rounded-full",
-                    isActive
-                      ? "bg-cyan-500"
-                      : isCompleted
-                        ? "bg-green-500"
-                        : "bg-gray-300 dark:bg-gray-600",
-                  )}
-                >
-                  <Text className="text-[10px] font-bold text-white">
-                    {index + 1}
-                  </Text>
-                </View>
-                <Text
-                  numberOfLines={1}
-                  className={cn(
-                    "text-xs font-semibold",
-                    isActive
-                      ? "text-cyan-700 dark:text-cyan-300"
-                      : isCompleted
-                        ? "text-green-700 dark:text-green-300"
-                        : "text-gray-600 dark:text-gray-400",
-                  )}
-                >
-                  {step.label}
-                </Text>
-              </View>
+              <Text
+                numberOfLines={1}
+                className={cn(
+                  "text-xs font-bold",
+                  isActive ? "text-cyan-700 dark:text-cyan-300" : "hidden",
+                )}
+              >
+                {index + 1}
+              </Text>
             </Pressable>
           );
         })}
-      </View>
+      </ScrollView>
     </View>
   );
 }

@@ -278,11 +278,13 @@ export default function RunWorkoutScreen() {
   const [dragHint, setDragHint] = useState<string | null>(
     "Swipe left to continue",
   );
+  const [heroImageIndex, setHeroImageIndex] = useState(0);
   const restCountdownStartedRef = useRef(false);
   const timedCountdownStartedRef = useRef(false);
   const furthestStepReachedRef = useRef(0);
+  const lastCompletedCountSavedRef = useRef(0);
 
-  const collapsedSheetHeight = 122;
+  const collapsedSheetHeight = 98;
   const expandedSheetHeight = Math.min(viewportHeight * 0.52, 430);
   const sheetHeightAnim = useRef(
     new Animated.Value(collapsedSheetHeight),
@@ -463,18 +465,22 @@ export default function RunWorkoutScreen() {
     return null;
   };
 
-  const resolveExerciseImage = useCallback(
-    (exerciseId: string, exerciseName?: string): string | null => {
+  const resolveExerciseImages = useCallback(
+    (exerciseId: string, exerciseName?: string): string[] => {
       const item =
         catalogById[exerciseId] ??
         catalogById[normalizeKey(exerciseId)] ??
         (exerciseName ? catalogById[normalizeKey(exerciseName)] : undefined) ??
         null;
 
-      const firstUrl = item?.remote_image_urls?.[0];
-      return typeof firstUrl === "string" && firstUrl.length > 0
-        ? firstUrl
-        : null;
+      const urls = Array.isArray(item?.remote_image_urls)
+        ? item.remote_image_urls.filter(
+            (url: unknown): url is string =>
+              typeof url === "string" && url.length > 0,
+          )
+        : [];
+
+      return urls.slice(0, 2);
     },
     [catalogById],
   );
@@ -682,6 +688,35 @@ export default function RunWorkoutScreen() {
       ? currentStep.exerciseIndex
       : (findNextExerciseStep(currentStepIndex)?.exerciseIndex ?? 0);
 
+  const goToPreviousExerciseFromStepper = useCallback(
+    (targetExerciseIndex: number) => {
+      const allowedPreviousExerciseIndex = currentRoundIndex - 1;
+
+      if (
+        allowedPreviousExerciseIndex < 0 ||
+        targetExerciseIndex !== allowedPreviousExerciseIndex
+      ) {
+        setDragHint("Only previous exercise can be reopened");
+        return;
+      }
+
+      for (let i = currentStepIndex - 1; i >= 0; i -= 1) {
+        const step = steps[i];
+        if (
+          step.type === "exercise" &&
+          step.exerciseIndex === targetExerciseIndex
+        ) {
+          setCurrentStepIndex(i);
+          setDragHint("Returned to previous exercise");
+          return;
+        }
+      }
+
+      setDragHint("Previous exercise is locked");
+    },
+    [currentRoundIndex, currentStepIndex, steps],
+  );
+
   const stepperRounds = exercises.map((exercise, index) => ({
     id: `${exercise.id}-${index}`,
     label: exercise.name,
@@ -715,10 +750,44 @@ export default function RunWorkoutScreen() {
     [currentStepIndex, steps],
   );
 
-  const currentExerciseImageUrl =
+  const currentExerciseImages =
     currentStep?.type === "exercise"
-      ? resolveExerciseImage(currentStep.exercise.id, currentStep.exercise.name)
+      ? resolveExerciseImages(
+          currentStep.exercise.id,
+          currentStep.exercise.name,
+        )
+      : [];
+
+  const currentExerciseImageUrl =
+    currentExerciseImages.length > 0
+      ? currentExerciseImages[heroImageIndex % currentExerciseImages.length]
       : null;
+
+  const countdownTotalSeconds =
+    currentStep?.type === "rest"
+      ? currentStep.restSeconds
+      : currentStep?.type === "exercise" && currentStep.durationSeconds
+        ? currentStep.durationSeconds
+        : 0;
+
+  const countdownRemainingSeconds =
+    currentStep?.type === "rest"
+      ? displayRestSeconds
+      : currentStep?.type === "exercise" && currentStep.durationSeconds
+        ? displayTimedSeconds
+        : -1;
+
+  const countdownProgress =
+    countdownTotalSeconds > 0
+      ? Math.max(
+          0,
+          Math.min(
+            1,
+            (countdownTotalSeconds - countdownRemainingSeconds) /
+              countdownTotalSeconds,
+          ),
+        )
+      : 0;
 
   const onNextFromGesture = useCallback(() => {
     if (editOpen || closeConfirmOpen || sessionPaused) return;
@@ -741,7 +810,7 @@ export default function RunWorkoutScreen() {
     () =>
       PanResponder.create({
         onMoveShouldSetPanResponder: (_event, gestureState) =>
-          Math.abs(gestureState.dx) > 20 && Math.abs(gestureState.dy) < 40,
+          Math.abs(gestureState.dx) > 40 && Math.abs(gestureState.dy) < 25,
         onPanResponderRelease: (_event, gestureState) => {
           if (gestureState.dx < -72) {
             onNextFromGesture();
@@ -788,6 +857,56 @@ export default function RunWorkoutScreen() {
       sheetHeightAnim,
     ],
   );
+
+  useEffect(() => {
+    if (currentStep?.type !== "exercise") {
+      setHeroImageIndex(0);
+      return;
+    }
+
+    setHeroImageIndex(0);
+  }, [currentStep?.id, currentStep?.type]);
+
+  useEffect(() => {
+    if (!sessionHydrated || hydratingSession || !user?.uid) return;
+
+    if (completedSets.length <= lastCompletedCountSavedRef.current) return;
+
+    const timeoutId = setTimeout(() => {
+      void savePausedWorkoutSession(user.uid, templateId, {
+        currentStepIndex,
+        repsDone,
+        weightDone,
+        restRemainingSeconds,
+        timedRemainingSeconds,
+        completedSets,
+        startedAt: sessionStartedAt,
+      })
+        .then(() => {
+          lastCompletedCountSavedRef.current = completedSets.length;
+        })
+        .catch((error) => {
+          console.error(
+            "[runWorkout] autosave after exercise complete failed",
+            error,
+          );
+        });
+    }, 220);
+
+    return () => clearTimeout(timeoutId);
+  }, [
+    completedSets,
+    currentStepIndex,
+    hydratingSession,
+    repsDone,
+    restRemainingSeconds,
+    sessionHydrated,
+    sessionStartedAt,
+    templateId,
+    timedRemainingSeconds,
+    user?.uid,
+    weightDone,
+  ]);
 
   if (loadingTemplate) {
     return (
@@ -879,17 +998,29 @@ export default function RunWorkoutScreen() {
         </Pressable>
       </View>
 
-      <Pressable
+      <View
         style={{
           flex: 1,
           paddingBottom: collapsedSheetHeight + insets.bottom + 6,
         }}
-        onPress={onNextFromGesture}
       >
-        <View className="flex-1" {...contentPanResponder.panHandlers}>
+        <View style={{ flex: 1 }} {...contentPanResponder.panHandlers}>
           {currentStep.type === "exercise" ? (
             <View className="flex-1">
-              <View style={{ flex: 1 }}>
+              <Pressable
+                style={{ flex: 1 }}
+                onPress={() => {
+                  if (currentExerciseImages.length < 2) {
+                    onNextFromGesture();
+                    return;
+                  }
+
+                  setHeroImageIndex(
+                    (prev) =>
+                      (prev + 1) % Math.min(2, currentExerciseImages.length),
+                  );
+                }}
+              >
                 {currentExerciseImageUrl ? (
                   <Image
                     source={{ uri: currentExerciseImageUrl }}
@@ -901,20 +1032,40 @@ export default function RunWorkoutScreen() {
                     <Dumbbell size={64} color={colors.muted} />
                   </View>
                 )}
-              </View>
+
+                {currentExerciseImages.length > 1 ? (
+                  <View
+                    style={{
+                      position: "absolute",
+                      right: 12,
+                      bottom: 12,
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                      borderRadius: 999,
+                      backgroundColor: "rgba(15,23,42,0.55)",
+                    }}
+                  >
+                    <Text
+                      style={{ color: "#fff", fontSize: 11, fontWeight: "700" }}
+                    >
+                      Tap to switch image
+                    </Text>
+                  </View>
+                ) : null}
+              </Pressable>
 
               <View
                 style={{
                   paddingHorizontal: 18,
                   paddingTop: 16,
-                  paddingBottom: 8,
+                  paddingBottom: countdownRemainingSeconds >= 0 ? 72 : 16,
                 }}
               >
-                <Text className="text-4xl font-bold text-gray-900 dark:text-gray-100">
-                  {currentStep.durationSeconds
-                    ? formatSeconds(displayTimedSeconds)
-                    : `${repsDone || parseReps(currentStep.targetReps)}x`}
-                </Text>
+                {!currentStep.durationSeconds ? (
+                  <Text className="text-4xl font-bold text-gray-900 dark:text-gray-100">
+                    {`${repsDone || parseReps(currentStep.targetReps)}x`}
+                  </Text>
+                ) : null}
                 <Text className="mt-1 text-3xl font-semibold text-gray-900 dark:text-gray-100">
                   {currentStep.exercise.name}
                   {!currentStep.durationSeconds && weightDone
@@ -937,9 +1088,17 @@ export default function RunWorkoutScreen() {
               </View>
             </View>
           ) : (
-            <View className="flex-1 justify-between px-5 pb-3 pt-2">
+            <View
+              className="flex-1 justify-between px-5 pt-2"
+              style={{
+                paddingBottom: countdownRemainingSeconds >= 0 ? 92 : 18,
+              }}
+            >
               <View className="items-center">
-                <Text className="text-6xl font-bold text-cyan-600 dark:text-cyan-400">
+                <Text
+                  className="font-bold text-cyan-600 dark:text-cyan-400"
+                  style={{ fontSize: 110, lineHeight: 116 }}
+                >
                   {formatSeconds(displayRestSeconds)}
                 </Text>
                 <Text className="mt-3 text-base text-gray-700 dark:text-gray-300">
@@ -952,10 +1111,10 @@ export default function RunWorkoutScreen() {
                   const nextExerciseStep =
                     findNextExerciseStep(currentStepIndex);
                   if (!nextExerciseStep) return null;
-                  const nextImageUrl = resolveExerciseImage(
+                  const nextImageUrl = resolveExerciseImages(
                     nextExerciseStep.exercise.id,
                     nextExerciseStep.exercise.name,
-                  );
+                  )[0];
                   return (
                     <View
                       className={cn(
@@ -1034,7 +1193,10 @@ export default function RunWorkoutScreen() {
                 position: "absolute",
                 left: 16,
                 right: 16,
-                bottom: collapsedSheetHeight + insets.bottom + 18,
+                bottom:
+                  collapsedSheetHeight +
+                  insets.bottom +
+                  (countdownRemainingSeconds >= 0 ? 52 : 18),
                 paddingHorizontal: 14,
                 paddingVertical: 10,
                 borderRadius: 14,
@@ -1049,7 +1211,38 @@ export default function RunWorkoutScreen() {
             </View>
           ) : null}
         </View>
-      </Pressable>
+      </View>
+
+      {countdownRemainingSeconds >= 0 ? (
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            left: 16,
+            right: 16,
+            bottom: collapsedSheetHeight + insets.bottom + 26,
+            alignItems: "center",
+          }}
+        >
+          <View
+            style={{
+              width: "100%",
+              height: 6,
+              borderRadius: 999,
+              overflow: "hidden",
+              backgroundColor: isDark ? "#243142" : "#cbd5e1",
+            }}
+          >
+            <View
+              style={{
+                width: `${countdownProgress * 100}%`,
+                height: "100%",
+                backgroundColor: colors.primary,
+              }}
+            />
+          </View>
+        </View>
+      ) : null}
 
       <Animated.View
         style={{
@@ -1064,13 +1257,14 @@ export default function RunWorkoutScreen() {
           paddingBottom: insets.bottom,
         }}
       >
-        <View
+        <Pressable
           {...sheetPanResponder.panHandlers}
+          onPress={() => animateSheet(!sheetExpanded)}
           style={{
             alignItems: "center",
             justifyContent: "center",
-            paddingTop: 8,
-            paddingBottom: 10,
+            paddingTop: 6,
+            paddingBottom: 6,
           }}
         >
           <View
@@ -1084,18 +1278,15 @@ export default function RunWorkoutScreen() {
           <Text className="mt-2 text-xs font-semibold text-gray-600 dark:text-gray-400">
             {sheetExpanded ? "Swipe down to close" : "Swipe up for next steps"}
           </Text>
-        </View>
+        </Pressable>
 
         <View style={{ paddingHorizontal: 16 }}>
-          <Stepper steps={stepperRounds} currentStep={currentRoundIndex} />
-          <View className="mb-2 mt-3 flex-row items-center justify-between">
-            <Text className="text-xs text-gray-600 dark:text-gray-400">
-              Step {currentStepIndex + 1} of {steps.length}
-            </Text>
-            <Text className="text-xs text-gray-600 dark:text-gray-400">
-              Sets done: {completedSets.length}
-            </Text>
-          </View>
+          <Stepper
+            steps={stepperRounds}
+            currentStep={currentRoundIndex}
+            onStepPress={goToPreviousExerciseFromStepper}
+            isStepPressable={(index) => index === currentRoundIndex - 1}
+          />
         </View>
 
         {sheetExpanded ? (
@@ -1114,7 +1305,10 @@ export default function RunWorkoutScreen() {
                   ? step.exercise
                   : findNextExerciseStep(absoluteIndex)?.exercise;
               const previewImage = previewExercise
-                ? resolveExerciseImage(previewExercise.id, previewExercise.name)
+                ? resolveExerciseImages(
+                    previewExercise.id,
+                    previewExercise.name,
+                  )[0]
                 : null;
 
               return (
