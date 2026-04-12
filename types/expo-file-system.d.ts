@@ -1,1 +1,1 @@
-declare module 'expo-file-system';
+declare module "expo-file-system";

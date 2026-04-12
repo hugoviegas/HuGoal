@@ -78,7 +78,10 @@ export async function uploadWorkoutCoverImage(
       };
     } catch (err) {
       // If the blob path fails (common on some Android URIs), fallback to reading file as base64
-      console.warn("[uploadWorkoutCoverImage] blob upload failed, falling back to base64 upload", err);
+      console.warn(
+        "[uploadWorkoutCoverImage] blob upload failed, falling back to base64 upload",
+        err,
+      );
 
       try {
         // Read file as base64 using Expo FileSystem (supports file:// and content:// URIs on Android)
@@ -95,12 +98,15 @@ export async function uploadWorkoutCoverImage(
         const imageUrl = await getDownloadURL(fileRef);
         return { imageUrl, storagePath };
       } catch (fallbackError) {
-        console.error("[uploadWorkoutCoverImage] base64 fallback upload failed", {
-          uid,
-          workoutId,
-          storagePath,
-          error: fallbackError,
-        });
+        console.error(
+          "[uploadWorkoutCoverImage] base64 fallback upload failed",
+          {
+            uid,
+            workoutId,
+            storagePath,
+            error: fallbackError,
+          },
+        );
         throw fallbackError;
       }
     }
