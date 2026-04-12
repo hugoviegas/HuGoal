@@ -231,8 +231,12 @@ export default function OnboardingHeightScreen() {
                           <View
                             key={`height-tick-${idx}`}
                             style={{
+<<<<<<< HEAD
                               width:
                                 idx === center ? 54 : idx % 2 === 0 ? 34 : 26,
+=======
+                              width: idx === center ? 54 : idx % 2 === 0 ? 34 : 26,
+>>>>>>> 6d177019c7f4375b236c32ce2a902d73586db807
                               height: 2,
                               borderRadius: 999,
                               backgroundColor:
@@ -266,10 +270,14 @@ export default function OnboardingHeightScreen() {
                           elevation: 4,
                         }}
                       >
+<<<<<<< HEAD
                         <GripVertical
                           size={20}
                           color={colors.primaryForeground}
                         />
+=======
+                        <GripVertical size={20} color={colors.primaryForeground} />
+>>>>>>> 6d177019c7f4375b236c32ce2a902d73586db807
                       </View>
                     </View>
                   </View>
@@ -303,6 +311,7 @@ export default function OnboardingHeightScreen() {
                   <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
                     Drag to adjust
                   </Text>
+<<<<<<< HEAD
                   <Text
                     style={{
                       color: colors.primary,
@@ -310,6 +319,9 @@ export default function OnboardingHeightScreen() {
                       fontWeight: "700",
                     }}
                   >
+=======
+                  <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700" }}>
+>>>>>>> 6d177019c7f4375b236c32ce2a902d73586db807
                     1 cm snap
                   </Text>
                 </View>
