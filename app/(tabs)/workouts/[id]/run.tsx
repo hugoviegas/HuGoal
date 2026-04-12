@@ -1054,7 +1054,8 @@ export default function RunWorkoutScreen() {
                 ) : null}
               </Pressable>
 
-              <View
+              <Pressable
+                onPress={() => onNextFromGesture()}
                 style={{
                   paddingHorizontal: 18,
                   paddingTop: 16,
@@ -1085,7 +1086,7 @@ export default function RunWorkoutScreen() {
                     {isLastStep ? "Finish Workout" : "Next Set"}
                   </Button>
                 ) : null}
-              </View>
+              </Pressable>
             </View>
           ) : (
             <View
