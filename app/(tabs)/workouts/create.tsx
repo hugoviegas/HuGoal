@@ -730,12 +730,12 @@ export default function CreateWorkoutScreen() {
     setStep("exercises");
   };
 
-  const handlePickCoverImage = async () => {
+  const handlePickCoverImage = async (withCrop: boolean = false) => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
-        allowsEditing: true,
-        aspect: [16, 9],
+        allowsEditing: withCrop,
+        aspect: withCrop ? [16, 9] : undefined,
         base64: true,
         quality: 1,
       });
@@ -750,7 +750,10 @@ export default function CreateWorkoutScreen() {
             height: asset.height,
           },
         }));
-        showToast("Cover image cropped and saved", "success");
+        showToast(
+          withCrop ? "Cover image cropped and saved" : "Cover image selected",
+          "success",
+        );
       }
     } catch (error) {
       console.error("[handlePickCoverImage] Error picking image", error);
@@ -1715,7 +1718,10 @@ export default function CreateWorkoutScreen() {
                     />
                   </View>
                   <View className="flex-row gap-2">
-                    <Button variant="secondary" onPress={handlePickCoverImage}>
+                    <Button
+                      variant="secondary"
+                      onPress={() => handlePickCoverImage(true)}
+                    >
                       Crop / replace
                     </Button>
                     <Button
@@ -1728,7 +1734,7 @@ export default function CreateWorkoutScreen() {
                 </View>
               ) : (
                 <Pressable
-                  onPress={handlePickCoverImage}
+                  onPress={() => handlePickCoverImage(false)}
                   className={cn(
                     "rounded-3xl border-2 border-dashed p-4 min-h-[164px] items-center justify-center",
                     isDark
@@ -1740,8 +1746,8 @@ export default function CreateWorkoutScreen() {
                     Add workout image
                   </Text>
                   <Text className="text-sm text-gray-600 dark:text-gray-400 mt-2 text-center">
-                    Crop it before saving. This image will be uploaded when you
-                    save the workout.
+                    Select an image. You can crop it using "Crop / replace" if
+                    needed.
                   </Text>
                 </Pressable>
               )}

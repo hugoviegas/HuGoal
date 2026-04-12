@@ -82,7 +82,8 @@ export async function uploadWorkoutCoverImage(
         storagePath,
       };
     } catch (err) {
-      // If blob upload fails (common on some Android URI schemes), fallback to base64 from ImagePicker asset.
+      // If fetch/blob fails and base64 is available from ImagePicker, try fallback.
+      // Note: On Android with crop, base64 may not be included even if requested.
       console.warn(
         "[uploadWorkoutCoverImage] blob upload failed, falling back to base64 upload",
         err,
@@ -91,8 +92,10 @@ export async function uploadWorkoutCoverImage(
       try {
         const base64 = imageAsset.base64;
         if (!base64) {
+          // On Android, cropped images may not include base64.
+          // Throw error with helpful guidance.
           throw new Error(
-            "Image base64 is missing. Re-select the image to continue.",
+            "Could not upload image. On Android, try: 1) Select image without crop initially, 2) Use 'Crop/replace' button after, 3) Ensure image is jpg/png format.",
           );
         }
 
