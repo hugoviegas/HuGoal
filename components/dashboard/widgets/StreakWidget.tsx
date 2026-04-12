@@ -1,12 +1,12 @@
-import React from 'react';
-import { View, Text } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Flame } from 'lucide-react-native';
-import { GlassCard } from '@/components/ui/GlassCard';
-import { useThemeStore } from '@/stores/theme.store';
-import { useAuthStore } from '@/stores/auth.store';
-import { spacing } from '@/constants/spacing';
-import { typography } from '@/constants/typography';
+import React from "react";
+import { View, Text } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
+import { Flame } from "lucide-react-native";
+import { GlassCard } from "@/components/ui/GlassCard";
+import { useThemeStore } from "@/stores/theme.store";
+import { useAuthStore } from "@/stores/auth.store";
+import { spacing } from "@/constants/spacing";
+import { typography } from "@/constants/typography";
 
 interface StreakWidgetProps {
   staggerIndex?: number;
@@ -20,16 +20,14 @@ export function StreakWidget({ staggerIndex = 0 }: StreakWidgetProps) {
   const longest = profile?.streak_longest ?? 0;
 
   return (
-    <Animated.View
-      style={{ flex: 1 }}
-      entering={FadeInDown.delay(staggerIndex * 60).duration(350)}
-    >
-      <GlassCard style={{ flex: 1, backgroundColor: colors.primary + '14' }}>
+    <Animated.View entering={FadeInDown.delay(staggerIndex * 60).duration(350)}>
+      <GlassCard
+        style={{ minHeight: 162, backgroundColor: colors.primary + "14" }}
+      >
         <View
           style={{
-            flex: 1,
-            alignItems: 'center',
-            justifyContent: 'center',
+            alignItems: "center",
+            justifyContent: "center",
             gap: spacing.xs,
           }}
         >
@@ -38,7 +36,7 @@ export function StreakWidget({ staggerIndex = 0 }: StreakWidgetProps) {
             style={{
               color: colors.foreground,
               fontSize: typography.display.fontSize,
-              fontWeight: '800',
+              fontWeight: "800",
               lineHeight: 40,
             }}
           >
@@ -48,8 +46,8 @@ export function StreakWidget({ staggerIndex = 0 }: StreakWidgetProps) {
             style={{
               color: colors.mutedForeground,
               fontSize: typography.caption.fontSize,
-              fontWeight: '500',
-              textAlign: 'center',
+              fontWeight: "500",
+              textAlign: "center",
             }}
           >
             dias seguidos

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   Modal as RNModal,
+  Platform,
   Pressable,
   Text,
   View,
@@ -9,9 +10,8 @@ import {
 } from "react-native";
 import { SafeView } from "@/components/ui/SafeView";
 import { BlurView } from "expo-blur";
-import { cn } from "@/lib/utils";
 import { useThemeStore } from "@/stores/theme.store";
-import { blurActiveElementOnWeb, restoreFocusOnWeb } from "@/lib/utils";
+import { blurActiveElementOnWeb, cn, restoreFocusOnWeb } from "@/lib/utils";
 
 interface ResponsiveModalProps {
   open: boolean;
@@ -47,12 +47,13 @@ export function ResponsiveModal({
     borderColor: colors.cardBorder,
     backgroundColor: colors.card,
     borderRadius: isMobile ? 24 : 16,
-    marginHorizontal: isMobile ? 0 : 24,
-    width: "100%",
+    width: isMobile ? "100%" : Math.min(width - 48, maxWidth ?? 448),
     maxWidth: maxWidth ?? (isMobile ? undefined : 448),
-    boxShadow: isDark
-      ? "0px 10px 24px rgba(0, 0, 0, 0.35)"
-      : "0px 10px 24px rgba(0, 0, 0, 0.15)",
+    maxHeight: isMobile ? "88%" : "82%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: isDark ? 0.35 : 0.15,
+    shadowRadius: 16,
     elevation: 8,
   };
 
@@ -65,13 +66,13 @@ export function ResponsiveModal({
     if (open) {
       try {
         prevFocusRef.current = document.activeElement as HTMLElement | null;
-      } catch (e) {
+      } catch {
         prevFocusRef.current = null;
       }
 
       try {
         blurActiveElementOnWeb();
-      } catch (e) {
+      } catch {
         // ignore
       }
 
@@ -83,7 +84,7 @@ export function ResponsiveModal({
     if (prevFocusRef.current) {
       try {
         restoreFocusOnWeb(prevFocusRef.current);
-      } catch (e) {
+      } catch {
         // ignore
       }
       prevFocusRef.current = null;
@@ -95,6 +96,8 @@ export function ResponsiveModal({
       transparent
       animationType={isMobile ? "slide" : "fade"}
       visible={internalOpen}
+      statusBarTranslucent
+      hardwareAccelerated
       onRequestClose={() => onOpenChange(false)}
     >
       <Pressable
@@ -102,23 +105,42 @@ export function ResponsiveModal({
           flex: 1,
           justifyContent:
             position === "center" ? "center" : isMobile ? "flex-end" : "center",
-          alignItems: isMobile ? "center" : "center",
+          alignItems: "center",
+          paddingHorizontal: isMobile ? 0 : 24,
         }}
         onPress={() => onOpenChange(false)}
       >
-        <BlurView
-          intensity={45}
-          tint={isDark ? "dark" : "light"}
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-          }}
-        />
+        {Platform.OS === "android" ? (
+          <View
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: isDark
+                ? "rgba(0, 0, 0, 0.56)"
+                : "rgba(15, 23, 42, 0.24)",
+            }}
+          />
+        ) : (
+          <BlurView
+            intensity={45}
+            tint={isDark ? "dark" : "light"}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+          />
+        )}
 
-        <Pressable onPress={(event) => event.stopPropagation()}>
+        <Pressable
+          onPress={(event) => event.stopPropagation()}
+          style={{ width: "100%", alignItems: "center" }}
+        >
           <SafeView style={contentStyle}>{children}</SafeView>
         </Pressable>
       </Pressable>

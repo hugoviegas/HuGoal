@@ -1,14 +1,14 @@
-import React from 'react';
-import { View, Text, Pressable } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-import { useRouter } from 'expo-router';
-import { Users, CheckCircle2 } from 'lucide-react-native';
-import { GlassCard } from '@/components/ui/GlassCard';
-import { useThemeStore } from '@/stores/theme.store';
-import { useCommunityStore } from '@/stores/community.store';
-import { spacing } from '@/constants/spacing';
-import { typography } from '@/constants/typography';
-import { radius } from '@/constants/radius';
+import React from "react";
+import { View, Text, Pressable } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
+import { useRouter } from "expo-router";
+import { Users, CheckCircle2 } from "lucide-react-native";
+import { GlassCard } from "@/components/ui/GlassCard";
+import { useThemeStore } from "@/stores/theme.store";
+import { useCommunityStore } from "@/stores/community.store";
+import { spacing } from "@/constants/spacing";
+import { typography } from "@/constants/typography";
+import { radius } from "@/constants/radius";
 
 interface CommunityWidgetProps {
   staggerIndex?: number;
@@ -20,7 +20,7 @@ export function CommunityWidget({ staggerIndex = 0 }: CommunityWidgetProps) {
   const groups = useCommunityStore((s) => s.groups);
   const todayCheckIn = useCommunityStore((s) => s.todayCheckIn);
 
-  const topGroups = groups.filter((g) => g.status === 'active').slice(0, 2);
+  const topGroups = groups.filter((g) => g.status === "active").slice(0, 2);
 
   return (
     <Animated.View entering={FadeInDown.delay(staggerIndex * 60).duration(350)}>
@@ -29,28 +29,28 @@ export function CommunityWidget({ staggerIndex = 0 }: CommunityWidgetProps) {
           {/* Header */}
           <View
             style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
             }}
           >
             <Text
               style={{
                 color: colors.mutedForeground,
                 fontSize: typography.label.fontSize,
-                fontWeight: '600',
+                fontWeight: "600",
                 letterSpacing: 0.5,
-                textTransform: 'uppercase',
+                textTransform: "uppercase",
               }}
             >
               Meus grupos
             </Text>
-            <Pressable onPress={() => router.push('/(tabs)/community')}>
+            <Pressable onPress={() => router.push("/(tabs)/community")}>
               <Text
                 style={{
                   color: colors.primary,
                   fontSize: typography.small.fontSize,
-                  fontWeight: '500',
+                  fontWeight: "500",
                 }}
               >
                 Ver todos
@@ -62,7 +62,7 @@ export function CommunityWidget({ staggerIndex = 0 }: CommunityWidgetProps) {
             /* Empty state */
             <View
               style={{
-                alignItems: 'center',
+                alignItems: "center",
                 paddingVertical: spacing.lg,
                 gap: spacing.sm,
               }}
@@ -72,25 +72,27 @@ export function CommunityWidget({ staggerIndex = 0 }: CommunityWidgetProps) {
                 style={{
                   color: colors.mutedForeground,
                   fontSize: typography.small.fontSize,
-                  textAlign: 'center',
+                  textAlign: "center",
                 }}
               >
                 Ainda não fazes parte de nenhum grupo
               </Text>
               <Pressable
-                onPress={() => router.push('/(tabs)/community')}
+                onPress={() => router.push("/(tabs)/community")}
                 style={({ pressed }) => ({
                   paddingHorizontal: spacing.md,
                   paddingVertical: spacing.xs,
                   borderRadius: radius.full,
-                  backgroundColor: pressed ? colors.primary + 'CC' : colors.primary,
+                  backgroundColor: pressed
+                    ? colors.primary + "CC"
+                    : colors.primary,
                 })}
               >
                 <Text
                   style={{
-                    color: '#fff',
+                    color: "#fff",
                     fontSize: typography.small.fontSize,
-                    fontWeight: '600',
+                    fontWeight: "600",
                   }}
                 >
                   Entrar num grupo
@@ -104,14 +106,16 @@ export function CommunityWidget({ staggerIndex = 0 }: CommunityWidgetProps) {
               return (
                 <Pressable
                   key={group.id}
-                  onPress={() => router.push('/(tabs)/community')}
+                  onPress={() => router.push("/(tabs)/community")}
                   style={({ pressed }) => ({
-                    flexDirection: 'row',
-                    alignItems: 'center',
+                    flexDirection: "row",
+                    alignItems: "center",
                     gap: spacing.sm,
                     padding: spacing.sm,
                     borderRadius: radius.md,
-                    backgroundColor: pressed ? colors.surface : colors.card + '80',
+                    backgroundColor: pressed
+                      ? colors.surface
+                      : colors.card + "80",
                     borderWidth: 1,
                     borderColor: colors.cardBorder,
                   })}
@@ -121,9 +125,9 @@ export function CommunityWidget({ staggerIndex = 0 }: CommunityWidgetProps) {
                       width: 40,
                       height: 40,
                       borderRadius: radius.md,
-                      backgroundColor: colors.primary + '20',
-                      alignItems: 'center',
-                      justifyContent: 'center',
+                      backgroundColor: colors.primary + "20",
+                      alignItems: "center",
+                      justifyContent: "center",
                     }}
                   >
                     <Users size={18} color={colors.primary} />
@@ -133,7 +137,7 @@ export function CommunityWidget({ staggerIndex = 0 }: CommunityWidgetProps) {
                       style={{
                         color: colors.foreground,
                         fontSize: typography.bodyMedium.fontSize,
-                        fontWeight: '600',
+                        fontWeight: "600",
                       }}
                       numberOfLines={1}
                     >
@@ -152,21 +156,23 @@ export function CommunityWidget({ staggerIndex = 0 }: CommunityWidgetProps) {
                   {hasCheckedIn ? (
                     <View
                       style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
+                        flexDirection: "row",
+                        alignItems: "center",
                         gap: 4,
                         paddingHorizontal: spacing.sm,
                         paddingVertical: 4,
                         borderRadius: radius.full,
-                        backgroundColor: '#22C55E20',
+                        backgroundColor: colors.accent + "20",
+                        minWidth: 68,
+                        justifyContent: "center",
                       }}
                     >
-                      <CheckCircle2 size={12} color="#22C55E" />
+                      <CheckCircle2 size={12} color={colors.accent} />
                       <Text
                         style={{
-                          color: '#22C55E',
+                          color: colors.accent,
                           fontSize: 11,
-                          fontWeight: '600',
+                          fontWeight: "600",
                         }}
                       >
                         Feito
@@ -178,14 +184,14 @@ export function CommunityWidget({ staggerIndex = 0 }: CommunityWidgetProps) {
                         paddingHorizontal: spacing.sm,
                         paddingVertical: 4,
                         borderRadius: radius.full,
-                        backgroundColor: colors.primary + '20',
+                        backgroundColor: colors.primary + "20",
                       }}
                     >
                       <Text
                         style={{
                           color: colors.primary,
                           fontSize: 11,
-                          fontWeight: '600',
+                          fontWeight: "600",
                         }}
                       >
                         Check-in

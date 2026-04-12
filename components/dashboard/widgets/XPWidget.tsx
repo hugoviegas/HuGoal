@@ -1,13 +1,13 @@
-import React from 'react';
-import { View, Text } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Zap } from 'lucide-react-native';
-import { GlassCard } from '@/components/ui/GlassCard';
-import { useThemeStore } from '@/stores/theme.store';
-import { useAuthStore } from '@/stores/auth.store';
-import { spacing } from '@/constants/spacing';
-import { typography } from '@/constants/typography';
-import { radius } from '@/constants/radius';
+import React from "react";
+import { View, Text } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
+import { Zap } from "lucide-react-native";
+import { GlassCard } from "@/components/ui/GlassCard";
+import { useThemeStore } from "@/stores/theme.store";
+import { useAuthStore } from "@/stores/auth.store";
+import { spacing } from "@/constants/spacing";
+import { typography } from "@/constants/typography";
+import { radius } from "@/constants/radius";
 
 const XP_PER_LEVEL = 500;
 
@@ -24,16 +24,14 @@ export function XPWidget({ staggerIndex = 0 }: XPWidgetProps) {
   const progressToNext = (xp % XP_PER_LEVEL) / XP_PER_LEVEL;
 
   return (
-    <Animated.View
-      style={{ flex: 1 }}
-      entering={FadeInDown.delay(staggerIndex * 60).duration(350)}
-    >
-      <GlassCard style={{ flex: 1, backgroundColor: colors.accent + '14' }}>
+    <Animated.View entering={FadeInDown.delay(staggerIndex * 60).duration(350)}>
+      <GlassCard
+        style={{ minHeight: 162, backgroundColor: colors.accent + "14" }}
+      >
         <View
           style={{
-            flex: 1,
-            alignItems: 'center',
-            justifyContent: 'center',
+            alignItems: "center",
+            justifyContent: "center",
             gap: spacing.xs,
           }}
         >
@@ -42,7 +40,7 @@ export function XPWidget({ staggerIndex = 0 }: XPWidgetProps) {
             style={{
               color: colors.foreground,
               fontSize: typography.display.fontSize,
-              fontWeight: '800',
+              fontWeight: "800",
               lineHeight: 40,
             }}
           >
@@ -53,16 +51,16 @@ export function XPWidget({ staggerIndex = 0 }: XPWidgetProps) {
               paddingHorizontal: spacing.sm,
               paddingVertical: 3,
               borderRadius: radius.full,
-              backgroundColor: colors.accent + '25',
+              backgroundColor: colors.accent + "25",
             }}
           >
             <Text
               style={{
                 color: colors.accent,
                 fontSize: typography.label.fontSize,
-                fontWeight: '700',
+                fontWeight: "700",
                 letterSpacing: 0.5,
-                textTransform: 'uppercase',
+                textTransform: "uppercase",
               }}
             >
               Nível {level}
@@ -72,17 +70,17 @@ export function XPWidget({ staggerIndex = 0 }: XPWidgetProps) {
           {/* Progress to next level */}
           <View
             style={{
-              width: '100%',
+              width: "100%",
               marginTop: spacing.xs,
               height: 4,
               borderRadius: radius.full,
               backgroundColor: colors.surface,
-              overflow: 'hidden',
+              overflow: "hidden",
             }}
           >
             <View
               style={{
-                height: '100%',
+                height: "100%",
                 width: `${Math.round(progressToNext * 100)}%`,
                 borderRadius: radius.full,
                 backgroundColor: colors.accent,
@@ -93,7 +91,7 @@ export function XPWidget({ staggerIndex = 0 }: XPWidgetProps) {
             style={{
               color: colors.mutedForeground,
               fontSize: 10,
-              fontWeight: '500',
+              fontWeight: "500",
             }}
           >
             {XP_PER_LEVEL - (xp % XP_PER_LEVEL)} XP p/ nível {level + 1}

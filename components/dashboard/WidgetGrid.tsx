@@ -1,14 +1,7 @@
 import React, { useCallback, useMemo } from "react";
-import { View, Text, Pressable } from "react-native";
+import { View, Text, Pressable, FlatList } from "react-native";
 import * as Haptics from "expo-haptics";
-import DraggableFlatList, {
-  type RenderItemParams,
-} from "react-native-draggable-flatlist";
-// Workaround: current typings for DraggableFlatList in this workspace
-// are incompatible with our usage (some props like `dragEnabled`
-// are not present). Cast to `any` for the JSX to keep runtime
-// behavior while TypeScript stays happy.
-const DraggableFlatListAny: any = DraggableFlatList as any;
+import DraggableFlatList from "react-native-draggable-flatlist";
 import type { EdgeInsets } from "react-native-safe-area-context";
 import { LayoutGrid } from "lucide-react-native";
 import { DashboardHeader } from "./DashboardHeader";
@@ -25,6 +18,12 @@ import type {
   WidgetType,
 } from "@/types/dashboard";
 import type { UserProfile } from "@/types";
+
+// Workaround: current typings for DraggableFlatList in this workspace
+// are incompatible with our usage (some props like `dragEnabled`
+// are not present). Cast to `any` for the JSX to keep runtime
+// behavior while TypeScript stays happy.
+const DraggableFlatListAny: any = DraggableFlatList as any;
 
 interface WidgetGridProps {
   config: DashboardConfig;
@@ -54,6 +53,7 @@ export function WidgetGrid({
   onOpenCustomize,
 }: WidgetGridProps) {
   const colors = useThemeStore((s) => s.colors);
+  const canDrag = true;
 
   const enabledWidgets = useMemo(
     () => config.widgets.filter((w) => w.enabled),
@@ -123,6 +123,7 @@ export function WidgetGrid({
           item={rowItem}
           staggerIndex={index}
           isEditMode={false}
+          canDrag={false}
           onRemove={handleRemoveWidget}
         />
       );
@@ -130,13 +131,13 @@ export function WidgetGrid({
     [normalRenderMap, handleRemoveWidget],
   );
 
-  // ─── Edit mode: every widget is a full-width, independently draggable row ────
+  // ─── Edit mode: every widget is a full-width row ──────────────────────────────
   const renderEditItem = useCallback(
     (params: any) => {
       const { item, drag, isActive } = params as {
         item: WidgetConfig;
-        drag: () => void;
-        isActive: boolean;
+        drag?: () => void;
+        isActive?: boolean;
       };
       const index = enabledWidgets.findIndex((w) => w.id === item.id);
       return (
@@ -144,13 +145,14 @@ export function WidgetGrid({
           item={{ kind: "full", id: item.id, widget: item }}
           staggerIndex={index}
           isEditMode
-          isActive={isActive}
-          drag={drag}
+          canDrag={canDrag}
+          isActive={Boolean(isActive)}
+          drag={drag ?? (() => {})}
           onRemove={handleRemoveWidget}
         />
       );
     },
-    [enabledWidgets, handleRemoveWidget],
+    [enabledWidgets, handleRemoveWidget, canDrag],
   );
 
   const renderItem = isEditMode ? renderEditItem : (renderNormalItem as any);
@@ -202,27 +204,68 @@ export function WidgetGrid({
     </View>
   );
 
+  const ListEmpty = (
+    <View
+      style={{
+        paddingVertical: spacing.xl,
+        alignItems: "center",
+        gap: spacing.xs,
+      }}
+    >
+      <Text
+        style={{
+          color: colors.mutedForeground,
+          fontSize: typography.small.fontSize,
+          textAlign: "center",
+        }}
+      >
+        Nenhum widget ativo no momento
+      </Text>
+      <Text
+        style={{
+          color: colors.muted,
+          fontSize: typography.caption.fontSize,
+          textAlign: "center",
+        }}
+      >
+        Usa Personalizar Dashboard para ativar widgets
+      </Text>
+    </View>
+  );
+
+  const commonListProps = {
+    data: enabledWidgets,
+    keyExtractor: keyExtractor as any,
+    showsVerticalScrollIndicator: false,
+    style: { flex: 1 },
+    ListHeaderComponent: ListHeader,
+    ListFooterComponent: ListFooter,
+    ListEmptyComponent: ListEmpty,
+    keyboardShouldPersistTaps: "handled" as const,
+    contentContainerStyle: {
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.xs,
+      paddingBottom: insets.bottom + (isEditMode ? 124 : 100),
+      flexGrow: 1,
+    },
+  };
+
+  if (!isEditMode) {
+    return <FlatList {...commonListProps} renderItem={renderItem as any} />;
+  }
+
   return (
     <DraggableFlatListAny
-      data={enabledWidgets}
-      keyExtractor={keyExtractor as any}
+      {...commonListProps}
       renderItem={renderItem as any}
-      dragEnabled={isEditMode}
+      dragEnabled
       activationDistance={10}
-      showsVerticalScrollIndicator={false}
-      style={{ flex: 1 }}
       onDragBegin={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
       onDragEnd={({ data }: { data: WidgetConfig[] }) => {
         // data is WidgetConfig[] — rebuild full list (including disabled widgets)
         const rebuilt = rebuildFullList(data, config.widgets);
         onReorder(rebuilt);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      }}
-      ListHeaderComponent={ListHeader}
-      ListFooterComponent={ListFooter}
-      contentContainerStyle={{
-        paddingHorizontal: spacing.md,
-        paddingBottom: insets.bottom + 100,
       }}
     />
   );

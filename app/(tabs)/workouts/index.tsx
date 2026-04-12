@@ -308,7 +308,7 @@ export default function WorkoutsScreen() {
       return todayWorkout.sections
         .slice()
         .sort((a, b) => a.order - b.order)
-        .map((section) => {
+        .map((section, sectionIndex) => {
           const exercises = section.blocks
             .filter((b) => b.type === "exercise" && b.exercise_id)
             .sort((a, b) => a.order - b.order)
@@ -320,14 +320,14 @@ export default function WorkoutsScreen() {
               muscleGroups: b.primary_muscles ?? [],
               prescription: formatBlockPrescription(b),
             }));
-          const key =
+          const baseKey =
             section.type === "warmup"
               ? "warmup"
               : section.type === "cooldown"
                 ? "cooldown"
                 : "workout";
           return {
-            key: key as SessionSectionKey,
+            key: `${baseKey}-${sectionIndex}` as SessionSectionKey,
             title: section.name,
             subtitle:
               exercises.length > 0
@@ -1211,16 +1211,17 @@ export default function WorkoutsScreen() {
             </Text>
 
             <View style={{ gap: 10, marginBottom: 20 }}>
-              {sections.map((section) => {
-                const open = openSections[section.key];
+              {sections.map((section, sectionIndex) => {
+                const baseKey = section.key.split("-")[0] as SessionSectionKey;
+                const open = openSections[baseKey];
                 const sectionTheme = isDark
-                  ? (SECTION_COLORS_DARK[section.key] ??
+                  ? (SECTION_COLORS_DARK[baseKey] ??
                     SECTION_COLORS_DARK.workout)
-                  : (SECTION_COLORS[section.key] ?? SECTION_COLORS.workout);
+                  : (SECTION_COLORS[baseKey] ?? SECTION_COLORS.workout);
 
                 return (
                   <View
-                    key={section.key}
+                    key={`section-${sectionIndex}`}
                     style={{
                       borderRadius: 16,
                       borderWidth: 1,
@@ -1230,7 +1231,7 @@ export default function WorkoutsScreen() {
                   >
                     {/* Section header */}
                     <Pressable
-                      onPress={() => toggleSection(section.key)}
+                      onPress={() => toggleSection(baseKey)}
                       style={{
                         flexDirection: "row",
                         alignItems: "center",
@@ -1247,13 +1248,13 @@ export default function WorkoutsScreen() {
                           gap: 8,
                         }}
                       >
-                        {section.key === "warmup" && (
+                        {baseKey === "warmup" && (
                           <Flame size={15} color={sectionTheme.label} />
                         )}
-                        {section.key === "workout" && (
+                        {baseKey === "workout" && (
                           <Dumbbell size={15} color={sectionTheme.label} />
                         )}
-                        {section.key === "cooldown" && (
+                        {baseKey === "cooldown" && (
                           <Timer size={15} color={sectionTheme.label} />
                         )}
                         <Text
