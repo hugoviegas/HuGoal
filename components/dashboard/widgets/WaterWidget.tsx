@@ -9,6 +9,7 @@ import { useNutritionStore } from "@/stores/nutrition.store";
 import { spacing } from "@/constants/spacing";
 import { typography } from "@/constants/typography";
 import { radius } from "@/constants/radius";
+import { withOpacity } from "@/lib/color";
 
 const DAILY_GOAL_L = 2;
 
@@ -25,7 +26,12 @@ export function WaterWidget({ staggerIndex = 0 }: WaterWidgetProps) {
 
   return (
     <Animated.View entering={FadeInDown.delay(staggerIndex * 60).duration(350)}>
-      <GlassCard style={{ minHeight: 162, backgroundColor: waterColor + "10" }}>
+      <GlassCard
+        style={{
+          minHeight: 162,
+          backgroundColor: withOpacity(waterColor, 0.06),
+        }}
+      >
         <View style={{ alignItems: "center", gap: spacing.sm }}>
           {/* Label */}
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
@@ -67,8 +73,8 @@ export function WaterWidget({ staggerIndex = 0 }: WaterWidgetProps) {
                   paddingVertical: 6,
                   borderRadius: radius.sm,
                   backgroundColor: pressed
-                    ? waterColor + "30"
-                    : waterColor + "18",
+                    ? withOpacity(waterColor, 0.22)
+                    : withOpacity(waterColor, 0.12),
                   alignItems: "center",
                 })}
               >

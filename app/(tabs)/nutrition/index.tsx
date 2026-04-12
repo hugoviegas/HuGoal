@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { View, Text, ScrollView } from "react-native";
+import { useIsFocused } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { format } from "date-fns";
@@ -48,6 +49,7 @@ const MEAL_TYPES: MealType[] = [
 export default function NutritionScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const isFocused = useIsFocused();
   const user = useAuthStore((s) => s.user);
   const profile = useAuthStore((s) => s.profile);
   const showToast = useToastStore((s) => s.show);
@@ -249,35 +251,37 @@ export default function NutritionScreen() {
       </ScrollView>
 
       {/* Floating action menu */}
-      <FloatingActionMenu
-        options={[
-          {
-            label: "Log Food",
-            onPress: () => router.push("/nutrition/log"),
-            icon: <PencilLine size={18} color="#fff" />,
-          },
-          {
-            label: "Diet Plan",
-            onPress: () => router.push("/nutrition/plan"),
-            icon: <Sparkles size={18} color="#fff" />,
-          },
-          {
-            label: "AI Debug",
-            onPress: () => router.push("/nutrition/ai-debug"),
-            icon: <Bug size={18} color="#fff" />,
-          },
-          {
-            label: "History",
-            onPress: () => router.push("/nutrition/history"),
-            icon: <History size={18} color="#fff" />,
-          },
-          {
-            label: "My Foods",
-            onPress: () => router.push("/nutrition/library"),
-            icon: <BookOpen size={18} color="#fff" />,
-          },
-        ]}
-      />
+      {isFocused && (
+        <FloatingActionMenu
+          options={[
+            {
+              label: "Log Food",
+              onPress: () => router.push("/nutrition/log"),
+              icon: <PencilLine size={18} color="#fff" />,
+            },
+            {
+              label: "Diet Plan",
+              onPress: () => router.push("/nutrition/plan"),
+              icon: <Sparkles size={18} color="#fff" />,
+            },
+            {
+              label: "AI Debug",
+              onPress: () => router.push("/nutrition/ai-debug"),
+              icon: <Bug size={18} color="#fff" />,
+            },
+            {
+              label: "History",
+              onPress: () => router.push("/nutrition/history"),
+              icon: <History size={18} color="#fff" />,
+            },
+            {
+              label: "My Foods",
+              onPress: () => router.push("/nutrition/library"),
+              icon: <BookOpen size={18} color="#fff" />,
+            },
+          ]}
+        />
+      )}
     </View>
   );
 }

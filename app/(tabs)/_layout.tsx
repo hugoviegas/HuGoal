@@ -42,7 +42,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="workouts" options={{ href: "/workouts" }} />
       <Tabs.Screen name="nutrition" />
       <Tabs.Screen name="community" />
-      <Tabs.Screen name="profile" />
+      <Tabs.Screen name="profile" options={{ href: null }} />
     </Tabs>
   );
 }

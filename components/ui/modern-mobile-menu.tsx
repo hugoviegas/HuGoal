@@ -3,6 +3,7 @@ import { View, Pressable, Platform, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 import { useThemeStore } from "@/stores/theme.store";
+import { withOpacity } from "@/lib/color";
 import { useNavigationStore } from "@/stores/navigation.store";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import {
@@ -10,7 +11,6 @@ import {
   Dumbbell,
   Utensils,
   Users,
-  UserCircle,
 } from "lucide-react-native";
 import Animated, {
   useAnimatedStyle,
@@ -35,7 +35,6 @@ const TAB_ICONS: Record<string, IconComponentType> = {
   workouts: Dumbbell,
   nutrition: Utensils,
   community: Users,
-  profile: UserCircle,
 };
 
 const TAB_LABELS: Record<string, string> = {
@@ -43,11 +42,13 @@ const TAB_LABELS: Record<string, string> = {
   workouts: "Workouts",
   nutrition: "Nutrition",
   community: "Community",
-  profile: "Profile",
 };
+
+const CORE_TABS = new Set(["dashboard", "workouts", "nutrition", "community"]);
 
 export function ModernMobileMenu({
   state,
+  descriptors,
   navigation,
   accentColor,
 }: ModernMobileMenuProps) {
@@ -66,15 +67,27 @@ export function ModernMobileMenu({
     opacityAnim.value = withTiming(navbarVisible ? 1 : 0, { duration: 250 });
   }, [navbarVisible, opacityAnim, slideAnim]);
 
+  const visibleRoutes = state.routes.filter((route) => {
+    const options = descriptors[route.key]?.options;
+    const href = (options as { href?: string | null } | undefined)?.href;
+    const routeBase = route.name.toLowerCase().split("/")[0];
+    return href !== null && CORE_TABS.has(routeBase);
+  });
+
+  const activeRouteKey = state.routes[state.index]?.key;
+  const activeVisibleIndex = Math.max(
+    0,
+    visibleRoutes.findIndex((route) => route.key === activeRouteKey),
+  );
+
   useEffect(() => {
-    indicatorIndex.value = withTiming(state.index, { duration: 220 });
-  }, [indicatorIndex, state.index]);
+    indicatorIndex.value = withTiming(activeVisibleIndex, { duration: 220 });
+  }, [activeVisibleIndex, indicatorIndex]);
 
   const handleItemPress = (
     route: BottomTabBarProps["state"]["routes"][number],
-    index: number,
   ) => {
-    const isFocused = state.index === index;
+    const isFocused = activeRouteKey === route.key;
     const event = navigation.emit({
       type: "tabPress",
       target: route.key,
@@ -105,10 +118,12 @@ export function ModernMobileMenu({
     0,
     containerWidth - containerPaddingHorizontal * 2,
   );
-  const tabWidth = contentWidth > 0 ? contentWidth / state.routes.length : 0;
-  const indicatorWidth = tabWidth > 0 ? Math.max(28, tabWidth - 12) : 0;
+  const tabCount = Math.max(1, visibleRoutes.length);
+  const normalizedTabWidth = contentWidth > 0 ? contentWidth / tabCount : 0;
+  const indicatorWidth =
+    normalizedTabWidth > 0 ? Math.max(28, normalizedTabWidth - 12) : 0;
   const indicatorLeftBase =
-    containerPaddingHorizontal + (tabWidth - indicatorWidth) / 2;
+    containerPaddingHorizontal + (normalizedTabWidth - indicatorWidth) / 2;
 
   const containerStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: slideAnim.value }],
@@ -116,7 +131,7 @@ export function ModernMobileMenu({
   }));
 
   const indicatorStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: indicatorIndex.value * tabWidth }],
+    transform: [{ translateX: indicatorIndex.value * normalizedTabWidth }],
   }));
 
   if (!navbarVisible) {
@@ -158,7 +173,7 @@ export function ModernMobileMenu({
               top: containerPaddingVertical,
               bottom: containerPaddingVertical,
               borderRadius: 16,
-              backgroundColor: `${activeColor}12`,
+              backgroundColor: withOpacity(activeColor, 0.07),
               width: indicatorWidth,
               pointerEvents: "none",
             },
@@ -167,8 +182,8 @@ export function ModernMobileMenu({
         />
       )}
 
-      {state.routes.map((route, index) => {
-        const isFocused = state.index === index;
+      {visibleRoutes.map((route, index) => {
+        const isFocused = activeRouteKey === route.key;
         const routeName = route.name.toLowerCase();
         const routeBase = routeName.split("/")[0];
         const label = TAB_LABELS[routeBase] ?? routeBase;
@@ -178,7 +193,7 @@ export function ModernMobileMenu({
         return (
           <Pressable
             key={route.key}
-            onPress={() => handleItemPress(route, index)}
+            onPress={() => handleItemPress(route)}
             onLongPress={() => handleItemLongPress(route)}
             accessibilityRole="button"
             accessibilityState={isFocused ? { selected: true } : {}}
@@ -213,7 +228,15 @@ export function ModernMobileMenu({
             {menuContent}
           </BlurView>
         ) : (
-          <View style={styles.surfaceClip}>{menuContent}</View>
+          // Android: opaque background instead of blur — avoids semi-transparent rendering issues
+          <View
+            style={[
+              styles.surfaceClip,
+              { backgroundColor: colors.card },
+            ]}
+          >
+            {menuContent}
+          </View>
         )}
       </View>
     </Animated.View>

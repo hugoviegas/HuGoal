@@ -9,6 +9,7 @@ import { useCommunityStore } from "@/stores/community.store";
 import { spacing } from "@/constants/spacing";
 import { typography } from "@/constants/typography";
 import { radius } from "@/constants/radius";
+import { withOpacity } from "@/lib/color";
 
 interface CommunityWidgetProps {
   staggerIndex?: number;
@@ -84,13 +85,13 @@ export function CommunityWidget({ staggerIndex = 0 }: CommunityWidgetProps) {
                   paddingVertical: spacing.xs,
                   borderRadius: radius.full,
                   backgroundColor: pressed
-                    ? colors.primary + "CC"
+                    ? withOpacity(colors.primary, 0.8)
                     : colors.primary,
                 })}
               >
                 <Text
                   style={{
-                    color: "#fff",
+                    color: colors.primaryForeground,
                     fontSize: typography.small.fontSize,
                     fontWeight: "600",
                   }}
@@ -115,7 +116,7 @@ export function CommunityWidget({ staggerIndex = 0 }: CommunityWidgetProps) {
                     borderRadius: radius.md,
                     backgroundColor: pressed
                       ? colors.surface
-                      : colors.card + "80",
+                      : withOpacity(colors.card, 0.5),
                     borderWidth: 1,
                     borderColor: colors.cardBorder,
                   })}
@@ -125,7 +126,7 @@ export function CommunityWidget({ staggerIndex = 0 }: CommunityWidgetProps) {
                       width: 40,
                       height: 40,
                       borderRadius: radius.md,
-                      backgroundColor: colors.primary + "20",
+                      backgroundColor: withOpacity(colors.primary, 0.12),
                       alignItems: "center",
                       justifyContent: "center",
                     }}
@@ -162,7 +163,7 @@ export function CommunityWidget({ staggerIndex = 0 }: CommunityWidgetProps) {
                         paddingHorizontal: spacing.sm,
                         paddingVertical: 4,
                         borderRadius: radius.full,
-                        backgroundColor: colors.accent + "20",
+                        backgroundColor: withOpacity(colors.accent, 0.12),
                         minWidth: 68,
                         justifyContent: "center",
                       }}
@@ -184,7 +185,7 @@ export function CommunityWidget({ staggerIndex = 0 }: CommunityWidgetProps) {
                         paddingHorizontal: spacing.sm,
                         paddingVertical: 4,
                         borderRadius: radius.full,
-                        backgroundColor: colors.primary + "20",
+                        backgroundColor: withOpacity(colors.primary, 0.12),
                       }}
                     >
                       <Text

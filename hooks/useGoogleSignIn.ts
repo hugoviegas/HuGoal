@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import * as Google from "expo-auth-session/providers/google";
 import * as AuthSession from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
@@ -41,13 +41,15 @@ export function useGoogleSignIn() {
 
   const redirectUri = AuthSession.makeRedirectUri();
 
-  if (process.env.NODE_ENV !== "production") {
-    // Log exact redirect URI used by the app so you can add it to Google Cloud Console
-    // Remove this log if you don't want it in dev output.
-    // Example value: https://auth.expo.io/@hviegas/betteru
-    // eslint-disable-next-line no-console
-    console.log("[useGoogleSignIn] redirectUri:", redirectUri);
-  }
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "production") {
+      // Log exact redirect URI used by the app so you can add it to Google Cloud Console
+      // Remove this log if you don't want it in dev output.
+      // Example value: https://auth.expo.io/@hviegas/betteru
+      // eslint-disable-next-line no-console
+      console.log("[useGoogleSignIn] redirectUri:", redirectUri);
+    }
+  }, [redirectUri]);
 
   const [request, _response, promptAsync] = Google.useIdTokenAuthRequest({
     scopes: ["openid", "profile", "email"],

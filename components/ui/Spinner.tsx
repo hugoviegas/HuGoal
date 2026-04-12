@@ -33,7 +33,7 @@ export function Spinner({ size = "md", color }: MorphingSpinnerProps) {
         Animated.timing(rotateAnim, {
           toValue: 1,
           duration: 3000,
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
       ]),
     );
@@ -43,27 +43,27 @@ export function Spinner({ size = "md", color }: MorphingSpinnerProps) {
         Animated.timing(scaleAnim, {
           toValue: 0.9,
           duration: 600,
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
         Animated.timing(scaleAnim, {
           toValue: 1.1,
           duration: 600,
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
         Animated.timing(scaleAnim, {
           toValue: 0.85,
           duration: 600,
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
         Animated.timing(scaleAnim, {
           toValue: 1.05,
           duration: 600,
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
         Animated.timing(scaleAnim, {
           toValue: 1,
           duration: 600,
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
       ]),
     );

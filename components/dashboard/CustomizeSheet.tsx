@@ -1,5 +1,11 @@
 import React from "react";
-import { View, Text, ScrollView, useWindowDimensions } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  useWindowDimensions,
+  Pressable,
+} from "react-native";
 import { ResponsiveModal } from "@/components/ui/ResponsiveModal";
 import { Toggle } from "@/components/ui/Toggle";
 import { WIDGET_META } from "@/constants/dashboard";
@@ -7,13 +13,19 @@ import { useThemeStore } from "@/stores/theme.store";
 import { spacing } from "@/constants/spacing";
 import { typography } from "@/constants/typography";
 import { radius } from "@/constants/radius";
-import type { DashboardConfig, WidgetType } from "@/types/dashboard";
+import { withOpacity } from "@/lib/color";
+import type {
+  DashboardConfig,
+  WidgetSize,
+  WidgetType,
+} from "@/types/dashboard";
 
 interface CustomizeSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   config: DashboardConfig;
   onToggle: (type: WidgetType, enabled: boolean) => void;
+  onResize: (type: WidgetType, size: WidgetSize) => void;
   uid: string;
 }
 
@@ -33,6 +45,7 @@ export function CustomizeSheet({
   onOpenChange,
   config,
   onToggle,
+  onResize,
 }: CustomizeSheetProps) {
   const { height } = useWindowDimensions();
   const colors = useThemeStore((s) => s.colors);
@@ -81,6 +94,9 @@ export function CustomizeSheet({
             {WIDGET_ORDER.map((type) => {
               const meta = WIDGET_META[type];
               const enabled = isEnabled(type);
+              const currentSize = config.widgets.find(
+                (w) => w.type === type,
+              )?.size;
 
               return (
                 <View
@@ -93,11 +109,11 @@ export function CustomizeSheet({
                     paddingHorizontal: spacing.md,
                     borderRadius: radius.md,
                     backgroundColor: enabled
-                      ? colors.primary + "0A"
+                      ? withOpacity(colors.primary, 0.08)
                       : "transparent",
                     borderWidth: 1,
                     borderColor: enabled
-                      ? colors.primary + "30"
+                      ? withOpacity(colors.primary, 0.2)
                       : colors.cardBorder,
                   }}
                 >
@@ -120,11 +136,61 @@ export function CustomizeSheet({
                       {meta.description}
                     </Text>
                   </View>
-                  <Toggle
-                    checked={enabled}
-                    onCheckedChange={(val) => onToggle(type, val)}
-                    size="sm"
-                  />
+                  <View style={{ alignItems: "flex-end", gap: spacing.xs }}>
+                    <Toggle
+                      checked={enabled}
+                      onCheckedChange={(val) => onToggle(type, val)}
+                      size="sm"
+                    />
+
+                    {meta.canResize && enabled && (
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          gap: 6,
+                          padding: 3,
+                          borderRadius: radius.full,
+                          backgroundColor: colors.surface,
+                          borderWidth: 1,
+                          borderColor: colors.cardBorder,
+                        }}
+                      >
+                        {(["compact", "full"] as WidgetSize[]).map((size) => {
+                          const selected = currentSize === size;
+                          return (
+                            <Pressable
+                              key={size}
+                              onPress={() => onResize(type, size)}
+                              style={({ pressed }) => ({
+                                minWidth: 56,
+                                paddingHorizontal: spacing.sm,
+                                paddingVertical: 6,
+                                borderRadius: radius.full,
+                                backgroundColor: selected
+                                  ? colors.primary
+                                  : pressed
+                                    ? colors.surface
+                                    : "transparent",
+                                alignItems: "center",
+                              })}
+                            >
+                              <Text
+                                style={{
+                                  color: selected
+                                    ? colors.primaryForeground
+                                    : colors.mutedForeground,
+                                  fontSize: typography.caption.fontSize,
+                                  fontWeight: "700",
+                                }}
+                              >
+                                {size === "compact" ? "Pequeno" : "Largo"}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    )}
+                  </View>
                 </View>
               );
             })}

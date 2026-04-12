@@ -1,6 +1,62 @@
-# BetterU - Regras Operacionais para Claude Code
+# HuGoal - Project Context & Operational Rules for Claude Code
 
-Estas regras sao obrigatorias para qualquer agente Claude Code atuando neste repositorio.
+**Comprehensive guide for Claude Code agents working on HuGoal (Expo/React Native fitness app)**
+
+Estas regras e contexto sao obrigatorios para qualquer agente Claude Code atuando neste repositorio.
+
+---
+
+## Project Overview
+
+**Project Name:** HuGoal  
+**Type:** Fitness & Wellness Mobile App  
+**Platform:** Expo/React Native (iOS + Android)  
+**Status:** Active Development
+
+### Agent System
+**Available Agents:** 8 production-ready agents (global installation via claude-code-expo-system)
+- **Grand Architect** - Meta-orchestrator for complex features
+- **Design Token Guardian** - Design system consistency
+- **A11y Enforcer** - WCAG 2.2 compliance
+- **Test Generator** - Auto-generate tests
+- **Performance Enforcer** - Performance budgets
+- **Performance Prophet** - Predictive analysis
+- **Security Specialist** - Security audits
+
+**Slash Commands:** `/feature`, `/review`, `/test`, `/debug`, `/optimize`, `/security`, `/upgrade`, `/refactor`, `/deploy`, `/analyze`
+
+---
+
+## Tech Stack (Current)
+
+### Core
+- **Expo SDK:** 53.0.0+
+- **React Native:** 0.76.0+  
+- **TypeScript:** 5.3.3+
+- **Node:** 20.x+
+
+### State Management
+- **Zustand** (navigation, auth, UI state)
+- **Async Storage** (persistence)
+- **Secure Store** (sensitive data)
+
+### Navigation
+- **Expo Router** (file-based routing)
+
+### Styling
+- **NativeWind/Tailwind** (utility-first)
+- **React Native StyleSheet** (custom styles)
+
+### Key Libraries
+- **expo-auth-session** (OAuth/Google Sign-In)
+- **expo-web-browser** (external auth flows)
+- **lucide-react-native** (icons - NO EMOJI)
+- **date-fns** (date handling)
+- **expo-haptics** (feedback)
+
+---
+
+## Operational Rules (Mandatory)
 
 ## 1) Fontes de Verdade
 
@@ -148,3 +204,137 @@ Melhor evoluir com consistencia do que acelerar com retrabalho e regressao.
 - Nao usar emoji no sistema (UI, labels, placeholders, toasts, titulos, botoes).
 - Sempre usar icones SVG via biblioteca nativa (preferencia: `lucide-react-native`).
 - Se nao houver icone pronto, criar componente SVG dedicado em vez de fallback com emoji.
+
+---
+
+## HuGoal-Specific Architecture
+
+### Folder Structure
+```
+app/                           # Expo Router (file-based)
+├── (tabs)/                    # Tab navigation layout
+├── onboarding/                # Onboarding flow (pre-login)
+├── auth/                      # Auth screens
+└── _layout.tsx                # Root layout
+
+components/
+├── ui/                        # Design system components
+├── dashboard/                 # Dashboard-specific components
+├── nutrition/                 # Nutrition feature components
+├── workouts/                  # Workout feature components
+└── community/                 # Community/social components
+
+stores/                        # Zustand state management
+hooks/                         # Custom React hooks
+constants/                     # App constants
+lib/                           # Utilities & helpers
+types/                         # TypeScript definitions
+```
+
+### Key Technologies
+- **State:** Zustand stores (navigation, auth, dashboard)
+- **Navigation:** Expo Router + Zustand navigation store
+- **Auth:** Google Sign-In + Expo SecureStore
+- **Icons:** lucide-react-native (NO EMOJI)
+- **Styling:** NativeWind + React Native StyleSheet
+
+---
+
+## Authentication & Routes
+
+### Google Sign-In Flow
+- **Hook:** `useGoogleSignIn.ts` 
+- **Secure Storage:** Expo SecureStore for tokens
+- **Route Guards:** Auth store checks in layout
+- **Logout:** Clear session + return to onboarding
+
+### Protected Routes Pattern
+- Check `useAuthStore()` on app startup
+- Navigate to onboarding if not authenticated
+- Guarded by layout `_layout.tsx` and route guards
+
+---
+
+## Design System (Building)
+
+### Token Location
+`constants/colors.ts` - centralizing design tokens
+
+### Component Standards (Section 3)
+Every component must have:
+- Visual props: `variant`, `size`, `tone`, `fullWidth`
+- State props: `value`, `defaultValue`, `disabled`, `loading`, `open`
+- Style props: `className`, `contentClassName`
+- Dark mode support
+- Error/loading/empty states (data components)
+
+### Widget System
+- **Location:** `components/dashboard/widgets/`
+- **Pattern:** Customizable, draggable, configurable
+- **State:** Persisted in `dashboard.store.ts`
+
+---
+
+## Testing & Quality
+
+### Test Locations
+- Unit tests: `__tests__/[Name].test.tsx` (same folder)
+- Integration: `__tests__/integration/`
+- E2E: `e2e/` (Detox)
+
+### Running Tests
+```bash
+npm test                      # Unit tests
+npm run test:coverage         # Coverage report
+npm run test:e2e             # E2E tests
+```
+
+### Code Quality
+```bash
+npm run lint                  # ESLint fix
+npm run type-check           # TypeScript
+/review                       # Agent code review
+```
+
+---
+
+## Performance & Security
+
+### Performance Targets
+- Dashboard load: <1s
+- Screen transitions: 60fps
+- List scrolling: Smooth (getItemLayout, memo)
+- Memory: <50MB idle, <+10MB per screen
+
+### Security
+- ✅ SecureStore for sensitive data
+- ✅ HTTPS for APIs
+- ✅ Input validation
+- ✅ Never log PII/tokens
+- ✅ `.env.local` for secrets (not committed)
+
+---
+
+## Accessibility (WCAG AA)
+
+- ✅ accessibilityLabel + accessibilityRole on all interactions
+- ✅ Touch target minimum: 44x44 points
+- ✅ Color contrast: 4.5:1
+- ✅ Screen reader support
+- ✅ Use `/analyze` to audit screens
+
+---
+
+## Anti-Patterns (Don't Do This)
+
+❌ Hardcoded colors → Use `constants/colors.ts`  
+❌ Duplicate widgets → Check `components/dashboard/widgets/`  
+❌ AsyncStorage for tokens → Use SecureStore  
+❌ Unguarded routes → Use auth store checks  
+❌ Emoji in UI → Use lucide-react-native  
+❌ Missing types → Define interfaces for all props  
+
+---
+
+**Last Updated:** 2025-04-12  
+**Agent System:** claude-code-reactnative-expo-agent-system v1.0

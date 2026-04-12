@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react";
-import { Text, View } from "react-native";
+import React, { useMemo } from "react";
+import { ScrollView, Text, View } from "react-native";
 import Body, { ExtendedBodyPart } from "react-native-body-highlighter";
 import { useThemeStore } from "@/stores/theme.store";
 import { cn } from "@/lib/utils";
@@ -33,20 +33,10 @@ export function MuscleMap({
   onMuscleSelect,
 }: MuscleMapProps) {
   const isDark = useThemeStore((state) => state.isDark);
-  const [contentWidth, setContentWidth] = useState(0);
 
-  const availableContentWidth = Math.max(0, contentWidth - 16);
-  const widthPerBody =
-    availableContentWidth > 0
-      ? Math.floor((availableContentWidth - 10) / 2)
-      : Math.round(bodySize * 0.44);
-  const itemWidth = Math.max(
-    108,
-    Math.min(widthPerBody, Math.round(bodySize * 0.48)),
-  );
-  const itemHeight = Math.round(Math.min(bodySize, itemWidth * 2.2));
-  const adaptiveScale =
-    contentWidth > 0 && contentWidth < 370 ? Math.min(scale, 0.9) : scale;
+  // Render each body taller and narrower: width ~45% of bodySize, height = full bodySize
+  const itemWidth = Math.round(bodySize * 0.45);
+  const itemHeight = Math.round(bodySize * 1.0);
 
   // Convert muscle names to slugs for the library
   const primarySlugs = useMemo(
@@ -99,12 +89,6 @@ export function MuscleMap({
 
   return (
     <View
-      onLayout={(event) => {
-        const measured = Math.round(event.nativeEvent.layout.width);
-        if (measured !== contentWidth) {
-          setContentWidth(measured);
-        }
-      }}
       className={cn(
         "rounded-xl border p-2",
         isDark
@@ -125,23 +109,29 @@ export function MuscleMap({
         </Text>
       ) : null}
 
-      {/* Front/back side by side with adaptive sizing to avoid clipping */}
-      <View
-        className="mt-2 flex-row items-start justify-center"
-        style={{ gap: 10, paddingVertical: 4, paddingHorizontal: 8 }}
+      {/* Front/back side by side in square viewports */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        // Center the two smaller body views so both are visible simultaneously
+        contentContainerStyle={{
+          gap: 4,
+          paddingVertical: 4,
+          justifyContent: "center",
+          alignItems: "center",
+          paddingHorizontal: 8,
+        }}
+        className="mt-2"
       >
         <View
           className="items-center justify-center overflow-hidden rounded-xl"
           style={{ width: itemWidth, height: itemHeight }}
         >
-          <Text className="mb-1 text-[11px] font-semibold text-gray-500 dark:text-gray-400">
-            Front
-          </Text>
           <Body
             data={bodyData}
             gender={gender}
             side="front"
-            scale={adaptiveScale}
+            scale={scale}
             colors={colors}
             border={borderColor}
             defaultFill={defaultFill}
@@ -154,14 +144,11 @@ export function MuscleMap({
           className="items-center justify-center overflow-hidden rounded-xl"
           style={{ width: itemWidth, height: itemHeight }}
         >
-          <Text className="mb-1 text-[11px] font-semibold text-gray-500 dark:text-gray-400">
-            Back
-          </Text>
           <Body
             data={bodyData}
             gender={gender}
             side="back"
-            scale={adaptiveScale}
+            scale={scale}
             colors={colors}
             border={borderColor}
             defaultFill={defaultFill}
@@ -170,7 +157,7 @@ export function MuscleMap({
             onBodyPartPress={handleMusclePress}
           />
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }

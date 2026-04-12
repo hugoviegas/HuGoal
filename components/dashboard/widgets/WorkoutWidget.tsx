@@ -24,6 +24,7 @@ import { listWorkoutTemplates } from "@/lib/firestore/workouts";
 import { spacing } from "@/constants/spacing";
 import { typography } from "@/constants/typography";
 import { radius } from "@/constants/radius";
+import { withOpacity } from "@/lib/color";
 import type { WorkoutTemplateRecord } from "@/lib/firestore/workouts";
 
 interface WorkoutWidgetProps {
@@ -34,7 +35,7 @@ function ShimmerBar({ width }: { width: string }) {
   const shimmer = useSharedValue(0);
   useEffect(() => {
     shimmer.value = withRepeat(withTiming(1, { duration: 900 }), -1, true);
-  }, []);
+  }, [shimmer]);
   const animStyle = useAnimatedStyle(() => ({
     opacity: interpolate(shimmer.value, [0, 1], [0.3, 0.7]),
   }));
@@ -216,24 +217,32 @@ export function WorkoutWidget({ staggerIndex = 0 }: WorkoutWidgetProps) {
                 onPress={() => router.push("/(tabs)/workouts")}
                 style={({ pressed }) => ({
                   marginTop: spacing.xs,
+                  width: "100%",
+                  alignSelf: "stretch",
+                  minHeight: 48,
+                  paddingHorizontal: spacing.md,
                   paddingVertical: spacing.sm,
                   borderRadius: radius.md,
                   backgroundColor: pressed
-                    ? colors.accent + "CC"
+                    ? withOpacity(colors.accent, 0.85)
                     : colors.accent,
                   flexDirection: "row",
+                  flexWrap: "nowrap",
                   alignItems: "center",
                   justifyContent: "center",
                   gap: spacing.xs,
+                  overflow: "hidden",
                 })}
               >
-                <RotateCcw size={16} color="#fff" />
+                <RotateCcw size={16} color={colors.accentForeground} />
                 <Text
                   style={{
-                    color: "#fff",
+                    color: colors.accentForeground,
                     fontSize: typography.bodyMedium.fontSize,
                     fontWeight: "700",
+                    flexShrink: 1,
                   }}
+                  numberOfLines={1}
                 >
                   Retomar Treino
                 </Text>
@@ -267,24 +276,32 @@ export function WorkoutWidget({ staggerIndex = 0 }: WorkoutWidgetProps) {
                 onPress={() => router.push("/(tabs)/workouts")}
                 style={({ pressed }) => ({
                   marginTop: spacing.xs,
+                  width: "100%",
+                  alignSelf: "stretch",
+                  minHeight: 48,
+                  paddingHorizontal: spacing.md,
                   paddingVertical: spacing.sm,
                   borderRadius: radius.md,
                   backgroundColor: pressed
-                    ? colors.primary + "CC"
+                    ? withOpacity(colors.primary, 0.85)
                     : colors.primary,
                   flexDirection: "row",
+                  flexWrap: "nowrap",
                   alignItems: "center",
                   justifyContent: "center",
                   gap: spacing.xs,
+                  overflow: "hidden",
                 })}
               >
-                <Play size={16} color="#fff" />
+                <Play size={16} color={colors.primaryForeground} />
                 <Text
                   style={{
-                    color: "#fff",
+                    color: colors.primaryForeground,
                     fontSize: typography.bodyMedium.fontSize,
                     fontWeight: "700",
+                    flexShrink: 1,
                   }}
+                  numberOfLines={1}
                 >
                   Iniciar Treino
                 </Text>

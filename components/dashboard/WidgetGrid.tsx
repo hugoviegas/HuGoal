@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from "react";
-import { View, Text, Pressable, FlatList } from "react-native";
+import { View, Text, Pressable, FlatList, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import DraggableFlatList from "react-native-draggable-flatlist";
 import type { EdgeInsets } from "react-native-safe-area-context";
@@ -53,7 +53,9 @@ export function WidgetGrid({
   onOpenCustomize,
 }: WidgetGridProps) {
   const colors = useThemeStore((s) => s.colors);
-  const canDrag = true;
+  // Native drag flow has been unstable on some Android devices.
+  // Keep edit mode reliable on mobile and use drag only on web.
+  const canDrag = Platform.OS === "web";
 
   const enabledWidgets = useMemo(
     () => config.widgets.filter((w) => w.enabled),
@@ -245,13 +247,17 @@ export function WidgetGrid({
     contentContainerStyle: {
       paddingHorizontal: spacing.md,
       paddingTop: spacing.xs,
-      paddingBottom: insets.bottom + (isEditMode ? 124 : 100),
+      paddingBottom: insets.bottom + (isEditMode ? 212 : 110),
       flexGrow: 1,
     },
   };
 
   if (!isEditMode) {
     return <FlatList {...commonListProps} renderItem={renderItem as any} />;
+  }
+
+  if (!canDrag) {
+    return <FlatList {...commonListProps} renderItem={renderEditItem as any} />;
   }
 
   return (

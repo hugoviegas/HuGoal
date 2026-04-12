@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Pressable } from "react-native";
 import Animated, {
   useSharedValue,
@@ -12,6 +12,7 @@ import { useThemeStore } from "@/stores/theme.store";
 import { spacing } from "@/constants/spacing";
 import { radius } from "@/constants/radius";
 import { duration } from "@/constants/animation";
+import { withOpacity } from "@/lib/color";
 import type { WidgetConfig } from "@/types/dashboard";
 
 interface WidgetCellProps {
@@ -38,9 +39,12 @@ export function WidgetCell({
   const colors = useThemeStore((s) => s.colors);
 
   const scaleValue = useSharedValue(1);
-  scaleValue.value = withTiming(isActive ? 1.03 : 1, {
-    duration: duration.fast,
-  });
+
+  useEffect(() => {
+    scaleValue.value = withTiming(isActive ? 1.03 : 1, {
+      duration: duration.fast,
+    });
+  }, [isActive, scaleValue]);
 
   const animatedContainerStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scaleValue.value }],
@@ -74,12 +78,14 @@ export function WidgetCell({
               position: "absolute",
               top: spacing.xs,
               left: spacing.xs,
-              width: 28,
-              height: 28,
-              borderRadius: 14,
+              width: 32,
+              height: 32,
+              borderRadius: 16,
               backgroundColor: pressed
                 ? colors.destructive
-                : colors.destructive + "EE",
+                : withOpacity(colors.destructive, 0.92),
+              borderWidth: 1,
+              borderColor: withOpacity("#FFFFFF", 0.24),
               alignItems: "center",
               justifyContent: "center",
               zIndex: 10,
@@ -97,18 +103,20 @@ export function WidgetCell({
                 position: "absolute",
                 top: spacing.xs,
                 right: spacing.xs,
-                width: 28,
-                height: 28,
-                borderRadius: 14,
+                width: 32,
+                height: 32,
+                borderRadius: 16,
                 backgroundColor: pressed
-                  ? colors.foreground + "20"
-                  : colors.foreground + "10",
+                  ? withOpacity(colors.foreground, 0.22)
+                  : withOpacity(colors.foreground, 0.14),
+                borderWidth: 1,
+                borderColor: withOpacity(colors.cardBorder, 0.7),
                 alignItems: "center",
                 justifyContent: "center",
                 zIndex: 10,
               })}
             >
-              <GripVertical size={14} color={colors.mutedForeground} />
+              <GripVertical size={16} color={colors.mutedForeground} />
             </Pressable>
           )}
         </Animated.View>

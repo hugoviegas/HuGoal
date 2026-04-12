@@ -1,11 +1,14 @@
 import React from "react";
 import { View, Text, Pressable, useWindowDimensions } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
-import { Bell, LayoutGrid, Check } from "lucide-react-native";
+import { useRouter } from "expo-router";
+import { Settings2, LayoutGrid, Check } from "lucide-react-native";
 import { Avatar } from "@/components/ui/Avatar";
 import { useThemeStore } from "@/stores/theme.store";
 import { typography } from "@/constants/typography";
 import { spacing } from "@/constants/spacing";
+import { radius } from "@/constants/radius";
+import { withOpacity } from "@/lib/color";
 import type { UserProfile } from "@/types";
 
 interface DashboardHeaderProps {
@@ -49,8 +52,10 @@ export function DashboardHeader({
   isEditMode,
   onToggleEditMode,
 }: DashboardHeaderProps) {
+  const router = useRouter();
   const { width } = useWindowDimensions();
   const colors = useThemeStore((s) => s.colors);
+  const isDark = useThemeStore((s) => s.isDark);
   const firstName = profile?.name?.split(" ")[0] ?? "Atleta";
   const isCompact = width < 390;
 
@@ -69,12 +74,17 @@ export function DashboardHeader({
           gap: spacing.sm,
         }}
       >
-        <Avatar
-          uri={profile?.avatar_url}
-          name={profile?.name}
-          size="lg"
-          mode="view"
-        />
+        <Pressable
+          onPress={() => router.push("/(tabs)/profile")}
+          style={{ borderRadius: 999 }}
+        >
+          <Avatar
+            uri={profile?.avatar_url}
+            name={profile?.name}
+            size="lg"
+            mode="view"
+          />
+        </Pressable>
 
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
           <Text
@@ -108,23 +118,26 @@ export function DashboardHeader({
         >
           <View style={{ position: "relative" }}>
             <Pressable
+              onPress={() => router.push("/settings")}
               style={({ pressed }) => ({
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: pressed ? colors.surface : "transparent",
+                width: 36,
+                height: 36,
+                borderRadius: 11,
+                backgroundColor: pressed
+                  ? withOpacity(colors.foreground, isDark ? 0.12 : 0.08)
+                  : withOpacity(colors.foreground, isDark ? 0.06 : 0.04),
                 alignItems: "center",
                 justifyContent: "center",
               })}
             >
-              <Bell size={20} color={colors.mutedForeground} />
+              <Settings2 size={17} color={colors.mutedForeground} />
             </Pressable>
             {unreadCount > 0 && (
               <View
                 style={{
                   position: "absolute",
-                  top: 4,
-                  right: 4,
+                  top: -2,
+                  right: -2,
                   width: 16,
                   height: 16,
                   borderRadius: 8,
@@ -133,7 +146,7 @@ export function DashboardHeader({
                   justifyContent: "center",
                 }}
               >
-                <Text style={{ color: "#fff", fontSize: 9, fontWeight: "700" }}>
+                <Text style={{ color: colors.primaryForeground, fontSize: 9, fontWeight: "700" }}>
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </Text>
               </View>
@@ -144,31 +157,42 @@ export function DashboardHeader({
             onPress={onToggleEditMode}
             style={({ pressed }) => ({
               flexDirection: "row",
+              flexWrap: "nowrap",
               alignItems: "center",
-              gap: isCompact ? 0 : 4,
-              paddingHorizontal: isCompact ? 10 : spacing.sm,
-              paddingVertical: 7,
-              borderRadius: 20,
+              justifyContent: "center",
+              gap: 0,
+              paddingHorizontal: isCompact ? 12 : 14,
+              paddingVertical: 8,
+              borderRadius: radius.full,
               minHeight: 40,
+              minWidth: isCompact ? 44 : 104,
+              overflow: "hidden",
               backgroundColor: isEditMode
                 ? colors.primary
                 : pressed
                   ? colors.surface
                   : colors.secondary,
+              borderWidth: 1,
+              borderColor: isEditMode
+                ? withOpacity(colors.primary, 0.82)
+                : withOpacity(colors.cardBorder, 0.9),
             })}
           >
             {isEditMode ? (
-              <Check size={14} color="#fff" />
+              <Check size={14} color={colors.primaryForeground} />
             ) : (
               <LayoutGrid size={14} color={colors.mutedForeground} />
             )}
             {!isCompact && (
               <Text
                 style={{
-                  color: isEditMode ? "#fff" : colors.mutedForeground,
+                  color: isEditMode ? colors.primaryForeground : colors.mutedForeground,
                   fontSize: 12,
                   fontWeight: "600",
+                  marginLeft: 4,
+                  flexShrink: 1,
                 }}
+                numberOfLines={1}
               >
                 {isEditMode ? "Concluir" : "Editar"}
               </Text>

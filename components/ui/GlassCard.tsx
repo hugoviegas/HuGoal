@@ -16,6 +16,23 @@ export function GlassCard({
 }: GlassCardProps) {
   const isDark = useThemeStore((s) => s.isDark);
   const colors = useThemeStore((s) => s.colors);
+
+  if (Platform.OS === "android") {
+    // Android: use opaque card color — semi-transparent glassBg without blur
+    // renders poorly over dynamic content on Android
+    const androidStyle = {
+      backgroundColor: colors.card,
+      borderColor: colors.cardBorder,
+      elevation: 4,
+      shadowColor: "#000",
+    } as const;
+    return (
+      <View style={[styles.container, androidStyle, style]} {...props}>
+        {children}
+      </View>
+    );
+  }
+
   const baseCardStyle = {
     backgroundColor: colors.glassBg,
     borderColor: colors.glassBorder,
@@ -23,16 +40,7 @@ export function GlassCard({
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: isDark ? 0.3 : 0.12,
     shadowRadius: 12,
-    elevation: 6,
   } as const;
-
-  if (Platform.OS === "android") {
-    return (
-      <View style={[styles.container, baseCardStyle, style]} {...props}>
-        <SafeView>{children}</SafeView>
-      </View>
-    );
-  }
 
   return (
     <BlurView
@@ -50,7 +58,6 @@ const styles = StyleSheet.create({
   container: {
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.15)",
     overflow: "hidden",
     padding: 16,
   },

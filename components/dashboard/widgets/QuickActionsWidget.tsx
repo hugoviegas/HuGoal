@@ -8,6 +8,7 @@ import { useThemeStore } from "@/stores/theme.store";
 import { spacing } from "@/constants/spacing";
 import { typography } from "@/constants/typography";
 import { radius } from "@/constants/radius";
+import { withOpacity } from "@/lib/color";
 
 interface QuickActionsWidgetProps {
   staggerIndex?: number;
@@ -73,10 +74,10 @@ export function QuickActionsWidget({
                     paddingHorizontal: spacing.xs,
                     borderRadius: radius.md,
                     backgroundColor: pressed
-                      ? action.color + "30"
-                      : action.color + "15",
+                      ? withOpacity(action.color, 0.2)
+                      : withOpacity(action.color, 0.1),
                     borderWidth: 1,
-                    borderColor: action.color + "30",
+                    borderColor: withOpacity(action.color, 0.22),
                   })}
                 >
                   <Icon size={22} color={action.color} />

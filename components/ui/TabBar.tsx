@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { View, Pressable, Text, Animated, Platform } from "react-native";
+import { Pressable, Text, Animated, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 import { useThemeStore } from "@/stores/theme.store";
@@ -10,7 +10,6 @@ import {
   Dumbbell,
   Utensils,
   Users,
-  UserCircle,
 } from "lucide-react-native";
 
 const TAB_ICONS: Record<string, (color: string) => React.ReactNode> = {
@@ -18,7 +17,6 @@ const TAB_ICONS: Record<string, (color: string) => React.ReactNode> = {
   workouts: (color) => <Dumbbell size={22} color={color} />,
   nutrition: (color) => <Utensils size={22} color={color} />,
   community: (color) => <Users size={22} color={color} />,
-  profile: (color) => <UserCircle size={22} color={color} />,
 };
 
 const TAB_LABELS: Record<string, string> = {
@@ -26,8 +24,9 @@ const TAB_LABELS: Record<string, string> = {
   workouts: "Workouts",
   nutrition: "Nutrition",
   community: "Community",
-  profile: "Profile",
 };
+
+const CORE_TABS = new Set(["dashboard", "workouts", "nutrition", "community"]);
 
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
@@ -84,58 +83,63 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           borderRadius: 24,
         }}
       >
-        {state.routes.map((route, index) => {
-          const { options } = descriptors[route.key];
-          const isFocused = state.index === index;
-          const routeName = route.name.toLowerCase();
-          const routeBase = routeName.split("/")[0];
-          const color = isFocused ? colors.primary : colors.muted;
-          const label = TAB_LABELS[routeBase] ?? routeBase;
-          const icon = TAB_ICONS[routeBase]?.(color);
+        {state.routes
+          .filter((route) => {
+            const routeBase = route.name.toLowerCase().split("/")[0];
+            return CORE_TABS.has(routeBase);
+          })
+          .map((route) => {
+            const { options } = descriptors[route.key];
+            const isFocused = state.routes[state.index]?.key === route.key;
+            const routeName = route.name.toLowerCase();
+            const routeBase = routeName.split("/")[0];
+            const color = isFocused ? colors.primary : colors.muted;
+            const label = TAB_LABELS[routeBase] ?? routeBase;
+            const icon = TAB_ICONS[routeBase]?.(color);
 
-          const onPress = () => {
-            const event = navigation.emit({
-              type: "tabPress",
-              target: route.key,
-              canPreventDefault: true,
-            });
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name, route.params);
-            }
-          };
+            const onPress = () => {
+              const event = navigation.emit({
+                type: "tabPress",
+                target: route.key,
+                canPreventDefault: true,
+              });
+              if (!isFocused && !event.defaultPrevented) {
+                navigation.navigate(route.name, route.params);
+              }
+            };
 
-          const onLongPress = () => {
-            navigation.emit({ type: "tabLongPress", target: route.key });
-          };
+            const onLongPress = () => {
+              navigation.emit({ type: "tabLongPress", target: route.key });
+            };
 
-          return (
-            <Pressable
-              key={route.key}
-              accessibilityRole="button"
-              accessibilityState={isFocused ? { selected: true } : {}}
-              accessibilityLabel={options.tabBarAccessibilityLabel}
-              onPress={onPress}
-              onLongPress={onLongPress}
-              style={{
-                flex: 1,
-                alignItems: "center",
-                paddingVertical: 4,
-                gap: 3,
-              }}
-            >
-              {icon}
-              <Text
+            return (
+              <Pressable
+                key={route.key}
+                accessibilityRole="button"
+                accessibilityState={isFocused ? { selected: true } : {}}
+                accessibilityLabel={options.tabBarAccessibilityLabel}
+                onPress={onPress}
+                onLongPress={onLongPress}
                 style={{
-                  fontSize: 10,
-                  fontWeight: isFocused ? "600" : "400",
-                  color,
+                  flex: 1,
+                  alignItems: "center",
+                  paddingVertical: 4,
+                  gap: 3,
                 }}
               >
-                {label}
-              </Text>
-            </Pressable>
-          );
-        })}
+                {icon}
+                <Text
+                  style={{
+                    fontSize: 10,
+                    fontWeight: isFocused ? "600" : "400",
+                    color,
+                  }}
+                >
+                  {label}
+                </Text>
+              </Pressable>
+            );
+          })}
       </BlurView>
     </Animated.View>
   );

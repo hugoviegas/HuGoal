@@ -17,7 +17,9 @@
       "Bash(ls -la /c/Users/hugov/OneDrive/Documentos/GitHub/BetterU/app/\\\\\\(tabs\\\\\\)/nutrition/)",
       "Bash(npx tsc:*)",
       "Bash(node -e \"const r = require\\(''''./node_modules/expo-router/build/routes-manifest.js''''\\); console.log\\(Object.keys\\(r\\)\\)\")",
-      "Bash(ls \"/c/Users/hugov/OneDrive/Documentos/GitHub/BetterU/app/\\(tabs\\)/\")"
+      "Bash(ls \"/c/Users/hugov/OneDrive/Documentos/GitHub/BetterU/app/\\(tabs\\)/\")",
+      "Bash(git clone:*)",
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -Command \"& './install-agents.ps1' -Scope global\")"
     ]
   }
 }

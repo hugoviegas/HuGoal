@@ -8,6 +8,7 @@ import { useAuthStore } from "@/stores/auth.store";
 import { spacing } from "@/constants/spacing";
 import { typography } from "@/constants/typography";
 import { radius } from "@/constants/radius";
+import { withOpacity } from "@/lib/color";
 
 const XP_PER_LEVEL = 500;
 
@@ -26,7 +27,10 @@ export function XPWidget({ staggerIndex = 0 }: XPWidgetProps) {
   return (
     <Animated.View entering={FadeInDown.delay(staggerIndex * 60).duration(350)}>
       <GlassCard
-        style={{ minHeight: 162, backgroundColor: colors.accent + "14" }}
+        style={{
+          minHeight: 162,
+          backgroundColor: withOpacity(colors.accent, 0.08),
+        }}
       >
         <View
           style={{
@@ -51,7 +55,7 @@ export function XPWidget({ staggerIndex = 0 }: XPWidgetProps) {
               paddingHorizontal: spacing.sm,
               paddingVertical: 3,
               borderRadius: radius.full,
-              backgroundColor: colors.accent + "25",
+              backgroundColor: withOpacity(colors.accent, 0.14),
             }}
           >
             <Text

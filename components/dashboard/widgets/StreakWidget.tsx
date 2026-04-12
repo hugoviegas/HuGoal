@@ -7,6 +7,7 @@ import { useThemeStore } from "@/stores/theme.store";
 import { useAuthStore } from "@/stores/auth.store";
 import { spacing } from "@/constants/spacing";
 import { typography } from "@/constants/typography";
+import { withOpacity } from "@/lib/color";
 
 interface StreakWidgetProps {
   staggerIndex?: number;
@@ -22,7 +23,10 @@ export function StreakWidget({ staggerIndex = 0 }: StreakWidgetProps) {
   return (
     <Animated.View entering={FadeInDown.delay(staggerIndex * 60).duration(350)}>
       <GlassCard
-        style={{ minHeight: 162, backgroundColor: colors.primary + "14" }}
+        style={{
+          minHeight: 162,
+          backgroundColor: withOpacity(colors.primary, 0.08),
+        }}
       >
         <View
           style={{

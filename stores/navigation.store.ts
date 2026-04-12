@@ -1,12 +1,7 @@
 import { create } from "zustand";
 
 export type AuthFlow = "welcome" | "login" | "signup";
-export type TabName =
-  | "dashboard"
-  | "workouts"
-  | "nutrition"
-  | "community"
-  | "profile";
+export type TabName = "dashboard" | "workouts" | "nutrition" | "community";
 
 interface NavigationState {
   currentTab: TabName;
