@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import * as Haptics from "expo-haptics";
 import {
+  BackHandler,
   View,
   FlatList,
   Text,
@@ -905,7 +906,37 @@ export default function CreateWorkoutScreen() {
     return sections;
   };
 
-  const handleSaveDraft = async () => {
+  const navigateAwayFromCreate = useCallback(() => {
+    if (typeof router.canGoBack === "function" && router.canGoBack()) {
+      router.back();
+      return;
+    }
+    router.replace("/workouts");
+  }, [router]);
+
+  const isDraftConfirmStep = step === "exercises" || step === "preview";
+
+  const handleRequestClose = useCallback(() => {
+    if (isDraftConfirmStep) {
+      setShowSaveDraftConfirm(true);
+      return;
+    }
+    navigateAwayFromCreate();
+  }, [isDraftConfirmStep, navigateAwayFromCreate]);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        handleRequestClose();
+        return true;
+      },
+    );
+
+    return () => subscription.remove();
+  }, [handleRequestClose]);
+
+  const saveWorkout = async (mode: "draft" | "final") => {
     if (!draft.name.trim()) {
       showToast("Workout name is required", "error");
       return;
@@ -947,8 +978,8 @@ export default function CreateWorkoutScreen() {
         cover_image_url: coverImageUrl,
         difficulty: draft.difficulty,
         is_ai_generated: draft.workflowType === "ai",
-        is_active: draft.isActive,
-        is_public: draft.isPublic,
+        is_active: mode === "final" ? true : false,
+        is_public: mode === "draft" ? false : draft.isPublic,
         location: draft.location || undefined,
         source_prompt:
           workflowType === "ai" ? aiPrompt.trim() || undefined : undefined,
@@ -962,8 +993,11 @@ export default function CreateWorkoutScreen() {
       });
 
       showToast({
-        title: "Workout saved",
-        message: `${savedWorkout.name} was saved to your workouts.`,
+        title: mode === "draft" ? "Draft saved" : "Workout saved",
+        message:
+          mode === "draft"
+            ? `${savedWorkout.name} was saved as private draft.`
+            : `${savedWorkout.name} was saved to your workouts.`,
         type: "success",
       });
       router.replace(`/workouts/${savedWorkout.id}`);
@@ -979,6 +1013,14 @@ export default function CreateWorkoutScreen() {
     }
   };
 
+  const handleSaveDraft = async () => {
+    await saveWorkout("draft");
+  };
+
+  const handleSaveFinalWorkout = async () => {
+    await saveWorkout("final");
+  };
+
   // Helper: Render header with close button
   const renderHeader = (title: string) => (
     <View className="flex-row items-center justify-between px-4 pt-3 pb-2 border-b border-light-border dark:border-dark-border">
@@ -986,7 +1028,7 @@ export default function CreateWorkoutScreen() {
         {title}
       </Text>
       <Pressable
-        onPress={() => setShowSaveDraftConfirm(true)}
+        onPress={handleRequestClose}
         className="h-8 w-8 rounded-full items-center justify-center active:opacity-70"
       >
         <X size={20} color={colors.foreground} />
@@ -2302,7 +2344,7 @@ export default function CreateWorkoutScreen() {
               variant="secondary"
               onPress={() => {
                 setShowSaveDraftConfirm(false);
-                router.back();
+                navigateAwayFromCreate();
               }}
             >
               Discard
@@ -2436,7 +2478,7 @@ export default function CreateWorkoutScreen() {
           labels={STEP_LABELS}
           showActions
           onBack={() => setStep("exercises")}
-          onContinue={handleSaveDraft}
+          onContinue={handleSaveFinalWorkout}
           finishLabel="Save Workout"
         />
       </View>

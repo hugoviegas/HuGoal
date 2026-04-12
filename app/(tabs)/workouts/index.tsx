@@ -21,12 +21,15 @@ import {
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
+  Check,
   ChevronDown,
   ChevronRight,
   Clock3,
   Compass,
   Dumbbell,
   Flame,
+  Globe,
+  MapPin,
   Play,
   Settings2,
   SlidersHorizontal,
@@ -59,6 +62,17 @@ interface SessionSection {
 }
 
 const WEEK_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+const SECTION_COLORS: Record<string, { bg: string; border: string; label: string }> = {
+  warmup: { bg: "#fef9c3", border: "#fde047", label: "#a16207" },
+  workout: { bg: "#dbeafe", border: "#93c5fd", label: "#1d4ed8" },
+  cooldown: { bg: "#dcfce7", border: "#86efac", label: "#15803d" },
+};
+const SECTION_COLORS_DARK: Record<string, { bg: string; border: string; label: string }> = {
+  warmup: { bg: "#422006", border: "#78350f", label: "#fde68a" },
+  workout: { bg: "#1e3a5f", border: "#1e40af", label: "#93c5fd" },
+  cooldown: { bg: "#14532d", border: "#166534", label: "#86efac" },
+};
 
 function toMondayFirstIndex(date: Date): number {
   const weekday = date.getDay();
@@ -541,59 +555,63 @@ export default function WorkoutsScreen() {
 
   const renderExerciseRow = (
     exercise: WorkoutTemplateRecord["exercises"][number],
-    sectionKey: SessionSectionKey,
     index: number,
+    isLast: boolean,
   ) => {
     const imageUri = catalogById[exercise.id]?.remote_image_urls?.[0] ?? null;
-    const roundLabel =
-      sectionKey === "workout"
-        ? `Round ${Math.floor(index / 3) + 1}`
-        : undefined;
-
     return (
       <Pressable
-        key={`${sectionKey}-${exercise.id}-${index}`}
+        key={`${exercise.id}-${index}`}
         onPress={() => handleOpenExerciseDetail(exercise.id)}
-        className={cn(
-          "rounded-2xl p-3 mb-3",
-          isDark ? "bg-dark-surface" : "bg-light-surface",
-        )}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          paddingHorizontal: 12,
+          paddingVertical: 11,
+          borderBottomWidth: isLast ? 0 : 1,
+          borderBottomColor: isDark ? "#1f2937" : "#f3f4f6",
+        }}
       >
-        {roundLabel ? (
-          <Text className="text-xs font-semibold text-primary-500 mb-2">
-            {roundLabel}
-          </Text>
-        ) : null}
-
-        <View className="flex-row items-center gap-3">
-          <View className="h-16 w-16 rounded-xl overflow-hidden bg-black/10">
-            {imageUri ? (
-              <Image
-                source={{ uri: imageUri }}
-                className="h-full w-full"
-                resizeMode="cover"
-              />
-            ) : (
-              <View className="h-full w-full items-center justify-center">
-                <Dumbbell size={20} color={colors.muted} />
-              </View>
-            )}
-          </View>
-
-          <View className="flex-1">
-            <Text
-              className="text-base font-semibold text-gray-900 dark:text-gray-100"
-              numberOfLines={1}
-            >
-              {exercise.name}
-            </Text>
-            <Text className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              {exercise.sets} sets x {exercise.reps} reps
-            </Text>
-          </View>
-
-          <ChevronRight size={18} color={colors.muted} />
+        <View
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 10,
+            overflow: "hidden",
+            backgroundColor: isDark ? "#2a2d3a" : "#e2e8f0",
+          }}
+        >
+          {imageUri ? (
+            <Image
+              source={{ uri: imageUri }}
+              style={{ width: "100%", height: "100%" }}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+              <Dumbbell size={16} color={colors.muted} />
+            </View>
+          )}
         </View>
+        <View style={{ flex: 1 }}>
+          <Text
+            style={{
+              fontSize: 14,
+              fontWeight: "600",
+              color: isDark ? "#f3f4f6" : "#111827",
+            }}
+            numberOfLines={1}
+          >
+            {exercise.name}
+          </Text>
+          <Text style={{ fontSize: 12, color: isDark ? "#9ca3af" : "#6b7280", marginTop: 2 }}>
+            {exercise.sets > 1
+              ? `${exercise.sets} sets × ${exercise.reps || "—"}`
+              : exercise.reps || "—"}
+          </Text>
+        </View>
+        <ChevronRight size={14} color={colors.muted} />
       </Pressable>
     );
   };
@@ -601,42 +619,68 @@ export default function WorkoutsScreen() {
   return (
     <View className="flex-1 bg-light-bg dark:bg-dark-bg">
       <View
-        className={cn(
-          "px-4 border-b",
-          isDark
-            ? "bg-dark-surface border-dark-border"
-            : "bg-light-surface border-light-border",
-        )}
-        style={{ paddingTop: insets.top + 8, paddingBottom: 12 }}
+        style={{
+          paddingTop: insets.top + 8,
+          paddingBottom: 14,
+          paddingHorizontal: 16,
+          borderBottomWidth: 1,
+          backgroundColor: isDark ? "#13161e" : "#ffffff",
+          borderBottomColor: isDark ? "#1f2937" : "#f1f5f9",
+        }}
       >
-        <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center gap-2">
-            <Flame size={16} color={colors.primary} />
-            <Text className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-              Streak {profile?.streak_current ?? 0}d
-            </Text>
+        {/* ── Top row: streak + settings ── */}
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 11,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: isDark ? "rgba(14,165,176,0.15)" : "rgba(14,165,176,0.1)",
+              }}
+            >
+              <Flame size={17} color={colors.primary} />
+            </View>
+            <View>
+              <Text
+                style={{
+                  fontSize: 17,
+                  fontWeight: "700",
+                  lineHeight: 20,
+                  color: isDark ? "#f3f4f6" : "#111827",
+                }}
+              >
+                {profile?.streak_current ?? 0}d
+              </Text>
+              <Text style={{ fontSize: 11, color: isDark ? "#6b7280" : "#9ca3af", lineHeight: 14 }}>
+                streak
+              </Text>
+            </View>
           </View>
 
           <Pressable
             onPress={() => router.push("/settings")}
-            className={cn(
-              "h-10 w-10 rounded-xl items-center justify-center",
-              isDark ? "bg-dark-surface" : "bg-light-card",
-            )}
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 11,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+            }}
           >
-            <Settings2 size={18} color={isDark ? "#d1d5db" : "#334155"} />
+            <Settings2 size={17} color={isDark ? "#9ca3af" : "#64748b"} />
           </Pressable>
         </View>
 
+        {/* ── Week pager ── */}
         <FlatList
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
           decelerationRate="fast"
-          className={cn(
-            "mt-3 rounded-2xl",
-            isDark ? "bg-dark-surface" : "bg-light-card",
-          )}
           data={weekPages}
           initialScrollIndex={1}
           getItemLayout={(_, index) => ({
@@ -658,62 +702,71 @@ export default function WorkoutsScreen() {
               animated: false,
             });
           }}
-          renderItem={({ item: days, index: pageIndex }) => {
-            return (
-              <View
-                key={`week-${pageIndex}`}
-                className="px-2 py-2"
-                style={{ width: weekPagerWidth }}
-              >
-                <View className="flex-row items-center justify-between">
-                  {days.map((item) => {
-                    return (
-                      <View
-                        key={item.key}
-                        className="items-center gap-1.5 min-w-[44px]"
+          renderItem={({ item: days, index: pageIndex }) => (
+            <View
+              key={`week-${pageIndex}`}
+              style={{ width: weekPagerWidth, paddingHorizontal: 2 }}
+            >
+              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                {days.map((item) => {
+                  const filled = item.isDone;
+                  const today = item.isToday;
+                  return (
+                    <View key={item.key} style={{ alignItems: "center", minWidth: 40 }}>
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          fontWeight: "500",
+                          marginBottom: 5,
+                          color: today
+                            ? colors.primary
+                            : isDark ? "#4b5563" : "#9ca3af",
+                        }}
                       >
-                        <View
-                          className={cn(
-                            "h-2.5 w-2.5 rounded-full",
-                            item.isDone ? "bg-primary-500" : "bg-gray-500/25",
-                          )}
-                        />
-                        <View
-                          className={cn(
-                            "px-2 py-1 rounded-full",
-                            item.isToday
-                              ? "bg-primary-500/20"
-                              : "bg-transparent",
-                          )}
-                        >
+                        {item.dayLabel}
+                      </Text>
+                      <View
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 16,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          backgroundColor: filled
+                            ? today
+                              ? colors.primary
+                              : isDark ? "rgba(14,165,176,0.22)" : "rgba(14,165,176,0.14)"
+                            : today
+                              ? "transparent"
+                              : "transparent",
+                          borderWidth: today && !filled ? 1.5 : 0,
+                          borderColor: colors.primary,
+                        }}
+                      >
+                        {filled && today ? (
+                          <Check size={14} color="#fff" strokeWidth={3} />
+                        ) : (
                           <Text
-                            className={cn(
-                              "text-[11px] text-center",
-                              item.isToday
-                                ? "text-primary-500 font-semibold"
-                                : "text-gray-500 dark:text-gray-400",
-                            )}
-                          >
-                            {item.dayLabel}
-                          </Text>
-                          <Text
-                            className={cn(
-                              "text-sm text-center",
-                              item.isToday
-                                ? "text-gray-900 dark:text-gray-100 font-semibold"
-                                : "text-gray-700 dark:text-gray-300",
-                            )}
+                            style={{
+                              fontSize: 13,
+                              fontWeight: today || filled ? "700" : "400",
+                              color: filled
+                                ? today ? "#fff" : colors.primary
+                                : today
+                                  ? colors.primary
+                                  : isDark ? "#d1d5db" : "#374151",
+                            }}
                           >
                             {item.dayNumber}
                           </Text>
-                        </View>
+                        )}
                       </View>
-                    );
-                  })}
-                </View>
+                    </View>
+                  );
+                })}
               </View>
-            );
-          }}
+            </View>
+          )}
         />
       </View>
 
@@ -722,7 +775,7 @@ export default function WorkoutsScreen() {
         contentContainerStyle={{
           paddingTop: 14,
           paddingHorizontal: 16,
-          paddingBottom: insets.bottom + 140,
+          paddingBottom: insets.bottom + 160,
         }}
       >
         {loading ? (
@@ -777,118 +830,247 @@ export default function WorkoutsScreen() {
           </View>
         ) : (
           <>
+            {/* ── Today workout hero card ── */}
             <View
-              className={cn(
-                "rounded-3xl p-4 mb-5",
-                isDark ? "bg-dark-surface" : "bg-light-card",
-              )}
+              style={{
+                borderRadius: 24,
+                overflow: "hidden",
+                marginBottom: 20,
+                backgroundColor: isDark ? "#1c1f27" : "#ffffff",
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: isDark ? 0.32 : 0.07,
+                shadowRadius: 16,
+                elevation: 6,
+              }}
             >
-              <View className="flex-row items-start justify-between mb-3">
-                <View className="flex-1 pr-3">
-                  <Text className="text-xs uppercase tracking-widest text-primary-500 font-semibold">
-                    Today plan
-                  </Text>
-                  <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {todayWorkout.name}
-                  </Text>
-                </View>
-
-                <Button
-                  size="sm"
-                  onPress={() => {
-                    if (!sessionTargetId) return;
-                    router.push(`/workouts/${sessionTargetId}/run`);
-                  }}
-                >
-                  <View className="flex-row items-center gap-1">
-                    <Play size={14} color="#ffffff" />
-                    <Text className="text-white font-semibold">
-                      {startActionLabel}
-                    </Text>
-                  </View>
-                </Button>
-              </View>
-
+              {/* Cover image */}
               <View
-                className="rounded-2xl overflow-hidden bg-black/10 mb-4"
-                style={{ aspectRatio: 16 / 9 }}
+                style={{
+                  aspectRatio: 16 / 9,
+                  backgroundColor: isDark ? "#22252f" : "#f1f5f9",
+                }}
               >
                 {heroImageUri ? (
                   <Image
                     source={{ uri: heroImageUri }}
-                    className="h-full w-full"
+                    style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
                     resizeMode="cover"
                   />
                 ) : (
-                  <View className="h-full w-full items-center justify-center">
-                    <Dumbbell size={28} color={colors.muted} />
+                  <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+                    <Dumbbell size={36} color={colors.muted} strokeWidth={1.5} />
                   </View>
                 )}
+
+                {/* Today badge — top left */}
+                <View style={{ position: "absolute", top: 12, left: 12 }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 5,
+                      paddingHorizontal: 10,
+                      paddingVertical: 5,
+                      borderRadius: 20,
+                      backgroundColor: colors.primary,
+                    }}
+                  >
+                    <Flame size={11} color="#fff" />
+                    <Text style={{ fontSize: 11, fontWeight: "700", color: "#fff" }}>
+                      Today
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Active/Inactive badge — top right */}
+                <View style={{ position: "absolute", top: 12, right: 12 }}>
+                  <View
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 5,
+                      borderRadius: 20,
+                      backgroundColor: todayWorkout.is_active
+                        ? "rgba(5,150,105,0.85)"
+                        : "rgba(100,116,139,0.75)",
+                    }}
+                  >
+                    <Text style={{ fontSize: 11, fontWeight: "700", color: "#fff" }}>
+                      {todayWorkout.is_active ? "Active" : "Inactive"}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Name overlay — bottom */}
+                <View
+                  style={{
+                    position: "absolute",
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: 72,
+                    backgroundColor: "rgba(0,0,0,0.48)",
+                    justifyContent: "flex-end",
+                    paddingHorizontal: 16,
+                    paddingBottom: 12,
+                  }}
+                >
+                  <Text
+                    style={{ fontSize: 20, fontWeight: "700", color: "#fff" }}
+                    numberOfLines={1}
+                  >
+                    {todayWorkout.name}
+                  </Text>
+                </View>
               </View>
 
-              <View className="flex-row flex-wrap gap-3">
-                <View className="flex-row items-center gap-1.5">
-                  <Clock3 size={15} color={colors.muted} />
-                  <Text className="text-sm text-gray-700 dark:text-gray-300">
-                    {todayWorkout.estimated_duration_minutes} min
-                  </Text>
+              {/* Stats + action row */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  paddingHorizontal: 16,
+                  paddingVertical: 14,
+                }}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                    <Clock3 size={13} color={colors.muted} />
+                    <Text style={{ fontSize: 13, color: isDark ? "#d1d5db" : "#374151" }}>
+                      {todayWorkout.estimated_duration_minutes} min
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                    <Dumbbell size={13} color={colors.muted} />
+                    <Text style={{ fontSize: 13, color: isDark ? "#d1d5db" : "#374151" }}>
+                      {sections.reduce((acc, s) => acc + s.exercises.length, 0)} exercises
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                    <Target size={13} color={colors.muted} />
+                    <Text style={{ fontSize: 13, color: isDark ? "#d1d5db" : "#374151" }}>
+                      {focusArea}
+                    </Text>
+                  </View>
+                  {todayWorkout.location ? (
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                      <MapPin size={13} color={colors.muted} />
+                      <Text style={{ fontSize: 13, color: isDark ? "#d1d5db" : "#374151" }}>
+                        {todayWorkout.location}
+                      </Text>
+                    </View>
+                  ) : null}
+                  {todayWorkout.is_public ? (
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                      <Globe size={13} color={colors.muted} />
+                      <Text style={{ fontSize: 13, color: isDark ? "#d1d5db" : "#374151" }}>
+                        Public
+                      </Text>
+                    </View>
+                  ) : null}
                 </View>
 
-                <View className="flex-row items-center gap-1.5">
-                  <Target size={15} color={colors.muted} />
-                  <Text className="text-sm text-gray-700 dark:text-gray-300">
-                    {focusArea}
+                <Pressable
+                  onPress={() => router.push(`/workouts/${todayWorkout.id}`)}
+                  style={{ marginLeft: 8 }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: "600", color: colors.primary }}>
+                    Details
                   </Text>
-                </View>
-
-                <View className="flex-row items-center gap-1.5">
-                  <Dumbbell size={15} color={colors.muted} />
-                  <Text className="text-sm text-gray-700 dark:text-gray-300">
-                    {todayWorkout.exercises.length} exercises
-                  </Text>
-                </View>
+                </Pressable>
               </View>
             </View>
 
-            <View className="mb-5">
+            {/* ── Exercise plan ── */}
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: "700",
+                color: isDark ? "#f3f4f6" : "#111827",
+                marginBottom: 12,
+              }}
+            >
+              Exercise Plan
+            </Text>
+
+            <View style={{ gap: 10, marginBottom: 20 }}>
               {sections.map((section) => {
                 const open = openSections[section.key];
+                const sectionTheme = isDark
+                  ? (SECTION_COLORS_DARK[section.key] ?? SECTION_COLORS_DARK.workout)
+                  : (SECTION_COLORS[section.key] ?? SECTION_COLORS.workout);
+
                 return (
                   <View
                     key={section.key}
-                    className={cn(
-                      "rounded-2xl mb-3 overflow-hidden",
-                      isDark ? "bg-dark-surface" : "bg-light-card",
-                    )}
+                    style={{
+                      borderRadius: 16,
+                      borderWidth: 1,
+                      borderColor: sectionTheme.border,
+                      overflow: "hidden",
+                    }}
                   >
+                    {/* Section header */}
                     <Pressable
                       onPress={() => toggleSection(section.key)}
-                      className="px-4 py-3 flex-row items-center justify-between"
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        paddingHorizontal: 14,
+                        paddingVertical: 12,
+                        backgroundColor: sectionTheme.bg,
+                      }}
                     >
-                      <View>
-                        <Text className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                        {section.key === "warmup" && <Flame size={15} color={sectionTheme.label} />}
+                        {section.key === "workout" && <Dumbbell size={15} color={sectionTheme.label} />}
+                        {section.key === "cooldown" && <Timer size={15} color={sectionTheme.label} />}
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            fontWeight: "700",
+                            color: sectionTheme.label,
+                            textTransform: "uppercase",
+                            letterSpacing: 0.7,
+                          }}
+                        >
                           {section.title}
                         </Text>
-                        <Text className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        <Text style={{ fontSize: 12, color: sectionTheme.label, opacity: 0.75 }}>
                           {section.subtitle}
                         </Text>
                       </View>
                       {open ? (
-                        <ChevronDown size={18} color={colors.muted} />
+                        <ChevronDown size={16} color={sectionTheme.label} />
                       ) : (
-                        <ChevronRight size={18} color={colors.muted} />
+                        <ChevronRight size={16} color={sectionTheme.label} />
                       )}
                     </Pressable>
 
+                    {/* Exercise rows */}
                     {open ? (
-                      <View className="px-3 pb-2">
+                      <View style={{ backgroundColor: isDark ? "#16181e" : "#ffffff" }}>
                         {section.exercises.length === 0 ? (
-                          <Text className="text-sm text-gray-500 dark:text-gray-400 px-1 pb-2">
-                            No items in this section.
+                          <Text
+                            style={{
+                              paddingHorizontal: 14,
+                              paddingVertical: 14,
+                              fontSize: 13,
+                              fontStyle: "italic",
+                              color: isDark ? "#6b7280" : "#9ca3af",
+                            }}
+                          >
+                            No exercises in this section
                           </Text>
                         ) : (
                           section.exercises.map((exercise, idx) =>
-                            renderExerciseRow(exercise, section.key, idx),
+                            renderExerciseRow(
+                              exercise,
+                              idx,
+                              idx === section.exercises.length - 1,
+                            ),
                           )
                         )}
                       </View>
@@ -952,22 +1134,17 @@ export default function WorkoutsScreen() {
                   <Pressable
                     onPress={() => router.push(`/workouts/${w.id}`)}
                     style={{
-                      width: 148,
-                      height: 116,
-                      borderRadius: 16,
+                      width: 158,
+                      height: 136,
+                      borderRadius: 18,
                       overflow: "hidden",
                     }}
                   >
+                    {/* Background */}
                     {thumbUri ? (
                       <Image
                         source={{ uri: thumbUri }}
-                        style={{
-                          position: "absolute",
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                        }}
+                        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
                         resizeMode="cover"
                       />
                     ) : (
@@ -978,66 +1155,73 @@ export default function WorkoutsScreen() {
                           left: 0,
                           right: 0,
                           bottom: 0,
-                          backgroundColor: diffColor + "22",
+                          backgroundColor: diffColor + "20",
                           alignItems: "center",
                           justifyContent: "center",
                         }}
                       >
-                        <Dumbbell
-                          size={28}
-                          color={diffColor}
-                          strokeWidth={1.5}
-                        />
+                        <Dumbbell size={28} color={diffColor} strokeWidth={1.5} />
                       </View>
                     )}
 
-                    {/* Bottom overlay */}
+                    {/* Bottom gradient overlay */}
                     <View
                       style={{
                         position: "absolute",
                         bottom: 0,
                         left: 0,
                         right: 0,
-                        height: 58,
-                        backgroundColor: "rgba(0,0,0,0.52)",
+                        height: 72,
+                        backgroundColor: "rgba(0,0,0,0.55)",
                         paddingHorizontal: 10,
-                        paddingBottom: 8,
+                        paddingBottom: 10,
                         justifyContent: "flex-end",
                       }}
                     >
                       <Text
-                        style={{
-                          fontSize: 12,
-                          fontWeight: "700",
-                          color: "#fff",
-                        }}
+                        style={{ fontSize: 12, fontWeight: "700", color: "#fff" }}
                         numberOfLines={1}
                       >
                         {w.name}
                       </Text>
-                      <Text
-                        style={{
-                          fontSize: 11,
-                          color: "rgba(255,255,255,0.7)",
-                          marginTop: 1,
-                        }}
-                      >
-                        {w.estimated_duration_minutes} min
-                      </Text>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 3 }}>
+                        <Text style={{ fontSize: 11, color: "rgba(255,255,255,0.65)" }}>
+                          {w.estimated_duration_minutes} min
+                        </Text>
+                        <View style={{ width: 2, height: 2, borderRadius: 1, backgroundColor: "rgba(255,255,255,0.4)" }} />
+                        <Text style={{ fontSize: 11, color: "rgba(255,255,255,0.65)" }}>
+                          {w.exercises.length} exs
+                        </Text>
+                      </View>
                     </View>
 
-                    {/* Active indicator dot */}
+                    {/* Active indicator badge — top left */}
                     <View
                       style={{
                         position: "absolute",
                         top: 8,
-                        right: 8,
-                        width: 8,
-                        height: 8,
-                        borderRadius: 4,
-                        backgroundColor: w.is_active ? "#34d399" : "#64748b",
+                        left: 8,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 4,
+                        paddingHorizontal: 7,
+                        paddingVertical: 3,
+                        borderRadius: 12,
+                        backgroundColor: w.is_active ? "rgba(5,150,105,0.85)" : "rgba(71,85,105,0.7)",
                       }}
-                    />
+                    >
+                      <View
+                        style={{
+                          width: 5,
+                          height: 5,
+                          borderRadius: 2.5,
+                          backgroundColor: "#fff",
+                        }}
+                      />
+                      <Text style={{ fontSize: 10, fontWeight: "700", color: "#fff" }}>
+                        {w.is_active ? "Active" : "Off"}
+                      </Text>
+                    </View>
                   </Pressable>
                 );
               }}
