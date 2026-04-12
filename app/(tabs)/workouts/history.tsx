@@ -1,431 +1,482 @@
-import React, { useState } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { ChevronRight, Clock3, Dumbbell } from "lucide-react-native";
+import {
+  BarChart2,
+  ChevronRight,
+  Clock3,
+  Dumbbell,
+  Flame,
+  Weight,
+} from "lucide-react-native";
 import { useThemeStore } from "@/stores/theme.store";
+import { useAuthStore } from "@/stores/auth.store";
 import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
+import {
+  listCompletedWorkoutSessions,
+  type CompletedWorkoutSessionRecord,
+} from "@/lib/firestore/workouts";
 
-interface WorkoutSession {
-  id: string;
-  workoutName: string;
-  date: Date;
-  duration: number; // seconds
-  exercises: number;
-  volume: number;
-  intensity: "light" | "moderate" | "high";
+// ─── Helpers ─────────────────────────────────────────────────────────────
+
+function formatDuration(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  if (mins === 0) return `${secs}s`;
+  return `${mins}m ${secs}s`;
 }
 
-// Mock data
-const MOCK_SESSIONS: WorkoutSession[] = [
-  {
-    id: "1",
-    workoutName: "Full Body Strength",
-    date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-    duration: 2847,
-    exercises: 3,
-    volume: 145.5,
-    intensity: "high",
-  },
-  {
-    id: "2",
-    workoutName: "Upper Body Focus",
-    date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-    duration: 1950,
-    exercises: 5,
-    volume: 128.0,
-    intensity: "moderate",
-  },
-  {
-    id: "3",
-    workoutName: "Cardio & Core",
-    date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-    duration: 1800,
-    exercises: 4,
-    volume: 0,
-    intensity: "light",
-  },
-  {
-    id: "4",
-    workoutName: "Full Body Strength",
-    date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-    duration: 2700,
-    exercises: 3,
-    volume: 142.5,
-    intensity: "high",
-  },
-  {
-    id: "5",
-    workoutName: "Leg Day",
-    date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-    duration: 2400,
-    exercises: 4,
-    volume: 235.0,
-    intensity: "high",
-  },
-];
+function relativeDate(isoString: string): string {
+  const date = new Date(isoString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays} days ago`;
+
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function groupByDate(
+  sessions: CompletedWorkoutSessionRecord[],
+): [string, CompletedWorkoutSessionRecord[]][] {
+  const map = new Map<string, CompletedWorkoutSessionRecord[]>();
+  for (const session of sessions) {
+    const key = session.date; // YYYY-MM-DD
+    const existing = map.get(key);
+    if (existing) {
+      existing.push(session);
+    } else {
+      map.set(key, [session]);
+    }
+  }
+  // Return sorted newest first
+  return [...map.entries()].sort(([a], [b]) => b.localeCompare(a));
+}
 
 type HistoryTab = "sessions" | "stats";
 
-const INTENSITY_COLORS = {
-  light: "success",
-  moderate: "secondary",
-  high: "destructive",
-} as const;
+// ─── Screen ───────────────────────────────────────────────────────────────
 
 export default function WorkoutHistoryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isDark, colors } = useThemeStore();
+  const user = useAuthStore((s) => s.user);
+
   const [activeTab, setActiveTab] = useState<HistoryTab>("sessions");
+  const [sessions, setSessions] = useState<CompletedWorkoutSessionRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const tabBarClearance = insets.bottom + 76;
 
-  const formatDate = (date: Date) => {
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) {
-      return "Today";
-    } else if (diffDays === 1) {
-      return "Yesterday";
-    } else if (diffDays < 7) {
-      return `${diffDays} days ago`;
+  const loadSessions = useCallback(async () => {
+    if (!user?.uid) {
+      setSessions([]);
+      setLoading(false);
+      return;
     }
+    setLoading(true);
+    setError(null);
+    try {
+      const records = await listCompletedWorkoutSessions(user.uid, 100);
+      setSessions(records);
+    } catch (err) {
+      console.error("[history] load failed", err);
+      setError("Could not load workout history.");
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.uid]);
 
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-  };
+  useEffect(() => {
+    void loadSessions();
+  }, [loadSessions]);
 
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}m ${secs}s`;
-  };
+  // ── Stats ──
+  const totalSessions = sessions.length;
+  const totalDurationSeconds = sessions.reduce((s, r) => s + r.duration_seconds, 0);
+  const totalVolume = sessions.reduce((s, r) => s + r.total_volume_kg, 0);
+  const totalSets = sessions.reduce((s, r) => s + r.total_sets, 0);
+  const avgDuration = totalSessions > 0 ? Math.round(totalDurationSeconds / totalSessions) : 0;
+  const thisWeekSessions = sessions.filter((s) => {
+    const diffDays =
+      (Date.now() - new Date(s.ended_at).getTime()) / (1000 * 60 * 60 * 24);
+    return diffDays <= 7;
+  }).length;
 
-  const groupedSessions = MOCK_SESSIONS.reduce(
-    (acc, session) => {
-      const date = session.date.toLocaleDateString();
-      if (!acc[date]) {
-        acc[date] = [];
-      }
-      acc[date].push(session);
-      return acc;
-    },
-    {} as Record<string, WorkoutSession[]>,
-  );
+  const frequencyMap = sessions.reduce<Record<string, number>>((acc, s) => {
+    acc[s.workout_name] = (acc[s.workout_name] ?? 0) + 1;
+    return acc;
+  }, {});
+  const topWorkouts = Object.entries(frequencyMap)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 5);
+  const maxFreq = topWorkouts[0]?.[1] ?? 1;
 
-  // Calculate stats
-  const totalSessions = MOCK_SESSIONS.length;
-  const totalDuration = MOCK_SESSIONS.reduce((sum, s) => sum + s.duration, 0);
-  const totalVolume = MOCK_SESSIONS.reduce((sum, s) => sum + s.volume, 0);
-  const avgDuration = Math.round(totalDuration / totalSessions);
-  const thisWeekSessions = MOCK_SESSIONS.filter(
-    (s) =>
-      (new Date().getTime() - s.date.getTime()) / (1000 * 60 * 60 * 24) <= 7,
-  ).length;
+  const grouped = groupByDate(sessions);
 
-  const workoutFrequency = {
-    "Full Body Strength": 2,
-    "Upper Body Focus": 1,
-    "Cardio & Core": 1,
-    "Leg Day": 1,
-  };
+  // ── Render ──
 
-  // Sessions Tab
-  if (activeTab === "sessions") {
+  if (loading) {
     return (
-      <View className={cn("flex-1", isDark ? "bg-dark-bg" : "bg-light-bg")}>
-        <ScrollView className="flex-1 p-4" showsVerticalScrollIndicator={false}>
-          <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            Workout History
-          </Text>
-          <Text className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-            {totalSessions} sessions • {formatDuration(totalDuration)} total
-          </Text>
-
-          {Object.entries(groupedSessions).map(([dateStr, sessions]) => (
-            <View key={dateStr} className="mb-6">
-              <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                {formatDate(sessions[0].date)}
-              </Text>
-
-              {sessions.map((session, idx) => (
-                <Pressable
-                  key={session.id}
-                  onPress={() => router.push(`/workouts/${session.id}/summary`)}
-                  className={cn(
-                    "p-3 rounded-lg mb-2 border",
-                    isDark
-                      ? "bg-dark-surface border-dark-border"
-                      : "bg-light-surface border-light-border",
-                  )}
-                >
-                  <View className="flex-row justify-between items-start mb-2">
-                    <Text className="font-semibold text-gray-900 dark:text-gray-100 flex-1">
-                      {session.workoutName}
-                    </Text>
-                    <Badge
-                      variant={INTENSITY_COLORS[session.intensity]}
-                      size="sm"
-                    >
-                      {session.intensity.charAt(0).toUpperCase() +
-                        session.intensity.slice(1)}
-                    </Badge>
-                  </View>
-
-                  <View className="flex-row justify-between items-center">
-                    <View className="flex-row gap-4">
-                      <View>
-                        <Text className="text-xs text-gray-600 dark:text-gray-400">
-                          Duration
-                        </Text>
-                        <View className="flex-row items-center gap-1">
-                          <Clock3 size={12} color={colors.muted} />
-                          <Text className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                            {formatDuration(session.duration)}
-                          </Text>
-                        </View>
-                      </View>
-
-                      <View>
-                        <Text className="text-xs text-gray-600 dark:text-gray-400">
-                          Exercises
-                        </Text>
-                        <View className="flex-row items-center gap-1">
-                          <Dumbbell size={12} color={colors.muted} />
-                          <Text className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                            {session.exercises}
-                          </Text>
-                        </View>
-                      </View>
-
-                      {session.volume > 0 && (
-                        <View>
-                          <Text className="text-xs text-gray-600 dark:text-gray-400">
-                            Volume
-                          </Text>
-                          <Text className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                            {session.volume.toFixed(1)}kg
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                    <ChevronRight size={16} color={colors.muted} />
-                  </View>
-                </Pressable>
-              ))}
-            </View>
-          ))}
-        </ScrollView>
-
-        <View
-          className="p-4 border-t border-light-border dark:border-dark-border"
-          style={{ paddingBottom: tabBarClearance }}
-        >
-          <Button
-            onPress={() => router.back()}
-            variant="secondary"
-            size="lg"
-            className="w-full"
-          >
-            Close
-          </Button>
-        </View>
+      <View className={cn("flex-1 items-center justify-center", isDark ? "bg-dark-bg" : "bg-light-bg")}>
+        <ActivityIndicator color={colors.primary} size="large" />
+        <Text className="text-sm text-gray-500 dark:text-gray-400 mt-3">Loading history…</Text>
       </View>
     );
   }
 
-  // Stats Tab
   return (
     <View className={cn("flex-1", isDark ? "bg-dark-bg" : "bg-light-bg")}>
-      <ScrollView className="flex-1 p-4" showsVerticalScrollIndicator={false}>
-        <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-          Stats & Insights
+      {/* ── Header ── */}
+      <View
+        className={cn(
+          "px-4 border-b",
+          isDark ? "bg-dark-surface border-dark-border" : "bg-light-surface border-light-border",
+        )}
+        style={{ paddingTop: insets.top + 12, paddingBottom: 12 }}
+      >
+        <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
+          Workout History
         </Text>
-        <Text className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-          Your progress overview
-        </Text>
 
-        {/* Key Metrics */}
-        <View className="mb-6">
-          <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-            Overview
-          </Text>
-
-          <View className="flex-row gap-2 mb-3">
-            <View
+        {/* Tabs */}
+        <View
+          className={cn(
+            "flex-row rounded-xl p-1",
+            isDark ? "bg-dark-card" : "bg-light-card",
+          )}
+        >
+          {(["sessions", "stats"] as HistoryTab[]).map((tab) => (
+            <Pressable
+              key={tab}
+              onPress={() => setActiveTab(tab)}
               className={cn(
-                "flex-1 p-3 rounded-lg border",
-                isDark
-                  ? "bg-dark-surface border-dark-border"
-                  : "bg-light-surface border-light-border",
+                "flex-1 py-2 rounded-lg items-center",
+                activeTab === tab
+                  ? isDark
+                    ? "bg-dark-surface"
+                    : "bg-white"
+                  : "bg-transparent",
               )}
             >
-              <Text className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
-                Total Sessions
-              </Text>
-              <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {totalSessions}
-              </Text>
-            </View>
-
-            <View
-              className={cn(
-                "flex-1 p-3 rounded-lg border",
-                isDark
-                  ? "bg-dark-surface border-dark-border"
-                  : "bg-light-surface border-light-border",
-              )}
-            >
-              <Text className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
-                This Week
-              </Text>
-              <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {thisWeekSessions}
-              </Text>
-            </View>
-          </View>
-
-          <View className="flex-row gap-2">
-            <View
-              className={cn(
-                "flex-1 p-3 rounded-lg border",
-                isDark
-                  ? "bg-dark-surface border-dark-border"
-                  : "bg-light-surface border-light-border",
-              )}
-            >
-              <Text className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
-                Avg Duration
-              </Text>
-              <Text className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                {Math.floor(avgDuration / 60)}m
-              </Text>
-            </View>
-
-            <View
-              className={cn(
-                "flex-1 p-3 rounded-lg border",
-                isDark
-                  ? "bg-dark-surface border-dark-border"
-                  : "bg-light-surface border-light-border",
-              )}
-            >
-              <Text className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
-                Total Volume
-              </Text>
-              <Text className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                {totalVolume.toFixed(0)}kg
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Workout Frequency */}
-        <View className="mb-6">
-          <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-            Most Done Workouts
-          </Text>
-
-          {Object.entries(workoutFrequency)
-            .sort(([, a], [, b]) => b - a)
-            .map(([name, count]) => (
-              <View
-                key={name}
+              <Text
                 className={cn(
-                  "p-3 rounded-lg mb-2 border",
-                  isDark
-                    ? "bg-dark-surface border-dark-border"
-                    : "bg-light-surface border-light-border",
+                  "text-sm font-semibold capitalize",
+                  activeTab === tab
+                    ? "text-gray-900 dark:text-gray-100"
+                    : "text-gray-500 dark:text-gray-400",
                 )}
               >
-                <View className="flex-row justify-between items-center mb-2">
-                  <Text className="font-semibold text-gray-900 dark:text-gray-100">
-                    {name}
-                  </Text>
-                  <Badge variant="secondary">{count}x</Badge>
-                </View>
+                {tab}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
 
-                <View className="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                  <View
-                    style={{ width: `${(count / 2) * 100}%` }}
-                    className="h-full bg-cyan-600 dark:bg-cyan-500"
-                  />
+      {/* ── Error ── */}
+      {error ? (
+        <View className="px-4 pt-4">
+          <View className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4">
+            <Text className="text-red-400 font-semibold">{error}</Text>
+            <Button className="mt-3" variant="outline" onPress={() => void loadSessions()}>
+              Try again
+            </Button>
+          </View>
+        </View>
+      ) : null}
+
+      {/* ── Sessions tab ── */}
+      {activeTab === "sessions" && !error && (
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{ padding: 16, paddingBottom: tabBarClearance + 20 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {sessions.length === 0 ? (
+            <View className="items-center py-20">
+              <Dumbbell size={40} color={colors.muted} />
+              <Text className="text-base font-semibold text-gray-900 dark:text-gray-100 mt-4">
+                No sessions yet
+              </Text>
+              <Text className="text-sm text-gray-500 dark:text-gray-400 mt-1 text-center">
+                Complete a workout and it will appear here.
+              </Text>
+              <Button className="mt-5" onPress={() => router.replace("/workouts")}>
+                Go to Workouts
+              </Button>
+            </View>
+          ) : (
+            <>
+              {/* Quick stats row */}
+              <View className="flex-row gap-3 mb-5">
+                <View
+                  className={cn(
+                    "flex-1 rounded-2xl border p-3",
+                    isDark ? "bg-dark-surface border-dark-border" : "bg-light-surface border-light-border",
+                  )}
+                >
+                  <Text className="text-xs text-gray-500 dark:text-gray-400">Total</Text>
+                  <Text className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                    {totalSessions}
+                  </Text>
+                  <Text className="text-xs text-gray-500 dark:text-gray-400">sessions</Text>
+                </View>
+                <View
+                  className={cn(
+                    "flex-1 rounded-2xl border p-3",
+                    isDark ? "bg-dark-surface border-dark-border" : "bg-light-surface border-light-border",
+                  )}
+                >
+                  <Text className="text-xs text-gray-500 dark:text-gray-400">This week</Text>
+                  <Text className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                    {thisWeekSessions}
+                  </Text>
+                  <Text className="text-xs text-gray-500 dark:text-gray-400">sessions</Text>
+                </View>
+                <View
+                  className={cn(
+                    "flex-1 rounded-2xl border p-3",
+                    isDark ? "bg-dark-surface border-dark-border" : "bg-light-surface border-light-border",
+                  )}
+                >
+                  <Text className="text-xs text-gray-500 dark:text-gray-400">Avg</Text>
+                  <Text className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                    {Math.floor(avgDuration / 60)}m
+                  </Text>
+                  <Text className="text-xs text-gray-500 dark:text-gray-400">per session</Text>
                 </View>
               </View>
-            ))}
-        </View>
 
-        {/* Intensity Distribution */}
-        <View>
-          <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-            Intensity Distribution
-          </Text>
-
-          {(["light", "moderate", "high"] as const).map((intensity) => {
-            const count = MOCK_SESSIONS.filter(
-              (s) => s.intensity === intensity,
-            ).length;
-            const percentage = (count / totalSessions) * 100;
-
-            return (
-              <View
-                key={intensity}
-                className={cn(
-                  "p-3 rounded-lg mb-2 border",
-                  isDark
-                    ? "bg-dark-surface border-dark-border"
-                    : "bg-light-surface border-light-border",
-                )}
-              >
-                <View className="flex-row justify-between items-center mb-2">
-                  <Text className="font-semibold text-gray-900 dark:text-gray-100 capitalize">
-                    {intensity}
+              {/* Grouped sessions */}
+              {grouped.map(([dateKey, daySessions]) => (
+                <View key={dateKey} className="mb-5">
+                  <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    {relativeDate(daySessions[0].ended_at)}
                   </Text>
-                  <Text className="text-sm font-semibold text-gray-600 dark:text-gray-400">
-                    {count} ({percentage.toFixed(0)}%)
+
+                  {daySessions.map((session) => (
+                    <Pressable
+                      key={session.id}
+                      className={cn(
+                        "rounded-2xl border p-4 mb-2",
+                        isDark
+                          ? "bg-dark-surface border-dark-border"
+                          : "bg-light-surface border-light-border",
+                      )}
+                      onPress={() =>
+                        router.push(
+                          `/workouts/${session.template_id}/summary?sessionId=${session.id}`,
+                        )
+                      }
+                    >
+                      {/* Title row */}
+                      <View className="flex-row items-start justify-between mb-3">
+                        <Text
+                          className="font-semibold text-base text-gray-900 dark:text-gray-100 flex-1 pr-2"
+                          numberOfLines={1}
+                        >
+                          {session.workout_name}
+                        </Text>
+                        <ChevronRight size={16} color={colors.muted} />
+                      </View>
+
+                      {/* Metrics */}
+                      <View className="flex-row gap-4">
+                        <View className="flex-row items-center gap-1">
+                          <Clock3 size={13} color={colors.muted} />
+                          <Text className="text-sm text-gray-600 dark:text-gray-400">
+                            {formatDuration(session.duration_seconds)}
+                          </Text>
+                        </View>
+                        <View className="flex-row items-center gap-1">
+                          <Dumbbell size={13} color={colors.muted} />
+                          <Text className="text-sm text-gray-600 dark:text-gray-400">
+                            {session.total_sets} sets
+                          </Text>
+                        </View>
+                        {session.total_volume_kg > 0 && (
+                          <View className="flex-row items-center gap-1">
+                            <Weight size={13} color={colors.muted} />
+                            <Text className="text-sm text-gray-600 dark:text-gray-400">
+                              {session.total_volume_kg.toFixed(0)} kg
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+
+                      {/* XP */}
+                      <View className="flex-row items-center gap-1 mt-2">
+                        <Flame size={12} color={colors.primary} />
+                        <Text className="text-xs font-semibold text-primary-500">
+                          +{session.xp_earned} XP
+                        </Text>
+                      </View>
+                    </Pressable>
+                  ))}
+                </View>
+              ))}
+            </>
+          )}
+        </ScrollView>
+      )}
+
+      {/* ── Stats tab ── */}
+      {activeTab === "stats" && !error && (
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{ padding: 16, paddingBottom: tabBarClearance + 20 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {sessions.length === 0 ? (
+            <View className="items-center py-20">
+              <BarChart2 size={40} color={colors.muted} />
+              <Text className="text-base font-semibold text-gray-900 dark:text-gray-100 mt-4">
+                No data yet
+              </Text>
+              <Text className="text-sm text-gray-500 dark:text-gray-400 mt-1 text-center">
+                Finish your first workout to see stats.
+              </Text>
+            </View>
+          ) : (
+            <>
+              {/* Overview grid */}
+              <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                Overview
+              </Text>
+              <View className="flex-row gap-3 mb-3">
+                <View
+                  className={cn(
+                    "flex-1 rounded-2xl border p-4",
+                    isDark ? "bg-dark-surface border-dark-border" : "bg-light-surface border-light-border",
+                  )}
+                >
+                  <Text className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Sessions</Text>
+                  <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    {totalSessions}
                   </Text>
                 </View>
-
-                <View className="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                  <View
-                    style={{ width: `${percentage}%` }}
-                    className={cn(
-                      "h-full",
-                      intensity === "light"
-                        ? "bg-green-600 dark:bg-green-500"
-                        : intensity === "moderate"
-                          ? "bg-yellow-600 dark:bg-yellow-500"
-                          : "bg-red-600 dark:bg-red-500",
-                    )}
-                  />
+                <View
+                  className={cn(
+                    "flex-1 rounded-2xl border p-4",
+                    isDark ? "bg-dark-surface border-dark-border" : "bg-light-surface border-light-border",
+                  )}
+                >
+                  <Text className="text-xs text-gray-500 dark:text-gray-400 mb-1">This Week</Text>
+                  <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    {thisWeekSessions}
+                  </Text>
                 </View>
               </View>
-            );
-          })}
-        </View>
-      </ScrollView>
 
-      <View className="p-4 border-t border-light-border dark:border-dark-border">
-        <Button
-          onPress={() => setActiveTab("sessions")}
-          variant="secondary"
-          size="md"
-          className="w-full mb-2"
-        >
-          View Sessions
-        </Button>
-        <Button
-          onPress={() => router.back()}
-          variant="secondary"
-          size="lg"
-          className="w-full"
-        >
+              <View className="flex-row gap-3 mb-5">
+                <View
+                  className={cn(
+                    "flex-1 rounded-2xl border p-4",
+                    isDark ? "bg-dark-surface border-dark-border" : "bg-light-surface border-light-border",
+                  )}
+                >
+                  <Text className="text-xs text-gray-500 dark:text-gray-400 mb-1">Avg Duration</Text>
+                  <Text className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                    {Math.floor(avgDuration / 60)}m
+                  </Text>
+                </View>
+                <View
+                  className={cn(
+                    "flex-1 rounded-2xl border p-4",
+                    isDark ? "bg-dark-surface border-dark-border" : "bg-light-surface border-light-border",
+                  )}
+                >
+                  <Text className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Volume</Text>
+                  <Text className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                    {totalVolume > 0 ? `${totalVolume.toFixed(0)} kg` : "—"}
+                  </Text>
+                </View>
+                <View
+                  className={cn(
+                    "flex-1 rounded-2xl border p-4",
+                    isDark ? "bg-dark-surface border-dark-border" : "bg-light-surface border-light-border",
+                  )}
+                >
+                  <Text className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Sets</Text>
+                  <Text className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                    {totalSets}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Most done workouts */}
+              {topWorkouts.length > 0 && (
+                <>
+                  <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                    Most Done Workouts
+                  </Text>
+
+                  {topWorkouts.map(([name, count]) => (
+                    <View
+                      key={name}
+                      className={cn(
+                        "rounded-2xl border p-4 mb-2",
+                        isDark
+                          ? "bg-dark-surface border-dark-border"
+                          : "bg-light-surface border-light-border",
+                      )}
+                    >
+                      <View className="flex-row items-center justify-between mb-2">
+                        <Text
+                          className="font-semibold text-gray-900 dark:text-gray-100 flex-1 pr-2"
+                          numberOfLines={1}
+                        >
+                          {name}
+                        </Text>
+                        <Text className="text-sm font-bold text-primary-500">
+                          {count}×
+                        </Text>
+                      </View>
+                      <View
+                        className="h-1.5 rounded-full overflow-hidden"
+                        style={{ backgroundColor: isDark ? "#374151" : "#e5e7eb" }}
+                      >
+                        <View
+                          style={{
+                            width: `${(count / maxFreq) * 100}%`,
+                            height: "100%",
+                            backgroundColor: colors.primary,
+                            borderRadius: 999,
+                          }}
+                        />
+                      </View>
+                    </View>
+                  ))}
+                </>
+              )}
+            </>
+          )}
+        </ScrollView>
+      )}
+
+      {/* ── Bottom close ── */}
+      <View
+        className={cn(
+          "px-4 pt-3 border-t",
+          isDark ? "bg-dark-surface border-dark-border" : "bg-light-surface border-light-border",
+        )}
+        style={{ paddingBottom: tabBarClearance }}
+      >
+        <Button onPress={() => router.back()} variant="secondary" size="lg" className="w-full">
           Close
         </Button>
       </View>

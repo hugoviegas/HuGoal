@@ -38,6 +38,7 @@ import {
 import {
   listWorkoutTemplates,
   getPausedWorkoutSession,
+  getCompletedSessionDates,
   type WorkoutTemplateRecord,
 } from "@/lib/firestore/workouts";
 import { getExerciseCatalog } from "@/lib/workouts/exercise-catalog";

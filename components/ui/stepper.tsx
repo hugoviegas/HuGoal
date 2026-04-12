@@ -1,5 +1,11 @@
-import { PureComponent, useRef } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import {
+  LayoutChangeEvent,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { cn } from "@/lib/utils";
 
 interface StepperStep {
@@ -23,19 +29,45 @@ export function Stepper({
   isStepPressable,
 }: StepperProps) {
   const scrollViewRef = useRef<ScrollView>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  const stepSize = 40;
+  const stepGap = 12;
+  const stepInterval = stepSize + stepGap;
+  const sidePadding = Math.max(0, (containerWidth - stepSize) / 2);
+
+  useEffect(() => {
+    if (!containerWidth || steps.length <= 1) return;
+
+    const frame = requestAnimationFrame(() => {
+      scrollViewRef.current?.scrollTo({
+        x: currentStep * stepInterval,
+        animated: true,
+      });
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [containerWidth, currentStep, stepInterval, steps.length]);
+
+  const handleLayout = (event: LayoutChangeEvent) => {
+    setContainerWidth(event.nativeEvent.layout.width);
+  };
 
   return (
-    <View className={cn("w-full", className)}>
+    <View className={cn("w-full", className)} onLayout={handleLayout}>
       <ScrollView
         ref={scrollViewRef}
         horizontal
         showsHorizontalScrollIndicator={false}
-        scrollEnabled={steps.length > 6}
+        scrollEnabled={steps.length > 1}
+        snapToInterval={stepInterval}
+        snapToAlignment="center"
+        decelerationRate="fast"
         contentContainerStyle={{
           alignItems: "center",
           gap: 12,
           paddingVertical: 2,
-          paddingHorizontal: 4,
+          paddingHorizontal: sidePadding,
         }}
       >
         {steps.map((step, index) => {
@@ -53,8 +85,7 @@ export function Stepper({
               disabled={!canPress}
               onPress={() => onStepPress?.(index)}
               className={cn(
-                "rounded-full border items-center justify-center",
-                "h-10 w-10",
+                "h-10 w-10 items-center justify-center rounded-full border",
                 isActive
                   ? "bg-cyan-500/15 border-cyan-500 border-2"
                   : "border-transparent",

@@ -243,7 +243,8 @@ export default function RunWorkoutScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { height: viewportHeight } = useWindowDimensions();
+  const { height: viewportHeight, width: viewportWidth } =
+    useWindowDimensions();
   const user = useAuthStore((s) => s.user);
   const { show: showToast } = useToastStore();
   const { isDark, colors } = useThemeStore();
@@ -284,7 +285,7 @@ export default function RunWorkoutScreen() {
   const furthestStepReachedRef = useRef(0);
   const lastCompletedCountSavedRef = useRef(0);
 
-  const collapsedSheetHeight = 98;
+  const collapsedSheetHeight = 118;
   const expandedSheetHeight = Math.min(viewportHeight * 0.52, 430);
   const sheetHeightAnim = useRef(
     new Animated.Value(collapsedSheetHeight),
@@ -1001,7 +1002,7 @@ export default function RunWorkoutScreen() {
       <View
         style={{
           flex: 1,
-          paddingBottom: collapsedSheetHeight + insets.bottom + 6,
+          paddingBottom: collapsedSheetHeight + insets.bottom + 14,
         }}
       >
         <View style={{ flex: 1 }} {...contentPanResponder.panHandlers}>
@@ -1258,30 +1259,43 @@ export default function RunWorkoutScreen() {
           paddingBottom: insets.bottom,
         }}
       >
-        <Pressable
-          {...sheetPanResponder.panHandlers}
-          onPress={() => animateSheet(!sheetExpanded)}
-          style={{
-            alignItems: "center",
-            justifyContent: "center",
-            paddingTop: 6,
-            paddingBottom: 6,
-          }}
-        >
+        <View style={{ paddingTop: 6, paddingBottom: 2 }}>
           <View
+            {...sheetPanResponder.panHandlers}
             style={{
-              width: 48,
-              height: 4,
-              borderRadius: 999,
-              backgroundColor: isDark ? "#4b5563" : "#cbd5e1",
+              alignItems: "center",
+              justifyContent: "center",
+              minHeight: 44,
+              paddingHorizontal: 16,
+              paddingVertical: 8,
             }}
-          />
-          <Text className="mt-2 text-xs font-semibold text-gray-600 dark:text-gray-400">
-            {sheetExpanded ? "Swipe down to close" : "Swipe up for next steps"}
-          </Text>
-        </Pressable>
+          >
+            <View
+              style={{
+                width: 48,
+                height: 4,
+                borderRadius: 999,
+                backgroundColor: isDark ? "#4b5563" : "#cbd5e1",
+              }}
+            />
+          </View>
 
-        <View style={{ paddingHorizontal: 16 }}>
+          <Pressable
+            onPress={() => animateSheet(!sheetExpanded)}
+            style={{
+              alignItems: "center",
+              justifyContent: "center",
+              paddingTop: 2,
+              paddingBottom: 6,
+            }}
+          >
+            <Text className="text-xs font-semibold text-gray-600 dark:text-gray-400">
+              {sheetExpanded ? "Tap to close steps" : "Tap to open steps"}
+            </Text>
+          </Pressable>
+        </View>
+
+        <View style={{ paddingHorizontal: 0, paddingBottom: 8 }}>
           <Stepper
             steps={stepperRounds}
             currentStep={currentRoundIndex}
@@ -1368,7 +1382,7 @@ export default function RunWorkoutScreen() {
         open={editOpen}
         onOpenChange={setEditOpen}
         position="center"
-        maxWidth={520}
+        maxWidth={Math.min(Math.max(viewportWidth - 40, 320), 920)}
       >
         <ResponsiveModalHeader>
           <ResponsiveModalTitle>Adjust Set Values</ResponsiveModalTitle>
