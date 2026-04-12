@@ -7,7 +7,6 @@ import {
 } from "firebase/storage";
 import type { ImagePickerAsset } from "expo-image-picker";
 import { storage } from "@/lib/firebase";
-import * as FileSystem from "expo-file-system";
 
 const WORKOUT_IMAGE_PATH = "workout-covers";
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -15,6 +14,12 @@ const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 export interface WorkoutMediaUploadResult {
   imageUrl: string;
   storagePath: string;
+}
+
+function estimateBase64Bytes(base64: string): number {
+  // Base64 payload is 4/3 of raw bytes (minus any padding).
+  const sanitized = base64.replace(/=+$/, "");
+  return Math.floor((sanitized.length * 3) / 4);
 }
 
 /**
@@ -47,7 +52,7 @@ export async function uploadWorkoutCoverImage(
   const storagePath = `${WORKOUT_IMAGE_PATH}/${uid}/${filename}`;
 
   try {
-    // First attempt: use fetch -> blob -> uploadBytes (works on web)
+    // First attempt: use fetch -> blob -> uploadBytes (works on web and most RN environments)
     try {
       const response = await fetch(imageAsset.uri);
       if (!response.ok) {
@@ -77,17 +82,26 @@ export async function uploadWorkoutCoverImage(
         storagePath,
       };
     } catch (err) {
-      // If the blob path fails (common on some Android URIs), fallback to reading file as base64
+      // If blob upload fails (common on some Android URI schemes), fallback to base64 from ImagePicker asset.
       console.warn(
         "[uploadWorkoutCoverImage] blob upload failed, falling back to base64 upload",
         err,
       );
 
       try {
-        // Read file as base64 using Expo FileSystem (supports file:// and content:// URIs on Android)
-        const base64 = await FileSystem.readAsStringAsync(imageAsset.uri, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
+        const base64 = imageAsset.base64;
+        if (!base64) {
+          throw new Error(
+            "Image base64 is missing. Re-select the image to continue.",
+          );
+        }
+
+        const base64Bytes = estimateBase64Bytes(base64);
+        if (base64Bytes > MAX_IMAGE_SIZE) {
+          throw new Error(
+            `Image size exceeds ${MAX_IMAGE_SIZE / 1024 / 1024}MB limit (actual: ${(base64Bytes / 1024 / 1024).toFixed(2)}MB)`,
+          );
+        }
 
         const fileRef = ref(storage, storagePath);
         // uploadString accepts a base64 string when specifying the 'base64' format

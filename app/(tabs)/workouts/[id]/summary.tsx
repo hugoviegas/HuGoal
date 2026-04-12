@@ -189,6 +189,58 @@ export default function WorkoutSummaryScreen() {
     return map;
   }, [session?.exercise_metrics]);
 
+  const exerciseSummaryRows = useMemo(() => {
+    if (!session) {
+      return [] as Array<{
+        exercise_id: string;
+        name: string;
+        sets_done: number;
+        total_reps: number;
+        total_volume_kg: number;
+      }>;
+    }
+
+    if (session.exercises_summary && session.exercises_summary.length > 0) {
+      return session.exercises_summary;
+    }
+
+    // Fallback for sessions that may miss exercises_summary on some clients.
+    const byExercise = new Map<
+      string,
+      {
+        exercise_id: string;
+        name: string;
+        sets_done: number;
+        total_reps: number;
+        total_volume_kg: number;
+      }
+    >();
+
+    for (const set of session.sets_completed ?? []) {
+      const exerciseId = set.exerciseId;
+      if (!exerciseId) continue;
+      const existing = byExercise.get(exerciseId);
+      const reps = Number(set.repsCompleted ?? 0);
+      const volume = reps * Number(set.weightKg ?? 0);
+
+      if (existing) {
+        existing.sets_done += 1;
+        existing.total_reps += reps;
+        existing.total_volume_kg += volume;
+      } else {
+        byExercise.set(exerciseId, {
+          exercise_id: exerciseId,
+          name: exerciseId,
+          sets_done: 1,
+          total_reps: reps,
+          total_volume_kg: volume,
+        });
+      }
+    }
+
+    return [...byExercise.values()];
+  }, [session]);
+
   if (loading) {
     return (
       <View
@@ -247,10 +299,10 @@ export default function WorkoutSummaryScreen() {
   }
 
   const completionRate =
-    session.exercises_summary.length > 0
+    exerciseSummaryRows.length > 0
       ? Math.round(
-          (session.exercises_summary.filter((e) => e.sets_done > 0).length /
-            session.exercises_summary.length) *
+          (exerciseSummaryRows.filter((e) => e.sets_done > 0).length /
+            exerciseSummaryRows.length) *
             100,
         )
       : 100;
@@ -473,13 +525,13 @@ export default function WorkoutSummaryScreen() {
         </View>
 
         {/* ── Exercise breakdown ── */}
-        {session.exercises_summary.length > 0 && (
+        {exerciseSummaryRows.length > 0 && (
           <View className="mb-5">
             <Text className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">
               Exercise Breakdown
             </Text>
 
-            {session.exercises_summary.map((ex, idx) =>
+            {exerciseSummaryRows.map((ex, idx) =>
               (() => {
                 const metric = metricsByExerciseId.get(ex.exercise_id);
 

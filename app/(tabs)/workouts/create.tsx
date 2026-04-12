@@ -736,6 +736,7 @@ export default function CreateWorkoutScreen() {
         mediaTypes: ["images"],
         allowsEditing: true,
         aspect: [16, 9],
+        base64: true,
         quality: 1,
       });
 
