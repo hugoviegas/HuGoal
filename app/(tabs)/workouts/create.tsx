@@ -11,7 +11,7 @@ import {
   Image,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import {
   ArrowDown,
@@ -36,7 +36,11 @@ import { ProgressFormIndicator } from "@/components/ui/ProgressFormIndicator";
 import { Modal } from "@/components/ui/Modal";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
-import { createWorkoutTemplate } from "@/lib/firestore/workouts";
+import {
+  createWorkoutTemplate,
+  getWorkoutTemplate,
+  updateWorkoutTemplate,
+} from "@/lib/firestore/workouts";
 import { uploadWorkoutCoverImage } from "@/lib/workouts/media-upload";
 import { useHideMainTabBar } from "@/hooks/useHideMainTabBar";
 import type { Difficulty, EquipmentType } from "@/types";
@@ -55,6 +59,7 @@ import {
 type WorkflowType = "manual" | "ai";
 type CreateStep = "workflow" | "details" | "exercises" | "preview";
 type BuilderSectionType = "warmup" | "round" | "cooldown";
+type ExerciseExecutionMode = "reps" | "time";
 
 interface BuilderExerciseItem {
   id: string;
@@ -66,7 +71,10 @@ interface BuilderExerciseItem {
   difficulty: Difficulty;
   hasWeight: boolean;
   imageUrl: string;
+  executionMode: ExerciseExecutionMode;
   reps: string;
+  exerciseSeconds?: number;
+  prepSeconds?: number;
   weightKg?: number;
   notes?: string;
 }
@@ -94,6 +102,7 @@ interface WorkoutRound {
 interface WorkoutDraft {
   name: string;
   description: string;
+  cover_image_url?: string;
   difficulty: "beginner" | "intermediate" | "advanced";
   workflowType: WorkflowType;
   warmupEnabled: boolean;
@@ -137,19 +146,40 @@ function getExercisePrimaryImage(exercise: LibraryExercise): string {
   return getExercisePreviewImages(exercise)[0] ?? GENERIC_EXERCISE_IMAGE;
 }
 
-function getWorkoutCoverImageUri(
-  asset?: WorkoutDraft["cover_image_asset"],
-): string | undefined {
-  return asset?.uri;
+function getWorkoutCoverImageUri(draft: WorkoutDraft): string | undefined {
+  return draft.cover_image_asset?.uri ?? draft.cover_image_url;
 }
 
 interface ReviewExerciseLine {
   id: string;
   name: string;
-  reps: string;
+  prescription: string;
   hasWeight: boolean;
   weightKg?: number;
   sectionLabel: string;
+}
+
+function getExercisePrescription(item: BuilderExerciseItem): string {
+  if (item.executionMode === "time") {
+    const workSeconds = Math.max(1, Number(item.exerciseSeconds ?? 30));
+    const prepSeconds = Math.max(0, Number(item.prepSeconds ?? 0));
+    return prepSeconds > 0
+      ? `${workSeconds}s + prep ${prepSeconds}s`
+      : `${workSeconds}s`;
+  }
+
+  return item.reps;
+}
+
+function getExerciseDurationSeconds(item: BuilderExerciseItem): number {
+  if (item.executionMode === "time") {
+    return (
+      Math.max(1, Number(item.exerciseSeconds ?? 30)) +
+      Math.max(0, Number(item.prepSeconds ?? 0))
+    );
+  }
+
+  return 40;
 }
 
 function createRound(name: string): WorkoutRound {
@@ -161,6 +191,7 @@ function createRound(name: string): WorkoutRound {
 }
 
 export default function CreateWorkoutScreen() {
+  const params = useLocalSearchParams<{ mode?: string; templateId?: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isDark, colors } = useThemeStore();
@@ -174,6 +205,7 @@ export default function CreateWorkoutScreen() {
   const [workflowType, setWorkflowType] = useState<WorkflowType>("manual");
   const [selectedDifficulty, setSelectedDifficulty] =
     useState<WorkoutDraft["difficulty"]>("intermediate");
+  const [isHydratingEdit, setIsHydratingEdit] = useState(false);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
   const [pickerTarget, setPickerTarget] = useState<BuilderTarget | null>(null);
@@ -206,6 +238,7 @@ export default function CreateWorkoutScreen() {
   const [draft, setDraft] = useState<WorkoutDraft>({
     name: "",
     description: "",
+    cover_image_url: undefined,
     difficulty: "intermediate",
     workflowType: "manual",
     warmupEnabled: false,
@@ -218,6 +251,11 @@ export default function CreateWorkoutScreen() {
     isPublic: false,
     location: "",
   });
+
+  const editingTemplateId =
+    params.mode === "edit" && typeof params.templateId === "string"
+      ? params.templateId
+      : null;
 
   const totalSelectedExercises = useMemo(() => {
     const countExercises = (items: BuilderItem[]) =>
@@ -272,13 +310,222 @@ export default function CreateWorkoutScreen() {
     };
   }, [showToast]);
 
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      if (!editingTemplateId) {
+        return;
+      }
+
+      try {
+        setIsHydratingEdit(true);
+        const template = await getWorkoutTemplate(editingTemplateId);
+
+        if (!mounted) {
+          return;
+        }
+
+        if (!template) {
+          showToast("Workout not found", "error");
+          router.replace("/workouts");
+          return;
+        }
+
+        const mapExerciseBlockToItem = (block: {
+          id: string;
+          exercise_id?: string;
+          name?: string;
+          reps?: string;
+          execution_mode?: "reps" | "time";
+          exercise_seconds?: number;
+          prep_seconds?: number;
+          duration_seconds?: number;
+          weight_kg?: number;
+          notes?: string;
+          primary_muscles?: string[];
+        }): BuilderExerciseItem => {
+          const executionMode =
+            block.execution_mode ??
+            ((block.exercise_seconds ?? block.duration_seconds ?? 0) > 0
+              ? "time"
+              : "reps");
+          const exerciseSeconds =
+            block.exercise_seconds ?? block.duration_seconds ?? 30;
+
+          return {
+            id: block.id,
+            type: "exercise",
+            exerciseId: block.exercise_id ?? block.id,
+            name: block.name ?? block.exercise_id ?? "Exercise",
+            muscleGroups: block.primary_muscles ?? [],
+            equipment: "none",
+            difficulty: template.difficulty,
+            hasWeight:
+              executionMode === "reps" &&
+              Number.isFinite(block.weight_kg) &&
+              (block.weight_kg ?? 0) > 0,
+            imageUrl: GENERIC_EXERCISE_IMAGE,
+            executionMode,
+            reps:
+              block.reps ??
+              (executionMode === "time"
+                ? `${Math.max(1, exerciseSeconds)}s`
+                : "10-12"),
+            exerciseSeconds: Math.max(1, exerciseSeconds),
+            prepSeconds: Math.max(0, block.prep_seconds ?? 0),
+            weightKg: block.weight_kg,
+            notes: block.notes,
+          };
+        };
+
+        const mapRestBlockToItem = (block: {
+          id: string;
+          rest_seconds?: number;
+          duration_seconds?: number;
+          notes?: string;
+        }): BuilderRestItem => ({
+          id: block.id,
+          type: "rest",
+          durationSeconds: Math.max(
+            0,
+            block.rest_seconds ?? block.duration_seconds ?? 30,
+          ),
+          notes: block.notes,
+        });
+
+        const sections = (template.sections ?? [])
+          .slice()
+          .sort((a, b) => a.order - b.order);
+        const warmupSection = sections.find(
+          (section) => section.type === "warmup",
+        );
+        const cooldownSection = sections.find(
+          (section) => section.type === "cooldown",
+        );
+        const roundSections = sections.filter(
+          (section) => section.type === "round",
+        );
+
+        const warmupItems = (warmupSection?.blocks ?? [])
+          .slice()
+          .sort((a, b) => a.order - b.order)
+          .map((block) =>
+            block.type === "rest"
+              ? mapRestBlockToItem(block)
+              : mapExerciseBlockToItem(block),
+          );
+
+        const cooldownItems = (cooldownSection?.blocks ?? [])
+          .slice()
+          .sort((a, b) => a.order - b.order)
+          .map((block) =>
+            block.type === "rest"
+              ? mapRestBlockToItem(block)
+              : mapExerciseBlockToItem(block),
+          );
+
+        const roundsFromSections: WorkoutRound[] = roundSections.map(
+          (section) => ({
+            id: section.id,
+            name: section.name,
+            items: section.blocks
+              .slice()
+              .sort((a, b) => a.order - b.order)
+              .map((block) =>
+                block.type === "rest"
+                  ? mapRestBlockToItem(block)
+                  : mapExerciseBlockToItem(block),
+              ),
+          }),
+        );
+
+        const roundsFromFlat: WorkoutRound[] = template.exercises.length
+          ? [
+              {
+                ...createRound("Round 1"),
+                items: template.exercises.map((exercise) => {
+                  const repsText = exercise.reps ?? "10-12";
+                  const timedMatch = repsText.trim().match(/^(\d+)\s*s$/i);
+                  const timedSeconds = timedMatch ? Number(timedMatch[1]) : 30;
+                  const executionMode: ExerciseExecutionMode = timedMatch
+                    ? "time"
+                    : "reps";
+
+                  return {
+                    id: `selected-${exercise.id}-${Math.random().toString(36).slice(2, 6)}`,
+                    type: "exercise",
+                    exerciseId: exercise.id,
+                    name: exercise.name,
+                    muscleGroups: exercise.muscleGroups ?? [],
+                    equipment: "none",
+                    difficulty: template.difficulty,
+                    hasWeight: false,
+                    imageUrl: GENERIC_EXERCISE_IMAGE,
+                    executionMode,
+                    reps: executionMode === "time" ? "10-12" : repsText,
+                    exerciseSeconds: Math.max(1, timedSeconds),
+                    prepSeconds: 0,
+                    notes: "",
+                  } satisfies BuilderExerciseItem;
+                }),
+              },
+            ]
+          : [];
+
+        const hydratedRounds =
+          roundsFromSections.length > 0
+            ? roundsFromSections
+            : roundsFromFlat.length > 0
+              ? roundsFromFlat
+              : [createRound("Round 1")];
+
+        setWorkflowType(template.is_ai_generated ? "ai" : "manual");
+        setSelectedDifficulty(template.difficulty);
+        setAiPrompt(template.source_prompt ?? "");
+        setStep("details");
+        setDraft((prev) => ({
+          ...prev,
+          name: template.name,
+          description: template.description ?? "",
+          cover_image_url: template.cover_image_url,
+          difficulty: template.difficulty,
+          workflowType: template.is_ai_generated ? "ai" : "manual",
+          warmupEnabled: warmupItems.length > 0,
+          warmupItems,
+          rounds: hydratedRounds,
+          cooldownEnabled: cooldownItems.length > 0,
+          cooldownItems,
+          tags: template.tags ?? [],
+          isActive: template.is_active ?? false,
+          isPublic: template.is_public ?? false,
+          location: template.location ?? "",
+        }));
+      } catch (error) {
+        console.error("[createWorkout] failed to hydrate edit template", error);
+        if (mounted) {
+          showToast("Could not load workout for editing", "error");
+          router.replace("/workouts");
+        }
+      } finally {
+        if (mounted) {
+          setIsHydratingEdit(false);
+        }
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [editingTemplateId, router, showToast]);
+
   const estimatedDuration = useMemo(() => {
     const sectionDuration = (items: BuilderItem[]) =>
       items.reduce((sum, item) => {
         if (item.type === "rest") {
           return sum + item.durationSeconds;
         }
-        return sum + 40;
+        return sum + getExerciseDurationSeconds(item);
       }, 0);
 
     return (
@@ -389,7 +636,7 @@ export default function CreateWorkoutScreen() {
         lines.push({
           id: item.id,
           name: item.name,
-          reps: item.reps,
+          prescription: getExercisePrescription(item),
           hasWeight: item.hasWeight,
           weightKg: item.weightKg,
           sectionLabel: "Warmup",
@@ -403,7 +650,7 @@ export default function CreateWorkoutScreen() {
         lines.push({
           id: item.id,
           name: item.name,
-          reps: item.reps,
+          prescription: getExercisePrescription(item),
           hasWeight: item.hasWeight,
           weightKg: item.weightKg,
           sectionLabel: round.name,
@@ -417,7 +664,7 @@ export default function CreateWorkoutScreen() {
         lines.push({
           id: item.id,
           name: item.name,
-          reps: item.reps,
+          prescription: getExercisePrescription(item),
           hasWeight: item.hasWeight,
           weightKg: item.weightKg,
           sectionLabel: "Cooldown",
@@ -514,6 +761,7 @@ export default function CreateWorkoutScreen() {
     setDraft((prev) => ({
       ...prev,
       cover_image_asset: undefined,
+      cover_image_url: undefined,
     }));
   };
 
@@ -554,7 +802,10 @@ export default function CreateWorkoutScreen() {
           difficulty: exercise.difficulty,
           hasWeight: exercise.has_weight,
           imageUrl: GENERIC_EXERCISE_IMAGE,
+          executionMode: "reps",
           reps: `${8 + Math.floor(Math.random() * 4)}-${12 + Math.floor(Math.random() * 4)}`,
+          exerciseSeconds: 30,
+          prepSeconds: 3,
           weightKg: exercise.has_weight ? 20 : undefined,
         }));
 
@@ -605,7 +856,10 @@ export default function CreateWorkoutScreen() {
       difficulty: exercise.difficulty,
       hasWeight: exercise.has_weight,
       imageUrl: getExercisePrimaryImage(exercise),
+      executionMode: "reps",
       reps: "10-12",
+      exerciseSeconds: 30,
+      prepSeconds: 3,
       weightKg: exercise.has_weight ? 20 : undefined,
       notes: "",
     };
@@ -791,7 +1045,7 @@ export default function CreateWorkoutScreen() {
             };
 
       const nextItems = [...items];
-      nextItems.splice(index + 1, 0, duplicate);
+      nextItems.push(duplicate);
       return nextItems;
     });
   };
@@ -824,7 +1078,10 @@ export default function CreateWorkoutScreen() {
           id: exercise.exerciseId,
           name: exercise.name,
           sets: 1,
-          reps: exercise.reps,
+          reps:
+            exercise.executionMode === "time"
+              ? `${Math.max(1, exercise.exerciseSeconds ?? 30)}s`
+              : exercise.reps,
           muscleGroups: exercise.muscleGroups,
         }));
 
@@ -855,7 +1112,20 @@ export default function CreateWorkoutScreen() {
           exercise_id: item.exerciseId,
           name: item.name,
           reps: item.reps,
+          execution_mode: item.executionMode,
+          exercise_seconds:
+            item.executionMode === "time"
+              ? Math.max(1, item.exerciseSeconds ?? 30)
+              : undefined,
+          prep_seconds:
+            item.executionMode === "time"
+              ? Math.max(0, item.prepSeconds ?? 0)
+              : undefined,
           weight_kg: item.weightKg,
+          duration_seconds:
+            item.executionMode === "time"
+              ? Math.max(1, item.exerciseSeconds ?? 30)
+              : undefined,
           notes: item.notes,
           primary_muscles: item.muscleGroups,
           secondary_muscles: [],
@@ -963,6 +1233,9 @@ export default function CreateWorkoutScreen() {
       }
 
       let coverImageUrl: string | undefined;
+      if (draft.cover_image_url) {
+        coverImageUrl = draft.cover_image_url;
+      }
       if (draft.cover_image_asset) {
         const uploadedCoverImage = await uploadWorkoutCoverImage(
           user.uid,
@@ -972,7 +1245,7 @@ export default function CreateWorkoutScreen() {
         coverImageUrl = uploadedCoverImage.imageUrl;
       }
 
-      const savedWorkout = await createWorkoutTemplate(user.uid, {
+      const payload = {
         name: draft.name.trim(),
         description: draft.description.trim() || undefined,
         cover_image_url: coverImageUrl,
@@ -990,7 +1263,23 @@ export default function CreateWorkoutScreen() {
           Math.ceil(estimatedDuration / 60),
         ),
         tags: [...draft.tags, `${draft.rounds.length} rounds`],
-      });
+      };
+
+      if (editingTemplateId) {
+        await updateWorkoutTemplate(editingTemplateId, payload);
+        showToast({
+          title: mode === "draft" ? "Draft updated" : "Workout updated",
+          message:
+            mode === "draft"
+              ? `${draft.name.trim()} was updated as private draft.`
+              : `${draft.name.trim()} was updated successfully.`,
+          type: "success",
+        });
+        router.replace(`/workouts/${editingTemplateId}`);
+        return;
+      }
+
+      const savedWorkout = await createWorkoutTemplate(user.uid, payload);
 
       showToast({
         title: mode === "draft" ? "Draft saved" : "Workout saved",
@@ -1051,7 +1340,14 @@ export default function CreateWorkoutScreen() {
       )}
     >
       <View className="flex-row items-start justify-between gap-2">
-        <View className="flex-row items-center gap-3 flex-1 pr-1">
+        <Pressable
+          onLongPress={() => {
+            void Haptics.selectionAsync();
+            drag?.();
+          }}
+          delayLongPress={170}
+          className="flex-row items-center gap-3 flex-1 pr-1"
+        >
           {item.type === "exercise" ? (
             <Image
               source={{ uri: item.imageUrl || GENERIC_EXERCISE_IMAGE }}
@@ -1074,23 +1370,16 @@ export default function CreateWorkoutScreen() {
             </Text>
             <Text className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
               {item.type === "exercise"
-                ? `${item.reps}${item.hasWeight ? ` • ${item.weightKg ?? 0}kg` : ""}`
+                ? `${getExercisePrescription(item)}${item.hasWeight ? ` • ${item.weightKg ?? 0}kg` : ""}`
                 : "Recovery block"}
             </Text>
           </View>
-        </View>
+        </Pressable>
 
         <View className="flex-row items-center gap-0.5">
-          <Pressable
-            onLongPress={() => {
-              void Haptics.selectionAsync();
-              drag?.();
-            }}
-            delayLongPress={170}
-            className="h-8 w-8 items-center justify-center"
-          >
+          <View className="h-8 w-8 items-center justify-center">
             <GripVertical size={14} color={colors.muted} />
-          </Pressable>
+          </View>
           <Pressable
             onPress={() => handleMoveItem(target, itemIndex, -1)}
             disabled={itemIndex === 0}
@@ -1131,29 +1420,91 @@ export default function CreateWorkoutScreen() {
       {editingItemId === item.id ? (
         <View className="mt-3 gap-2">
           {item.type === "exercise" ? (
-            <View className="flex-row gap-2">
-              <Input
-                label="Reps"
-                value={item.reps}
-                onChangeText={(text) =>
-                  updateBuilderItem(target, item.id, { reps: text })
-                }
-                containerClassName="flex-1"
-              />
-              {item.hasWeight ? (
-                <Input
-                  label="Weight (kg)"
-                  keyboardType="decimal-pad"
-                  value={String(item.weightKg ?? 0)}
-                  onChangeText={(text) =>
-                    updateBuilderItem(target, item.id, {
-                      weightKg: Number(text || "0") || 0,
-                    })
-                  }
-                  containerClassName="flex-1"
-                />
+            <>
+              {!item.hasWeight ? (
+                <View className="flex-row gap-2">
+                  <Badge
+                    variant={
+                      item.executionMode === "reps" ? "primary" : "secondary"
+                    }
+                    size="sm"
+                    onPress={() =>
+                      updateBuilderItem(target, item.id, {
+                        executionMode: "reps",
+                      })
+                    }
+                  >
+                    Reps
+                  </Badge>
+                  <Badge
+                    variant={
+                      item.executionMode === "time" ? "primary" : "secondary"
+                    }
+                    size="sm"
+                    onPress={() =>
+                      updateBuilderItem(target, item.id, {
+                        executionMode: "time",
+                        exerciseSeconds: item.exerciseSeconds ?? 30,
+                        prepSeconds: item.prepSeconds ?? 3,
+                      })
+                    }
+                  >
+                    Time
+                  </Badge>
+                </View>
               ) : null}
-            </View>
+
+              {item.executionMode === "time" && !item.hasWeight ? (
+                <View className="flex-row gap-2">
+                  <Input
+                    label="Execution (seconds)"
+                    keyboardType="number-pad"
+                    value={String(item.exerciseSeconds ?? 30)}
+                    onChangeText={(text) =>
+                      updateBuilderItem(target, item.id, {
+                        exerciseSeconds: Math.max(1, Number(text || "0") || 0),
+                      })
+                    }
+                    containerClassName="flex-1"
+                  />
+                  <Input
+                    label="Prep (seconds)"
+                    keyboardType="number-pad"
+                    value={String(item.prepSeconds ?? 3)}
+                    onChangeText={(text) =>
+                      updateBuilderItem(target, item.id, {
+                        prepSeconds: Math.max(0, Number(text || "0") || 0),
+                      })
+                    }
+                    containerClassName="flex-1"
+                  />
+                </View>
+              ) : (
+                <View className="flex-row gap-2">
+                  <Input
+                    label="Reps"
+                    value={item.reps}
+                    onChangeText={(text) =>
+                      updateBuilderItem(target, item.id, { reps: text })
+                    }
+                    containerClassName="flex-1"
+                  />
+                  {item.hasWeight ? (
+                    <Input
+                      label="Weight (kg)"
+                      keyboardType="decimal-pad"
+                      value={String(item.weightKg ?? 0)}
+                      onChangeText={(text) =>
+                        updateBuilderItem(target, item.id, {
+                          weightKg: Number(text || "0") || 0,
+                        })
+                      }
+                      containerClassName="flex-1"
+                    />
+                  ) : null}
+                </View>
+              )}
+            </>
           ) : (
             <Input
               label="Rest Duration (seconds)"
@@ -1226,6 +1577,22 @@ export default function CreateWorkoutScreen() {
       }}
     />
   );
+
+  if (isHydratingEdit) {
+    return (
+      <View
+        className={cn(
+          "flex-1 items-center justify-center",
+          isDark ? "bg-dark-bg" : "bg-light-bg",
+        )}
+      >
+        <Spinner size="lg" color={colors.primary} />
+        <Text className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+          Loading workout data...
+        </Text>
+      </View>
+    );
+  }
 
   // Workflow Selection Step
   if (step === "workflow") {
@@ -1335,12 +1702,12 @@ export default function CreateWorkoutScreen() {
             </Text>
 
             <View className="mb-5 pb-4 border-b border-light-border dark:border-dark-border">
-              {draft.cover_image_asset ? (
+              {getWorkoutCoverImageUri(draft) ? (
                 <View className="gap-3">
                   <View className="rounded-3xl overflow-hidden border border-light-border dark:border-dark-border bg-light-bg dark:bg-dark-bg">
                     <Image
                       source={{
-                        uri: getWorkoutCoverImageUri(draft.cover_image_asset),
+                        uri: getWorkoutCoverImageUri(draft),
                       }}
                       className="w-full h-44"
                       resizeMode="cover"
@@ -2054,7 +2421,7 @@ export default function CreateWorkoutScreen() {
               )}
             </Pressable>
             <Text className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-              Press and hold the grip icon to drag rounds.
+              Hold the row to drag exercises. Hold the grip icon to drag rounds.
             </Text>
 
             {sectionExpanded.workouts ? (
@@ -2373,7 +2740,7 @@ export default function CreateWorkoutScreen() {
 
   // Preview Step
   const reviewCoverImageUri =
-    getWorkoutCoverImageUri(draft.cover_image_asset) ?? GENERIC_EXERCISE_IMAGE;
+    getWorkoutCoverImageUri(draft) ?? GENERIC_EXERCISE_IMAGE;
 
   return (
     <View className={cn("flex-1", isDark ? "bg-dark-bg" : "bg-light-bg")}>
@@ -2435,7 +2802,7 @@ export default function CreateWorkoutScreen() {
                     {`${index + 1}. ${exercise.name}`}
                   </Text>
                   <Text className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                    {`${exercise.sectionLabel} • ${exercise.reps}`}
+                    {`${exercise.sectionLabel} • ${exercise.prescription}`}
                     {exercise.hasWeight ? ` • ${exercise.weightKg ?? 0}kg` : ""}
                   </Text>
                 </View>

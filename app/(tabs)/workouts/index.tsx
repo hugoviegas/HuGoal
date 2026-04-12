@@ -58,17 +58,59 @@ interface SessionSection {
   key: SessionSectionKey;
   title: string;
   subtitle: string;
-  exercises: WorkoutTemplateRecord["exercises"];
+  exercises: {
+    id: string;
+    name: string;
+    sets: number;
+    reps: string;
+    muscleGroups: string[];
+    prescription: string;
+  }[];
+}
+
+function formatTimedPrescription(workSeconds: number, prepSeconds = 0): string {
+  const safeWork = Math.max(1, workSeconds);
+  const safePrep = Math.max(0, prepSeconds);
+  return safePrep > 0 ? `${safeWork}s + prep ${safePrep}s` : `${safeWork}s`;
+}
+
+function formatBlockPrescription(block: {
+  reps?: string;
+  execution_mode?: "reps" | "time";
+  exercise_seconds?: number;
+  prep_seconds?: number;
+  duration_seconds?: number;
+}): string {
+  const executionMode =
+    block.execution_mode ??
+    ((block.exercise_seconds ?? block.duration_seconds ?? 0) > 0
+      ? "time"
+      : "reps");
+
+  if (executionMode === "time") {
+    return formatTimedPrescription(
+      block.exercise_seconds ?? block.duration_seconds ?? 30,
+      block.prep_seconds ?? 0,
+    );
+  }
+
+  return block.reps || "-";
 }
 
 const WEEK_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-const SECTION_COLORS: Record<string, { bg: string; border: string; label: string }> = {
+const SECTION_COLORS: Record<
+  string,
+  { bg: string; border: string; label: string }
+> = {
   warmup: { bg: "#fef9c3", border: "#fde047", label: "#a16207" },
   workout: { bg: "#dbeafe", border: "#93c5fd", label: "#1d4ed8" },
   cooldown: { bg: "#dcfce7", border: "#86efac", label: "#15803d" },
 };
-const SECTION_COLORS_DARK: Record<string, { bg: string; border: string; label: string }> = {
+const SECTION_COLORS_DARK: Record<
+  string,
+  { bg: string; border: string; label: string }
+> = {
   warmup: { bg: "#422006", border: "#78350f", label: "#fde68a" },
   workout: { bg: "#1e3a5f", border: "#1e40af", label: "#93c5fd" },
   cooldown: { bg: "#14532d", border: "#166534", label: "#86efac" },
@@ -140,12 +182,25 @@ function buildSessionSections(
 
   const warmupCount = total > 5 ? 2 : 1;
   const cooldownCount = total > 3 ? 1 : 0;
-  const warmup = exercises.slice(0, warmupCount);
+  const toSessionExercise = (
+    exercise: WorkoutTemplateRecord["exercises"][number],
+  ) => ({
+    id: exercise.id,
+    name: exercise.name,
+    sets: exercise.sets,
+    reps: exercise.reps,
+    muscleGroups: exercise.muscleGroups,
+    prescription: exercise.reps || "-",
+  });
+
+  const warmup = exercises.slice(0, warmupCount).map(toSessionExercise);
   const cooldown =
     cooldownCount > 0 ? exercises.slice(total - cooldownCount) : [];
+  const cooldownMapped = cooldown.map(toSessionExercise);
   const mainStart = warmup.length;
-  const mainEnd = cooldown.length > 0 ? total - cooldown.length : total;
-  const workout = exercises.slice(mainStart, mainEnd);
+  const mainEnd =
+    cooldownMapped.length > 0 ? total - cooldownMapped.length : total;
+  const workout = exercises.slice(mainStart, mainEnd).map(toSessionExercise);
 
   const roundCount = Math.max(1, Math.ceil(workout.length / 3));
 
@@ -173,9 +228,9 @@ function buildSessionSections(
       title: "Cooldown",
       subtitle:
         cooldown.length > 0
-          ? `${cooldown.length} exercise${cooldown.length > 1 ? "s" : ""}`
+          ? `${cooldownMapped.length} exercise${cooldownMapped.length > 1 ? "s" : ""}`
           : "No cooldown planned",
-      exercises: cooldown,
+      exercises: cooldownMapped,
     },
   ];
 }
@@ -205,7 +260,7 @@ export default function WorkoutsScreen() {
     cooldown: false,
   });
   const [panelExpanded, setPanelExpanded] = useState(false);
-  const [weekOffset, setWeekOffset] = useState(1);
+  const [, setWeekOffset] = useState(1);
   const [initialWeekMonday] = useState(() => startOfWeekMonday(new Date()));
   const [completedDates, setCompletedDates] = useState<Set<string>>(new Set());
 
@@ -262,6 +317,7 @@ export default function WorkoutsScreen() {
               sets: 1,
               reps: b.reps ?? "",
               muscleGroups: b.primary_muscles ?? [],
+              prescription: formatBlockPrescription(b),
             }));
           const key =
             section.type === "warmup"
@@ -283,7 +339,6 @@ export default function WorkoutsScreen() {
     return buildSessionSections(todayWorkout.exercises);
   }, [todayWorkout]);
   const [pausedTemplateId, setPausedTemplateId] = useState<string | null>(null);
-  const [checkingPaused, setCheckingPaused] = useState(false);
 
   const sessionTargetId =
     sessionActive && sessionTemplateId
@@ -302,7 +357,6 @@ export default function WorkoutsScreen() {
     }
 
     const checkPaused = async () => {
-      setCheckingPaused(true);
       try {
         if (sessionActive) {
           if (mounted) setPausedTemplateId(sessionTemplateId ?? null);
@@ -328,10 +382,8 @@ export default function WorkoutsScreen() {
             setPausedTemplateId(null);
           }
         }
-      } catch (e) {
+      } catch {
         if (mounted) setPausedTemplateId(null);
-      } finally {
-        if (mounted) setCheckingPaused(false);
       }
     };
 
@@ -409,7 +461,11 @@ export default function WorkoutsScreen() {
       setWorkouts(sorted);
 
       try {
-        const doneDates = await getCompletedSessionDates(user.uid, startStr, endStr);
+        const doneDates = await getCompletedSessionDates(
+          user.uid,
+          startStr,
+          endStr,
+        );
         setCompletedDates(new Set(doneDates));
       } catch (sessionErr) {
         // Non-fatal — calendar dots just won't show until rules propagate
@@ -554,7 +610,7 @@ export default function WorkoutsScreen() {
   };
 
   const renderExerciseRow = (
-    exercise: WorkoutTemplateRecord["exercises"][number],
+    exercise: SessionSection["exercises"][number],
     index: number,
     isLast: boolean,
   ) => {
@@ -589,7 +645,13 @@ export default function WorkoutsScreen() {
               resizeMode="cover"
             />
           ) : (
-            <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+            <View
+              style={{
+                flex: 1,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
               <Dumbbell size={16} color={colors.muted} />
             </View>
           )}
@@ -605,10 +667,16 @@ export default function WorkoutsScreen() {
           >
             {exercise.name}
           </Text>
-          <Text style={{ fontSize: 12, color: isDark ? "#9ca3af" : "#6b7280", marginTop: 2 }}>
+          <Text
+            style={{
+              fontSize: 12,
+              color: isDark ? "#9ca3af" : "#6b7280",
+              marginTop: 2,
+            }}
+          >
             {exercise.sets > 1
-              ? `${exercise.sets} sets × ${exercise.reps || "—"}`
-              : exercise.reps || "—"}
+              ? `${exercise.sets} sets × ${exercise.prescription || "—"}`
+              : exercise.prescription || "—"}
           </Text>
         </View>
         <ChevronRight size={14} color={colors.muted} />
@@ -629,7 +697,14 @@ export default function WorkoutsScreen() {
         }}
       >
         {/* ── Top row: streak + settings ── */}
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 14,
+          }}
+        >
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <View
               style={{
@@ -638,7 +713,9 @@ export default function WorkoutsScreen() {
                 borderRadius: 11,
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: isDark ? "rgba(14,165,176,0.15)" : "rgba(14,165,176,0.1)",
+                backgroundColor: isDark
+                  ? "rgba(14,165,176,0.15)"
+                  : "rgba(14,165,176,0.1)",
               }}
             >
               <Flame size={17} color={colors.primary} />
@@ -654,7 +731,13 @@ export default function WorkoutsScreen() {
               >
                 {profile?.streak_current ?? 0}d
               </Text>
-              <Text style={{ fontSize: 11, color: isDark ? "#6b7280" : "#9ca3af", lineHeight: 14 }}>
+              <Text
+                style={{
+                  fontSize: 11,
+                  color: isDark ? "#6b7280" : "#9ca3af",
+                  lineHeight: 14,
+                }}
+              >
                 streak
               </Text>
             </View>
@@ -668,7 +751,9 @@ export default function WorkoutsScreen() {
               borderRadius: 11,
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+              backgroundColor: isDark
+                ? "rgba(255,255,255,0.06)"
+                : "rgba(0,0,0,0.04)",
             }}
           >
             <Settings2 size={17} color={isDark ? "#9ca3af" : "#64748b"} />
@@ -707,12 +792,20 @@ export default function WorkoutsScreen() {
               key={`week-${pageIndex}`}
               style={{ width: weekPagerWidth, paddingHorizontal: 2 }}
             >
-              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                }}
+              >
                 {days.map((item) => {
                   const filled = item.isDone;
                   const today = item.isToday;
                   return (
-                    <View key={item.key} style={{ alignItems: "center", minWidth: 40 }}>
+                    <View
+                      key={item.key}
+                      style={{ alignItems: "center", minWidth: 40 }}
+                    >
                       <Text
                         style={{
                           fontSize: 11,
@@ -720,7 +813,9 @@ export default function WorkoutsScreen() {
                           marginBottom: 5,
                           color: today
                             ? colors.primary
-                            : isDark ? "#4b5563" : "#9ca3af",
+                            : isDark
+                              ? "#4b5563"
+                              : "#9ca3af",
                         }}
                       >
                         {item.dayLabel}
@@ -735,7 +830,9 @@ export default function WorkoutsScreen() {
                           backgroundColor: filled
                             ? today
                               ? colors.primary
-                              : isDark ? "rgba(14,165,176,0.22)" : "rgba(14,165,176,0.14)"
+                              : isDark
+                                ? "rgba(14,165,176,0.22)"
+                                : "rgba(14,165,176,0.14)"
                             : today
                               ? "transparent"
                               : "transparent",
@@ -751,10 +848,14 @@ export default function WorkoutsScreen() {
                               fontSize: 13,
                               fontWeight: today || filled ? "700" : "400",
                               color: filled
-                                ? today ? "#fff" : colors.primary
+                                ? today
+                                  ? "#fff"
+                                  : colors.primary
                                 : today
                                   ? colors.primary
-                                  : isDark ? "#d1d5db" : "#374151",
+                                  : isDark
+                                    ? "#d1d5db"
+                                    : "#374151",
                             }}
                           >
                             {item.dayNumber}
@@ -854,12 +955,28 @@ export default function WorkoutsScreen() {
                 {heroImageUri ? (
                   <Image
                     source={{ uri: heroImageUri }}
-                    style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                    }}
                     resizeMode="cover"
                   />
                 ) : (
-                  <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-                    <Dumbbell size={36} color={colors.muted} strokeWidth={1.5} />
+                  <View
+                    style={{
+                      flex: 1,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Dumbbell
+                      size={36}
+                      color={colors.muted}
+                      strokeWidth={1.5}
+                    />
                   </View>
                 )}
 
@@ -877,7 +994,9 @@ export default function WorkoutsScreen() {
                     }}
                   >
                     <Flame size={11} color="#fff" />
-                    <Text style={{ fontSize: 11, fontWeight: "700", color: "#fff" }}>
+                    <Text
+                      style={{ fontSize: 11, fontWeight: "700", color: "#fff" }}
+                    >
                       Today
                     </Text>
                   </View>
@@ -895,7 +1014,9 @@ export default function WorkoutsScreen() {
                         : "rgba(100,116,139,0.75)",
                     }}
                   >
-                    <Text style={{ fontSize: 11, fontWeight: "700", color: "#fff" }}>
+                    <Text
+                      style={{ fontSize: 11, fontWeight: "700", color: "#fff" }}
+                    >
                       {todayWorkout.is_active ? "Active" : "Inactive"}
                     </Text>
                   </View>
@@ -934,37 +1055,100 @@ export default function WorkoutsScreen() {
                   paddingVertical: 14,
                 }}
               >
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 14,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 5,
+                    }}
+                  >
                     <Clock3 size={13} color={colors.muted} />
-                    <Text style={{ fontSize: 13, color: isDark ? "#d1d5db" : "#374151" }}>
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        color: isDark ? "#d1d5db" : "#374151",
+                      }}
+                    >
                       {todayWorkout.estimated_duration_minutes} min
                     </Text>
                   </View>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 5,
+                    }}
+                  >
                     <Dumbbell size={13} color={colors.muted} />
-                    <Text style={{ fontSize: 13, color: isDark ? "#d1d5db" : "#374151" }}>
-                      {sections.reduce((acc, s) => acc + s.exercises.length, 0)} exercises
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        color: isDark ? "#d1d5db" : "#374151",
+                      }}
+                    >
+                      {sections.reduce((acc, s) => acc + s.exercises.length, 0)}{" "}
+                      exercises
                     </Text>
                   </View>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 5,
+                    }}
+                  >
                     <Target size={13} color={colors.muted} />
-                    <Text style={{ fontSize: 13, color: isDark ? "#d1d5db" : "#374151" }}>
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        color: isDark ? "#d1d5db" : "#374151",
+                      }}
+                    >
                       {focusArea}
                     </Text>
                   </View>
                   {todayWorkout.location ? (
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 5,
+                      }}
+                    >
                       <MapPin size={13} color={colors.muted} />
-                      <Text style={{ fontSize: 13, color: isDark ? "#d1d5db" : "#374151" }}>
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          color: isDark ? "#d1d5db" : "#374151",
+                        }}
+                      >
                         {todayWorkout.location}
                       </Text>
                     </View>
                   ) : null}
                   {todayWorkout.is_public ? (
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 5,
+                      }}
+                    >
                       <Globe size={13} color={colors.muted} />
-                      <Text style={{ fontSize: 13, color: isDark ? "#d1d5db" : "#374151" }}>
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          color: isDark ? "#d1d5db" : "#374151",
+                        }}
+                      >
                         Public
                       </Text>
                     </View>
@@ -975,7 +1159,13 @@ export default function WorkoutsScreen() {
                   onPress={() => router.push(`/workouts/${todayWorkout.id}`)}
                   style={{ marginLeft: 8 }}
                 >
-                  <Text style={{ fontSize: 13, fontWeight: "600", color: colors.primary }}>
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: "600",
+                      color: colors.primary,
+                    }}
+                  >
                     Details
                   </Text>
                 </Pressable>
@@ -998,7 +1188,8 @@ export default function WorkoutsScreen() {
               {sections.map((section) => {
                 const open = openSections[section.key];
                 const sectionTheme = isDark
-                  ? (SECTION_COLORS_DARK[section.key] ?? SECTION_COLORS_DARK.workout)
+                  ? (SECTION_COLORS_DARK[section.key] ??
+                    SECTION_COLORS_DARK.workout)
                   : (SECTION_COLORS[section.key] ?? SECTION_COLORS.workout);
 
                 return (
@@ -1023,10 +1214,22 @@ export default function WorkoutsScreen() {
                         backgroundColor: sectionTheme.bg,
                       }}
                     >
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                        {section.key === "warmup" && <Flame size={15} color={sectionTheme.label} />}
-                        {section.key === "workout" && <Dumbbell size={15} color={sectionTheme.label} />}
-                        {section.key === "cooldown" && <Timer size={15} color={sectionTheme.label} />}
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 8,
+                        }}
+                      >
+                        {section.key === "warmup" && (
+                          <Flame size={15} color={sectionTheme.label} />
+                        )}
+                        {section.key === "workout" && (
+                          <Dumbbell size={15} color={sectionTheme.label} />
+                        )}
+                        {section.key === "cooldown" && (
+                          <Timer size={15} color={sectionTheme.label} />
+                        )}
                         <Text
                           style={{
                             fontSize: 12,
@@ -1038,7 +1241,13 @@ export default function WorkoutsScreen() {
                         >
                           {section.title}
                         </Text>
-                        <Text style={{ fontSize: 12, color: sectionTheme.label, opacity: 0.75 }}>
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            color: sectionTheme.label,
+                            opacity: 0.75,
+                          }}
+                        >
                           {section.subtitle}
                         </Text>
                       </View>
@@ -1051,7 +1260,11 @@ export default function WorkoutsScreen() {
 
                     {/* Exercise rows */}
                     {open ? (
-                      <View style={{ backgroundColor: isDark ? "#16181e" : "#ffffff" }}>
+                      <View
+                        style={{
+                          backgroundColor: isDark ? "#16181e" : "#ffffff",
+                        }}
+                      >
                         {section.exercises.length === 0 ? (
                           <Text
                             style={{
@@ -1121,7 +1334,8 @@ export default function WorkoutsScreen() {
                 const thumbUri =
                   w.cover_image_url ??
                   (firstExercise
-                    ? (catalogById[firstExercise.id]?.remote_image_urls?.[0] ?? null)
+                    ? (catalogById[firstExercise.id]?.remote_image_urls?.[0] ??
+                      null)
                     : null);
                 const DIFF_COLOR: Record<string, string> = {
                   beginner: "#059669",
@@ -1144,7 +1358,13 @@ export default function WorkoutsScreen() {
                     {thumbUri ? (
                       <Image
                         source={{ uri: thumbUri }}
-                        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                        }}
                         resizeMode="cover"
                       />
                     ) : (
@@ -1160,7 +1380,11 @@ export default function WorkoutsScreen() {
                           justifyContent: "center",
                         }}
                       >
-                        <Dumbbell size={28} color={diffColor} strokeWidth={1.5} />
+                        <Dumbbell
+                          size={28}
+                          color={diffColor}
+                          strokeWidth={1.5}
+                        />
                       </View>
                     )}
 
@@ -1179,17 +1403,45 @@ export default function WorkoutsScreen() {
                       }}
                     >
                       <Text
-                        style={{ fontSize: 12, fontWeight: "700", color: "#fff" }}
+                        style={{
+                          fontSize: 12,
+                          fontWeight: "700",
+                          color: "#fff",
+                        }}
                         numberOfLines={1}
                       >
                         {w.name}
                       </Text>
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 3 }}>
-                        <Text style={{ fontSize: 11, color: "rgba(255,255,255,0.65)" }}>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 6,
+                          marginTop: 3,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            color: "rgba(255,255,255,0.65)",
+                          }}
+                        >
                           {w.estimated_duration_minutes} min
                         </Text>
-                        <View style={{ width: 2, height: 2, borderRadius: 1, backgroundColor: "rgba(255,255,255,0.4)" }} />
-                        <Text style={{ fontSize: 11, color: "rgba(255,255,255,0.65)" }}>
+                        <View
+                          style={{
+                            width: 2,
+                            height: 2,
+                            borderRadius: 1,
+                            backgroundColor: "rgba(255,255,255,0.4)",
+                          }}
+                        />
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            color: "rgba(255,255,255,0.65)",
+                          }}
+                        >
                           {w.exercises.length} exs
                         </Text>
                       </View>
@@ -1207,7 +1459,9 @@ export default function WorkoutsScreen() {
                         paddingHorizontal: 7,
                         paddingVertical: 3,
                         borderRadius: 12,
-                        backgroundColor: w.is_active ? "rgba(5,150,105,0.85)" : "rgba(71,85,105,0.7)",
+                        backgroundColor: w.is_active
+                          ? "rgba(5,150,105,0.85)"
+                          : "rgba(71,85,105,0.7)",
                       }}
                     >
                       <View
@@ -1218,7 +1472,13 @@ export default function WorkoutsScreen() {
                           backgroundColor: "#fff",
                         }}
                       />
-                      <Text style={{ fontSize: 10, fontWeight: "700", color: "#fff" }}>
+                      <Text
+                        style={{
+                          fontSize: 10,
+                          fontWeight: "700",
+                          color: "#fff",
+                        }}
+                      >
                         {w.is_active ? "Active" : "Off"}
                       </Text>
                     </View>

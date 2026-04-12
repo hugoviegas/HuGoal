@@ -59,8 +59,10 @@ interface ExerciseSetPlan {
   id: string;
   setNumber: number;
   reps: string;
+  executionMode: "reps" | "time";
   weightKg?: number;
   durationSeconds?: number;
+  prepSeconds?: number;
 }
 
 interface RunningExercise {
@@ -79,8 +81,10 @@ interface ExerciseStep {
   totalSets: number;
   exercise: RunningExercise;
   targetReps: string;
+  executionMode: "reps" | "time";
   targetWeightKg?: number;
   durationSeconds?: number;
+  prepSeconds?: number;
 }
 
 interface RestStep {
@@ -158,8 +162,14 @@ function templateToRunningExercises(
               id: `${exId}-set-1`,
               setNumber: 1,
               reps: block.reps ?? "",
+              executionMode:
+                block.execution_mode ??
+                ((block.exercise_seconds ?? block.duration_seconds ?? 0) > 0
+                  ? "time"
+                  : "reps"),
               weightKg: block.weight_kg,
-              durationSeconds: block.duration_seconds,
+              durationSeconds: block.exercise_seconds ?? block.duration_seconds,
+              prepSeconds: block.prep_seconds ?? 0,
             },
           ],
         });
@@ -187,6 +197,7 @@ function templateToRunningExercises(
         id: `${ex.id}-set-${i + 1}`,
         setNumber: i + 1,
         reps: ex.reps,
+        executionMode: "reps",
       }),
     );
 
@@ -215,8 +226,10 @@ function buildSteps(exercises: RunningExercise[]): SessionStep[] {
         totalSets: exercise.setsPlan.length,
         exercise,
         targetReps: setPlan.reps,
+        executionMode: setPlan.executionMode,
         targetWeightKg: setPlan.weightKg,
         durationSeconds: setPlan.durationSeconds,
+        prepSeconds: setPlan.prepSeconds,
       });
 
       const hasNextStep =
@@ -264,6 +277,7 @@ export default function RunWorkoutScreen() {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [sessionPaused, setSessionPaused] = useState(false);
   const [restRemainingSeconds, setRestRemainingSeconds] = useState(-1);
+  const [prepRemainingSeconds, setPrepRemainingSeconds] = useState(-1);
   const [timedRemainingSeconds, setTimedRemainingSeconds] = useState(-1);
   const [repsDone, setRepsDone] = useState("");
   const [weightDone, setWeightDone] = useState("");
@@ -399,6 +413,7 @@ export default function RunWorkoutScreen() {
           setEditReps(pausedSession.reps_done ?? "");
           setEditWeight(pausedSession.weight_done ?? "");
           setRestRemainingSeconds(pausedSession.rest_remaining_seconds ?? -1);
+          setPrepRemainingSeconds(pausedSession.prep_remaining_seconds ?? -1);
           setTimedRemainingSeconds(pausedSession.timed_remaining_seconds ?? -1);
           setCompletedSets(pausedSession.completed_sets ?? []);
           totalPausedSecondsRef.current =
@@ -443,7 +458,12 @@ export default function RunWorkoutScreen() {
       restCountdownStartedRef.current = false;
       setRestRemainingSeconds(-1);
 
-      const defaultReps = currentStep.durationSeconds
+      const isTimedStep = currentStep.executionMode === "time";
+      const prepSeconds = isTimedStep
+        ? Math.max(0, currentStep.prepSeconds ?? 0)
+        : 0;
+
+      const defaultReps = isTimedStep
         ? "0"
         : String(parseReps(currentStep.targetReps));
       const defaultWeight =
@@ -456,9 +476,18 @@ export default function RunWorkoutScreen() {
       setEditReps(defaultReps);
       setEditWeight(defaultWeight);
 
-      if (currentStep.durationSeconds) {
-        timedCountdownStartedRef.current = true;
-        setTimedRemainingSeconds(currentStep.durationSeconds);
+      setPrepRemainingSeconds(-1);
+
+      if (isTimedStep) {
+        if (prepSeconds > 0) {
+          timedCountdownStartedRef.current = false;
+          setPrepRemainingSeconds(prepSeconds);
+          setTimedRemainingSeconds(-1);
+        } else {
+          timedCountdownStartedRef.current = true;
+          setPrepRemainingSeconds(-1);
+          setTimedRemainingSeconds(currentStep.durationSeconds ?? 0);
+        }
       } else {
         timedCountdownStartedRef.current = false;
         setTimedRemainingSeconds(-1);
@@ -468,6 +497,7 @@ export default function RunWorkoutScreen() {
 
     restStepStartedAtRef.current = Date.now();
     timedCountdownStartedRef.current = false;
+    setPrepRemainingSeconds(-1);
     setTimedRemainingSeconds(-1);
     setRestRemainingSeconds(currentStep.restSeconds);
     restCountdownStartedRef.current = true;
@@ -622,6 +652,7 @@ export default function RunWorkoutScreen() {
                 repsDone,
                 weightDone,
                 restRemainingSeconds,
+                prepRemainingSeconds,
                 timedRemainingSeconds,
                 completedSets: completedSetsToPersist,
                 pausedElapsedSeconds: totalPausedSecondsRef.current,
@@ -654,6 +685,7 @@ export default function RunWorkoutScreen() {
       finalizeCurrentRestSegment,
       repsDone,
       restRemainingSeconds,
+      prepRemainingSeconds,
       router,
       sessionStartedAt,
       template,
@@ -691,6 +723,15 @@ export default function RunWorkoutScreen() {
         setNumber: currentExerciseStep.setNumber,
         repsCompleted: currentExerciseStep.durationSeconds ? 0 : parsedReps,
         weightKg,
+        executionType: currentExerciseStep.executionMode,
+        durationSecondsCompleted:
+          currentExerciseStep.executionMode === "time"
+            ? Math.max(0, currentExerciseStep.durationSeconds ?? 0)
+            : undefined,
+        prepSecondsCompleted:
+          currentExerciseStep.executionMode === "time"
+            ? Math.max(0, currentExerciseStep.prepSeconds ?? 0)
+            : undefined,
         completedAt: new Date().toISOString(),
       },
     ];
@@ -726,7 +767,33 @@ export default function RunWorkoutScreen() {
     if (
       sessionPaused ||
       currentStep?.type !== "exercise" ||
+      currentStep.executionMode !== "time" ||
+      prepRemainingSeconds < 0
+    ) {
+      return;
+    }
+
+    if (prepRemainingSeconds === 0) {
+      setPrepRemainingSeconds(-1);
+      timedCountdownStartedRef.current = true;
+      setTimedRemainingSeconds(currentStep.durationSeconds ?? 0);
+      return;
+    }
+
+    const intervalId = setInterval(() => {
+      setPrepRemainingSeconds((prev) => Math.max(prev - 1, 0));
+    }, 1000);
+
+    return () => clearInterval(intervalId);
+  }, [currentStep, prepRemainingSeconds, sessionPaused]);
+
+  useEffect(() => {
+    if (
+      sessionPaused ||
+      currentStep?.type !== "exercise" ||
+      currentStep.executionMode !== "time" ||
       !currentStep.durationSeconds ||
+      prepRemainingSeconds >= 0 ||
       timedRemainingSeconds < 0
     )
       return;
@@ -747,6 +814,7 @@ export default function RunWorkoutScreen() {
   }, [
     currentStep,
     handleCompleteExerciseStep,
+    prepRemainingSeconds,
     timedRemainingSeconds,
     sessionPaused,
   ]);
@@ -761,6 +829,7 @@ export default function RunWorkoutScreen() {
       repsDone,
       weightDone,
       restRemainingSeconds,
+      prepRemainingSeconds,
       timedRemainingSeconds,
       completedSets,
       pausedElapsedSeconds: totalPausedSecondsRef.current,
@@ -773,6 +842,7 @@ export default function RunWorkoutScreen() {
     currentStepIndex,
     repsDone,
     restRemainingSeconds,
+    prepRemainingSeconds,
     sessionStartedAt,
     templateId,
     timedRemainingSeconds,
@@ -860,6 +930,18 @@ export default function RunWorkoutScreen() {
         ? (currentStep.durationSeconds ?? 0)
         : 0;
 
+  const isTimedPrepPhase =
+    currentStep?.type === "exercise" &&
+    currentStep.executionMode === "time" &&
+    prepRemainingSeconds >= 0;
+
+  const displayPrepSeconds =
+    prepRemainingSeconds >= 0
+      ? prepRemainingSeconds
+      : currentStep?.type === "exercise" && currentStep.executionMode === "time"
+        ? Math.max(0, currentStep.prepSeconds ?? 0)
+        : 0;
+
   const modalTargetStep =
     currentStep?.type === "exercise"
       ? currentStep
@@ -890,15 +972,20 @@ export default function RunWorkoutScreen() {
   const countdownTotalSeconds =
     currentStep?.type === "rest"
       ? currentStep.restSeconds
-      : currentStep?.type === "exercise" && currentStep.durationSeconds
-        ? currentStep.durationSeconds
+      : currentStep?.type === "exercise" &&
+          currentStep.executionMode === "time" &&
+          currentStep.durationSeconds
+        ? (currentStep.durationSeconds ?? 0) +
+          Math.max(0, currentStep.prepSeconds ?? 0)
         : 0;
 
   const countdownRemainingSeconds =
     currentStep?.type === "rest"
       ? displayRestSeconds
-      : currentStep?.type === "exercise" && currentStep.durationSeconds
-        ? displayTimedSeconds
+      : currentStep?.type === "exercise" &&
+          currentStep.executionMode === "time" &&
+          currentStep.durationSeconds
+        ? Math.max(0, displayPrepSeconds) + Math.max(0, displayTimedSeconds)
         : -1;
 
   const countdownProgress =
@@ -915,7 +1002,10 @@ export default function RunWorkoutScreen() {
 
   const onNextFromGesture = useCallback(() => {
     if (editOpen || closeConfirmOpen || sessionPaused) return;
-    if (currentStep?.type === "exercise" && !currentStep.durationSeconds) {
+    if (
+      currentStep?.type === "exercise" &&
+      currentStep.executionMode !== "time"
+    ) {
       void handleCompleteExerciseStep();
       return;
     }
@@ -1002,6 +1092,7 @@ export default function RunWorkoutScreen() {
         repsDone,
         weightDone,
         restRemainingSeconds,
+        prepRemainingSeconds,
         timedRemainingSeconds,
         completedSets,
         pausedElapsedSeconds: totalPausedSecondsRef.current,
@@ -1027,6 +1118,7 @@ export default function RunWorkoutScreen() {
     repsDone,
     getCurrentRestElapsedSeconds,
     restRemainingSeconds,
+    prepRemainingSeconds,
     sessionHydrated,
     sessionStartedAt,
     templateId,
@@ -1189,14 +1281,21 @@ export default function RunWorkoutScreen() {
                   paddingBottom: countdownRemainingSeconds >= 0 ? 72 : 16,
                 }}
               >
-                {!currentStep.durationSeconds ? (
+                {currentStep.executionMode !== "time" ? (
                   <Text className="text-4xl font-bold text-gray-900 dark:text-gray-100">
                     {`${repsDone || parseReps(currentStep.targetReps)}x`}
                   </Text>
                 ) : null}
+                {currentStep.executionMode === "time" ? (
+                  <Text className="text-4xl font-bold text-cyan-600 dark:text-cyan-400">
+                    {isTimedPrepPhase
+                      ? `Prepare ${formatSeconds(displayPrepSeconds)}`
+                      : formatSeconds(displayTimedSeconds)}
+                  </Text>
+                ) : null}
                 <Text className="mt-1 text-3xl font-semibold text-gray-900 dark:text-gray-100">
                   {currentStep.exercise.name}
-                  {!currentStep.durationSeconds && weightDone
+                  {currentStep.executionMode !== "time" && weightDone
                     ? ` • ${weightDone} kg`
                     : ""}
                 </Text>
@@ -1204,8 +1303,16 @@ export default function RunWorkoutScreen() {
                   Set {currentStep.setNumber}/{currentStep.totalSets} •{" "}
                   {currentStep.exerciseIndex + 1}/{exercises.length}
                 </Text>
+                {currentStep.executionMode === "time" ? (
+                  <Text className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    {`Work ${currentStep.durationSeconds ?? 0}s`}
+                    {currentStep.prepSeconds
+                      ? ` • Prep ${currentStep.prepSeconds}s`
+                      : ""}
+                  </Text>
+                ) : null}
 
-                {!currentStep.durationSeconds ? (
+                {currentStep.executionMode !== "time" ? (
                   <Button
                     onPress={() => void handleCompleteExerciseStep()}
                     className="mt-5 w-full"

@@ -76,13 +76,42 @@ function difficultyColor(difficulty: string): string {
   return "#22c55e";
 }
 
+function formatTimedPrescription(workSeconds: number, prepSeconds = 0): string {
+  const safeWork = Math.max(1, workSeconds);
+  const safePrep = Math.max(0, prepSeconds);
+  return safePrep > 0 ? `${safeWork}s + prep ${safePrep}s` : `${safeWork}s`;
+}
+
+function formatBlockPrescription(block: {
+  reps?: string;
+  execution_mode?: "reps" | "time";
+  exercise_seconds?: number;
+  prep_seconds?: number;
+  duration_seconds?: number;
+}): string {
+  const executionMode =
+    block.execution_mode ??
+    ((block.exercise_seconds ?? block.duration_seconds ?? 0) > 0
+      ? "time"
+      : "reps");
+
+  if (executionMode === "time") {
+    return formatTimedPrescription(
+      block.exercise_seconds ?? block.duration_seconds ?? 30,
+      block.prep_seconds ?? 0,
+    );
+  }
+
+  return block.reps || "-";
+}
+
 // ─── Section helpers ─────────────────────────────────────────────────────────
 
 interface NormalizedExercise {
   id: string;
   name: string;
   sets: number;
-  reps: string;
+  prescription: string;
   muscleGroups: string[];
 }
 
@@ -107,7 +136,7 @@ function normalizeSections(record: WorkoutTemplateRecord): NormalizedSection[] {
           id: b.exercise_id!,
           name: b.name ?? b.exercise_id!,
           sets: 1,
-          reps: b.reps ?? "",
+          prescription: formatBlockPrescription(b),
           muscleGroups: b.primary_muscles ?? [],
         })),
     }));
@@ -128,30 +157,54 @@ function normalizeSections(record: WorkoutTemplateRecord): NormalizedSection[] {
   const cooldownCount = total > 3 ? 1 : 0;
   const warmup = exs.slice(0, warmupCount);
   const cooldown = cooldownCount > 0 ? exs.slice(total - cooldownCount) : [];
-  const main = exs.slice(warmup.length, cooldown.length > 0 ? total - cooldown.length : total);
+  const main = exs.slice(
+    warmup.length,
+    cooldown.length > 0 ? total - cooldown.length : total,
+  );
 
   const toEntry = (e: WorkoutTemplateExerciseRecord) => ({
     id: e.id,
     name: e.name,
     sets: e.sets,
-    reps: e.reps,
+    prescription: e.reps,
     muscleGroups: e.muscleGroups,
   });
 
   return [
-    { key: "warmup", label: "Warmup", type: "warmup", exercises: warmup.map(toEntry) },
-    { key: "workout", label: "Workout", type: "round", exercises: main.map(toEntry) },
-    { key: "cooldown", label: "Cooldown", type: "cooldown", exercises: cooldown.map(toEntry) },
+    {
+      key: "warmup",
+      label: "Warmup",
+      type: "warmup",
+      exercises: warmup.map(toEntry),
+    },
+    {
+      key: "workout",
+      label: "Workout",
+      type: "round",
+      exercises: main.map(toEntry),
+    },
+    {
+      key: "cooldown",
+      label: "Cooldown",
+      type: "cooldown",
+      exercises: cooldown.map(toEntry),
+    },
   ];
 }
 
-const SECTION_COLORS: Record<string, { bg: string; border: string; label: string }> = {
+const SECTION_COLORS: Record<
+  string,
+  { bg: string; border: string; label: string }
+> = {
   warmup: { bg: "#fef9c3", border: "#fde047", label: "#a16207" },
   round: { bg: "#dbeafe", border: "#93c5fd", label: "#1d4ed8" },
   cooldown: { bg: "#dcfce7", border: "#86efac", label: "#15803d" },
 };
 
-const SECTION_COLORS_DARK: Record<string, { bg: string; border: string; label: string }> = {
+const SECTION_COLORS_DARK: Record<
+  string,
+  { bg: string; border: string; label: string }
+> = {
   warmup: { bg: "#422006", border: "#78350f", label: "#fde68a" },
   round: { bg: "#1e3a5f", border: "#1e40af", label: "#93c5fd" },
   cooldown: { bg: "#14532d", border: "#166534", label: "#86efac" },
@@ -163,10 +216,14 @@ interface ExerciseInspectModalProps {
   exerciseId: string | null;
   exerciseName: string;
   sets: number;
-  reps: string;
+  prescription: string;
   official: OfficialExerciseRecord | null;
   isDark: boolean;
-  colors: ReturnType<typeof useThemeStore>["colors"];
+  colors: {
+    muted: string;
+    primary: string;
+    foreground: string;
+  };
   onClose: () => void;
 }
 
@@ -174,7 +231,7 @@ function ExerciseInspectModal({
   exerciseId,
   exerciseName,
   sets,
-  reps,
+  prescription,
   official,
   isDark,
   colors,
@@ -190,8 +247,10 @@ function ExerciseInspectModal({
     [official?.remote_image_urls],
   );
 
-  const currentImageUri = exerciseImages.length > 0 ? exerciseImages[currentImageIndex] : null;
-  const nextImageUri = nextImageIndex !== null ? exerciseImages[nextImageIndex] : null;
+  const currentImageUri =
+    exerciseImages.length > 0 ? exerciseImages[currentImageIndex] : null;
+  const nextImageUri =
+    nextImageIndex !== null ? exerciseImages[nextImageIndex] : null;
 
   const musclePrimary = official?.primary_muscles?.length
     ? official.primary_muscles
@@ -213,7 +272,8 @@ function ExerciseInspectModal({
   }, [imageFade, exerciseId]);
 
   useEffect(() => {
-    if (exerciseImages.length < 2 || pauseImageLoop || nextImageIndex !== null) return;
+    if (exerciseImages.length < 2 || pauseImageLoop || nextImageIndex !== null)
+      return;
 
     const timerId = setTimeout(() => {
       const nextIndex = (currentImageIndex + 1) % exerciseImages.length;
@@ -233,7 +293,13 @@ function ExerciseInspectModal({
       clearTimeout(timerId);
       imageFade.stopAnimation();
     };
-  }, [currentImageIndex, exerciseImages.length, imageFade, nextImageIndex, pauseImageLoop]);
+  }, [
+    currentImageIndex,
+    exerciseImages.length,
+    imageFade,
+    nextImageIndex,
+    pauseImageLoop,
+  ]);
 
   return (
     <View
@@ -261,7 +327,10 @@ function ExerciseInspectModal({
         </Pressable>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 32 }}
+      >
         {/* Image */}
         <Pressable
           className="mx-4 rounded-2xl overflow-hidden bg-black/15 mb-4"
@@ -272,11 +341,22 @@ function ExerciseInspectModal({
         >
           {currentImageUri ? (
             <>
-              <Image source={{ uri: currentImageUri }} className="h-full w-full" resizeMode="cover" />
+              <Image
+                source={{ uri: currentImageUri }}
+                className="h-full w-full"
+                resizeMode="cover"
+              />
               {nextImageUri ? (
                 <Animated.Image
                   source={{ uri: nextImageUri }}
-                  style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, opacity: imageFade }}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    opacity: imageFade,
+                  }}
                   resizeMode="cover"
                 />
               ) : null}
@@ -310,19 +390,31 @@ function ExerciseInspectModal({
           <View
             className={cn(
               "rounded-2xl border p-4 mb-4 flex-row justify-between",
-              isDark ? "bg-dark-card border-dark-border" : "bg-light-card border-light-border",
+              isDark
+                ? "bg-dark-card border-dark-border"
+                : "bg-light-card border-light-border",
             )}
           >
             <View className="items-center gap-1">
-              <Text className="text-xs text-gray-500 dark:text-gray-400">Sets</Text>
-              <Text className="text-lg font-bold text-gray-900 dark:text-gray-100">{sets}</Text>
+              <Text className="text-xs text-gray-500 dark:text-gray-400">
+                Sets
+              </Text>
+              <Text className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                {sets}
+              </Text>
             </View>
             <View className="items-center gap-1">
-              <Text className="text-xs text-gray-500 dark:text-gray-400">Reps</Text>
-              <Text className="text-lg font-bold text-gray-900 dark:text-gray-100">{reps || "—"}</Text>
+              <Text className="text-xs text-gray-500 dark:text-gray-400">
+                Prescription
+              </Text>
+              <Text className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                {prescription || "-"}
+              </Text>
             </View>
             <View className="items-center gap-1">
-              <Text className="text-xs text-gray-500 dark:text-gray-400">Equipment</Text>
+              <Text className="text-xs text-gray-500 dark:text-gray-400">
+                Equipment
+              </Text>
               <Text
                 className="text-sm font-semibold text-gray-800 dark:text-gray-200"
                 numberOfLines={1}
@@ -353,13 +445,22 @@ function ExerciseInspectModal({
             <View
               className={cn(
                 "rounded-2xl border p-4 gap-3",
-                isDark ? "bg-dark-card border-dark-border" : "bg-light-card border-light-border",
+                isDark
+                  ? "bg-dark-card border-dark-border"
+                  : "bg-light-card border-light-border",
               )}
             >
               {howToSteps.map((step, index) => (
-                <View key={`step-${index}`} className="flex-row items-start gap-2">
-                  <Text className="text-sm font-semibold text-gray-800 dark:text-gray-200">{index + 1}.</Text>
-                  <Text className="text-sm text-gray-700 dark:text-gray-300 flex-1">{step}</Text>
+                <View
+                  key={`step-${index}`}
+                  className="flex-row items-start gap-2"
+                >
+                  <Text className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                    {index + 1}.
+                  </Text>
+                  <Text className="text-sm text-gray-700 dark:text-gray-300 flex-1">
+                    {step}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -385,10 +486,13 @@ export default function WorkoutDetailScreen() {
   const showToast = useToastStore((state) => state.show);
 
   const [workout, setWorkout] = useState<WorkoutTemplateRecord | null>(null);
-  const [catalogLookup, setCatalogLookup] = useState<Record<string, OfficialExerciseRecord>>({});
+  const [catalogLookup, setCatalogLookup] = useState<
+    Record<string, OfficialExerciseRecord>
+  >({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pausedSession, setPausedSession] = useState<PausedWorkoutSessionRecord | null>(null);
+  const [pausedSession, setPausedSession] =
+    useState<PausedWorkoutSessionRecord | null>(null);
 
   // Section collapse state
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -440,7 +544,8 @@ export default function WorkoutDetailScreen() {
           byId[normalizeExerciseKey(item.id)] = item;
           byId[normalizeExerciseKey(item.name)] = item;
           if (item.name_en) byId[normalizeExerciseKey(item.name_en)] = item;
-          if ((item as any).source_id) byId[normalizeExerciseKey((item as any).source_id)] = item;
+          if ((item as any).source_id)
+            byId[normalizeExerciseKey((item as any).source_id)] = item;
           for (const alias of item.aliases ?? []) {
             byId[normalizeExerciseKey(alias)] = item;
           }
@@ -451,7 +556,11 @@ export default function WorkoutDetailScreen() {
       } catch (loadError) {
         console.error("[workoutDetail] load failed", loadError);
         if (!mounted) return;
-        setError(loadError instanceof Error ? loadError.message : "Failed to load workout.");
+        setError(
+          loadError instanceof Error
+            ? loadError.message
+            : "Failed to load workout.",
+        );
       } finally {
         if (mounted) setLoading(false);
       }
@@ -497,7 +606,7 @@ export default function WorkoutDetailScreen() {
             id: b.exercise_id!,
             name: b.name ?? b.exercise_id!,
             sets: 1,
-            reps: b.reps ?? "",
+            prescription: formatBlockPrescription(b),
           })),
       );
     }
@@ -505,7 +614,7 @@ export default function WorkoutDetailScreen() {
       id: e.id,
       name: e.name,
       sets: e.sets,
-      reps: e.reps,
+      prescription: e.reps,
     }));
   }, [workout]);
 
@@ -575,7 +684,8 @@ export default function WorkoutDetailScreen() {
     });
   };
 
-  const handleEdit = () => closeSheet(() => router.push(`/workouts/${id}/edit`));
+  const handleEdit = () =>
+    closeSheet(() => router.push(`/workouts/${id}/edit`));
 
   const handleDuplicate = async () => {
     if (!user?.uid || !workout) return;
@@ -614,7 +724,10 @@ export default function WorkoutDetailScreen() {
     try {
       await updateWorkoutTemplate(String(id), { is_public: next });
       setWorkout((prev) => (prev ? { ...prev, is_public: next } : prev));
-      showToast(next ? "Workout is now public" : "Workout is now private", "success");
+      showToast(
+        next ? "Workout is now public" : "Workout is now private",
+        "success",
+      );
       closeSheet();
     } catch {
       showToast("Could not update workout", "error");
@@ -655,7 +768,12 @@ export default function WorkoutDetailScreen() {
 
   if (!workout) {
     return (
-      <View className={cn("flex-1 items-center justify-center px-6", isDark ? "bg-dark-bg" : "bg-light-bg")}>
+      <View
+        className={cn(
+          "flex-1 items-center justify-center px-6",
+          isDark ? "bg-dark-bg" : "bg-light-bg",
+        )}
+      >
         <Text className="text-base text-center text-gray-900 dark:text-gray-100 font-semibold">
           {error ?? "Workout unavailable."}
         </Text>
@@ -708,7 +826,10 @@ export default function WorkoutDetailScreen() {
           {/* ── Workout cover image ── */}
           <View
             className="rounded-3xl overflow-hidden mb-4"
-            style={{ aspectRatio: 16 / 9, backgroundColor: isDark ? "#22252f" : "#f1f5f9" }}
+            style={{
+              aspectRatio: 16 / 9,
+              backgroundColor: isDark ? "#22252f" : "#f1f5f9",
+            }}
           >
             {workout.cover_image_url ? (
               <Image
@@ -902,8 +1023,9 @@ export default function WorkoutDetailScreen() {
           <View className="gap-3 mb-6">
             {sections.map((section) => {
               const sectionTheme = isDark
-                ? SECTION_COLORS_DARK[section.type] ?? SECTION_COLORS_DARK.round
-                : SECTION_COLORS[section.type] ?? SECTION_COLORS.round;
+                ? (SECTION_COLORS_DARK[section.type] ??
+                  SECTION_COLORS_DARK.round)
+                : (SECTION_COLORS[section.type] ?? SECTION_COLORS.round);
               const isOpen = openSections[section.type] !== false;
 
               return (
@@ -928,9 +1050,15 @@ export default function WorkoutDetailScreen() {
                     className="flex-row items-center justify-between px-4 py-3"
                   >
                     <View className="flex-row items-center gap-2">
-                      {section.type === "warmup" && <Flame size={16} color={sectionTheme.label} />}
-                      {section.type === "round" && <Dumbbell size={16} color={sectionTheme.label} />}
-                      {section.type === "cooldown" && <Timer size={16} color={sectionTheme.label} />}
+                      {section.type === "warmup" && (
+                        <Flame size={16} color={sectionTheme.label} />
+                      )}
+                      {section.type === "round" && (
+                        <Dumbbell size={16} color={sectionTheme.label} />
+                      )}
+                      {section.type === "cooldown" && (
+                        <Timer size={16} color={sectionTheme.label} />
+                      )}
                       <Text
                         className="text-sm font-bold uppercase tracking-wider"
                         style={{ color: sectionTheme.label }}
@@ -970,7 +1098,8 @@ export default function WorkoutDetailScreen() {
                             catalogLookup[exercise.id] ??
                             catalogLookup[normalizeExerciseKey(exercise.id)] ??
                             catalogLookup[normalizeExerciseKey(exercise.name)];
-                          const thumb = official?.remote_image_urls?.[0] ?? null;
+                          const thumb =
+                            official?.remote_image_urls?.[0] ?? null;
                           const isLast = index === section.exercises.length - 1;
 
                           return (
@@ -979,14 +1108,19 @@ export default function WorkoutDetailScreen() {
                               onPress={() => openInspect(exercise.id)}
                               className={cn(
                                 "flex-row items-center gap-3 px-3 py-3",
-                                !isLast && (isDark ? "border-b border-dark-border" : "border-b border-light-border"),
+                                !isLast &&
+                                  (isDark
+                                    ? "border-b border-dark-border"
+                                    : "border-b border-light-border"),
                               )}
                             >
                               {/* Thumbnail */}
                               <View
                                 className="h-12 w-12 rounded-xl overflow-hidden"
                                 style={{
-                                  backgroundColor: isDark ? "#2a2d3a" : "#e2e8f0",
+                                  backgroundColor: isDark
+                                    ? "#2a2d3a"
+                                    : "#e2e8f0",
                                 }}
                               >
                                 {thumb ? (
@@ -1012,9 +1146,9 @@ export default function WorkoutDetailScreen() {
                                 </Text>
                                 <Text className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                   {exercise.sets > 1
-                                    ? `${exercise.sets} sets × ${exercise.reps || "—"}`
-                                    : exercise.reps
-                                      ? exercise.reps
+                                    ? `${exercise.sets} sets × ${exercise.prescription || "-"}`
+                                    : exercise.prescription
+                                      ? exercise.prescription
                                       : "—"}
                                 </Text>
                               </View>
@@ -1049,7 +1183,9 @@ export default function WorkoutDetailScreen() {
       <View
         className={cn(
           "absolute left-0 right-0 border-t px-4 pt-3",
-          isDark ? "bg-dark-surface border-dark-border" : "bg-light-surface border-light-border",
+          isDark
+            ? "bg-dark-surface border-dark-border"
+            : "bg-light-surface border-light-border",
         )}
         style={{ bottom: 0, paddingBottom: insets.bottom + 80 }}
       >
@@ -1075,7 +1211,11 @@ export default function WorkoutDetailScreen() {
             </Button>
           </View>
         ) : (
-          <Button className="w-full" size="lg" onPress={() => void handleStartWorkout()}>
+          <Button
+            className="w-full"
+            size="lg"
+            onPress={() => void handleStartWorkout()}
+          >
             <View className="flex-row items-center justify-center gap-2">
               <Play size={16} color="#ffffff" />
               <Text className="text-white font-semibold">Start Workout</Text>
@@ -1168,14 +1308,25 @@ export default function WorkoutDetailScreen() {
                   <View
                     style={{
                       borderRadius: 16,
-                      backgroundColor: isDark ? "rgba(239,68,68,0.1)" : "rgba(239,68,68,0.06)",
+                      backgroundColor: isDark
+                        ? "rgba(239,68,68,0.1)"
+                        : "rgba(239,68,68,0.06)",
                       borderWidth: 1,
-                      borderColor: isDark ? "rgba(239,68,68,0.3)" : "rgba(239,68,68,0.2)",
+                      borderColor: isDark
+                        ? "rgba(239,68,68,0.3)"
+                        : "rgba(239,68,68,0.2)",
                       padding: 16,
                       marginBottom: 16,
                     }}
                   >
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 10,
+                        marginBottom: 8,
+                      }}
+                    >
                       <View
                         style={{
                           width: 36,
@@ -1183,12 +1334,20 @@ export default function WorkoutDetailScreen() {
                           borderRadius: 10,
                           alignItems: "center",
                           justifyContent: "center",
-                          backgroundColor: isDark ? "rgba(239,68,68,0.2)" : "rgba(239,68,68,0.12)",
+                          backgroundColor: isDark
+                            ? "rgba(239,68,68,0.2)"
+                            : "rgba(239,68,68,0.12)",
                         }}
                       >
                         <Trash2 size={18} color="#ef4444" />
                       </View>
-                      <Text style={{ fontSize: 15, fontWeight: "700", color: "#ef4444" }}>
+                      <Text
+                        style={{
+                          fontSize: 15,
+                          fontWeight: "700",
+                          color: "#ef4444",
+                        }}
+                      >
                         Delete workout?
                       </Text>
                     </View>
@@ -1199,10 +1358,17 @@ export default function WorkoutDetailScreen() {
                         color: isDark ? "#9ca3af" : "#6b7280",
                       }}
                     >
-                      <Text style={{ fontWeight: "600", color: isDark ? "#d1d5db" : "#374151" }}>
-                        "{workout?.name}"
-                      </Text>
-                      {" "}will be permanently deleted. This cannot be undone.
+                      <Text
+                        style={{
+                          fontWeight: "600",
+                          color: isDark ? "#d1d5db" : "#374151",
+                        }}
+                      >
+                        {'"'}
+                        {workout?.name}
+                        {'"'}
+                      </Text>{" "}
+                      will be permanently deleted. This cannot be undone.
                     </Text>
                   </View>
 
@@ -1214,15 +1380,27 @@ export default function WorkoutDetailScreen() {
                         paddingVertical: 14,
                         borderRadius: 14,
                         alignItems: "center",
-                        backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)",
+                        backgroundColor: isDark
+                          ? "rgba(255,255,255,0.06)"
+                          : "rgba(0,0,0,0.05)",
                       }}
                     >
-                      <Text style={{ fontSize: 15, fontWeight: "600", color: isDark ? "#9ca3af" : "#6b7280" }}>
+                      <Text
+                        style={{
+                          fontSize: 15,
+                          fontWeight: "600",
+                          color: isDark ? "#9ca3af" : "#6b7280",
+                        }}
+                      >
                         Cancel
                       </Text>
                     </Pressable>
                     <Pressable
-                      onPress={actionLoading ? undefined : () => void handleDeleteExecute()}
+                      onPress={
+                        actionLoading
+                          ? undefined
+                          : () => void handleDeleteExecute()
+                      }
                       style={{
                         flex: 1,
                         paddingVertical: 14,
@@ -1236,7 +1414,13 @@ export default function WorkoutDetailScreen() {
                       {actionLoading ? (
                         <ActivityIndicator size="small" color="#fff" />
                       ) : (
-                        <Text style={{ fontSize: 15, fontWeight: "700", color: "#fff" }}>
+                        <Text
+                          style={{
+                            fontSize: 15,
+                            fontWeight: "700",
+                            color: "#fff",
+                          }}
+                        >
                           Delete
                         </Text>
                       )}
@@ -1265,7 +1449,9 @@ export default function WorkoutDetailScreen() {
                       ) : (
                         <Check size={18} color="#059669" />
                       ),
-                      label: workout?.is_active ? "Deactivate" : "Set as active",
+                      label: workout?.is_active
+                        ? "Deactivate"
+                        : "Set as active",
                       onPress: () => void handleToggleActive(),
                       destructive: false,
                     },
@@ -1275,7 +1461,9 @@ export default function WorkoutDetailScreen() {
                       ) : (
                         <Globe size={18} color="#0284c7" />
                       ),
-                      label: workout?.is_public ? "Make private" : "Make public",
+                      label: workout?.is_public
+                        ? "Make private"
+                        : "Make public",
                       onPress: () => void handleTogglePublic(),
                       destructive: false,
                     },
@@ -1371,7 +1559,7 @@ export default function WorkoutDetailScreen() {
             exerciseId={inspectId}
             exerciseName={inspectExercise.name}
             sets={inspectExercise.sets}
-            reps={inspectExercise.reps}
+            prescription={inspectExercise.prescription}
             official={inspectOfficial}
             isDark={isDark}
             colors={colors}

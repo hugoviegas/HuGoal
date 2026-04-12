@@ -61,6 +61,9 @@ export interface WorkoutTemplateBlockRecord {
   exercise_id?: string;
   name?: string;
   reps?: string;
+  execution_mode?: "reps" | "time";
+  exercise_seconds?: number;
+  prep_seconds?: number;
   weight_kg?: number;
   rest_seconds?: number;
   notes?: string;
@@ -176,6 +179,9 @@ export interface CompletedExerciseSetRecord {
   setNumber: number;
   repsCompleted: number;
   weightKg?: number;
+  executionType?: "reps" | "time";
+  durationSecondsCompleted?: number;
+  prepSecondsCompleted?: number;
   completedAt: string;
 }
 
@@ -188,6 +194,7 @@ export interface PausedWorkoutSessionRecord {
   reps_done: string;
   weight_done: string;
   rest_remaining_seconds: number;
+  prep_remaining_seconds?: number;
   timed_remaining_seconds: number;
   completed_sets: CompletedExerciseSetRecord[];
   paused_elapsed_seconds: number;
@@ -203,6 +210,7 @@ export interface SavePausedWorkoutSessionInput {
   repsDone: string;
   weightDone: string;
   restRemainingSeconds: number;
+  prepRemainingSeconds?: number;
   timedRemainingSeconds: number;
   completedSets: CompletedExerciseSetRecord[];
   pausedElapsedSeconds: number;
@@ -411,6 +419,7 @@ export async function savePausedWorkoutSession(
     reps_done: input.repsDone,
     weight_done: input.weightDone,
     rest_remaining_seconds: input.restRemainingSeconds,
+    prep_remaining_seconds: input.prepRemainingSeconds ?? -1,
     timed_remaining_seconds: input.timedRemainingSeconds,
     completed_sets: input.completedSets,
     paused_elapsed_seconds: input.pausedElapsedSeconds,
