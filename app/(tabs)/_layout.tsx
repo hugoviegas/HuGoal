@@ -39,7 +39,7 @@ export default function TabsLayout() {
         sceneStyle: { backgroundColor: colors.background },
       }}
     >
-      <Tabs.Screen name="dashboard" />
+      <Tabs.Screen name="home" />
       <Tabs.Screen name="workouts" options={{ href: "/workouts" }} />
       <Tabs.Screen name="nutrition" />
       <Tabs.Screen name="community" />

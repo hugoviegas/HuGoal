@@ -32,6 +32,7 @@ export interface ModernMobileMenuProps extends BottomTabBarProps {
 }
 
 const TAB_ICONS: Record<string, IconComponentType> = {
+  home: LayoutDashboard,
   dashboard: LayoutDashboard,
   workouts: Dumbbell,
   nutrition: Utensils,
@@ -39,13 +40,20 @@ const TAB_ICONS: Record<string, IconComponentType> = {
 };
 
 const TAB_LABELS: Record<string, string> = {
+  home: "Home",
   dashboard: "Home",
   workouts: "Workouts",
   nutrition: "Nutrition",
   community: "Community",
 };
 
-const CORE_TABS = new Set(["dashboard", "workouts", "nutrition", "community"]);
+const CORE_TABS = new Set([
+  "home",
+  "dashboard",
+  "workouts",
+  "nutrition",
+  "community",
+]);
 
 export function ModernMobileMenu({
   state,
