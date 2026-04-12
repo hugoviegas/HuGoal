@@ -1262,7 +1262,7 @@ export default function CreateWorkoutScreen() {
           10,
           Math.ceil(estimatedDuration / 60),
         ),
-        tags: [...draft.tags, `${draft.rounds.length} rounds`],
+        tags: [...draft.tags],
       };
 
       if (editingTemplateId) {

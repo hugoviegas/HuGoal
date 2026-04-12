@@ -37,6 +37,7 @@ import {
   Target,
   Timer,
 } from "lucide-react-native";
+import { ExerciseInspectModal } from "@/components/workouts/ExerciseInspectModal";
 import {
   listWorkoutTemplates,
   getPausedWorkoutSession,
@@ -601,12 +602,7 @@ export default function WorkoutsScreen() {
   };
 
   const handleOpenExerciseDetail = (exerciseId: string) => {
-    if (!todayWorkout) {
-      return;
-    }
-    router.push(
-      `/workouts/${todayWorkout.id}?exerciseId=${encodeURIComponent(exerciseId)}`,
-    );
+    setInspectId(exerciseId);
   };
 
   const renderExerciseRow = (
@@ -683,6 +679,36 @@ export default function WorkoutsScreen() {
       </Pressable>
     );
   };
+
+  // Local inspect modal state
+  const [inspectId, setInspectId] = useState<string | null>(null);
+
+  const inspectOfficial = useMemo(() => {
+    if (!inspectId) return null;
+    return catalogById[inspectId] ?? null;
+  }, [inspectId, catalogById]);
+
+  const inspectExercise = useMemo(() => {
+    if (!inspectId) return null;
+    // find from today's sections
+    for (const sec of sections) {
+      const found = sec.exercises.find((e) => e.id === inspectId);
+      if (found) return found;
+    }
+    // fallback: search in workouts list
+    for (const w of workouts) {
+      const found = w.exercises.find((e) => e.id === inspectId);
+      if (found)
+        return {
+          id: found.id,
+          name: found.name,
+          sets: found.sets,
+          prescription: found.reps,
+          muscleGroups: found.muscleGroups,
+        };
+    }
+    return null;
+  }, [inspectId, sections, workouts]);
 
   return (
     <View className="flex-1 bg-light-bg dark:bg-dark-bg">
@@ -1829,6 +1855,18 @@ export default function WorkoutsScreen() {
             </View>
           </Animated.View>
         </>
+      ) : null}
+
+      {inspectId && inspectExercise ? (
+        <ExerciseInspectModal
+          visible
+          exerciseId={inspectId}
+          exerciseName={inspectExercise.name}
+          sets={inspectExercise.sets}
+          prescription={inspectExercise.prescription}
+          official={inspectOfficial}
+          onClose={() => setInspectId(null)}
+        />
       ) : null}
     </View>
   );

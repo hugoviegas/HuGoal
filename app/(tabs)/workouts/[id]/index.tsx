@@ -32,6 +32,7 @@ import {
 } from "lucide-react-native";
 import { Button } from "@/components/ui/Button";
 import { MuscleMap } from "@/components/workouts/MuscleMap";
+import { ExerciseInspectModal } from "@/components/workouts/ExerciseInspectModal";
 import { useAuthStore } from "@/stores/auth.store";
 import { useThemeStore } from "@/stores/theme.store";
 import { useToastStore } from "@/stores/toast.store";
@@ -60,14 +61,6 @@ function normalizeExerciseKey(value: string): string {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
-}
-
-function formatEquipment(equipment: string[] | undefined): string {
-  if (!equipment || equipment.length === 0) return "No equipment";
-  return equipment
-    .map((item) => item.replace(/_/g, " "))
-    .map((item) => item.charAt(0).toUpperCase() + item.slice(1))
-    .join(", ");
 }
 
 function difficultyColor(difficulty: string): string {
@@ -209,271 +202,6 @@ const SECTION_COLORS_DARK: Record<
   round: { bg: "#1e3a5f", border: "#1e40af", label: "#93c5fd" },
   cooldown: { bg: "#14532d", border: "#166534", label: "#86efac" },
 };
-
-// ─── Exercise Inspect Modal ───────────────────────────────────────────────────
-
-interface ExerciseInspectModalProps {
-  exerciseId: string | null;
-  exerciseName: string;
-  sets: number;
-  prescription: string;
-  official: OfficialExerciseRecord | null;
-  isDark: boolean;
-  colors: {
-    muted: string;
-    primary: string;
-    foreground: string;
-  };
-  onClose: () => void;
-}
-
-function ExerciseInspectModal({
-  exerciseId,
-  exerciseName,
-  sets,
-  prescription,
-  official,
-  isDark,
-  colors,
-  onClose,
-}: ExerciseInspectModalProps) {
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [nextImageIndex, setNextImageIndex] = useState<number | null>(null);
-  const [pauseImageLoop, setPauseImageLoop] = useState(false);
-  const imageFade = useRef(new Animated.Value(0)).current;
-
-  const exerciseImages = useMemo(
-    () => (official?.remote_image_urls ?? []).filter(Boolean),
-    [official?.remote_image_urls],
-  );
-
-  const currentImageUri =
-    exerciseImages.length > 0 ? exerciseImages[currentImageIndex] : null;
-  const nextImageUri =
-    nextImageIndex !== null ? exerciseImages[nextImageIndex] : null;
-
-  const musclePrimary = official?.primary_muscles?.length
-    ? official.primary_muscles
-    : [];
-  const muscleSecondary = official?.secondary_muscles ?? [];
-
-  const howToSteps = official?.instructions?.length
-    ? official.instructions
-    : (official?.instructions_en ?? "")
-        .split("\n")
-        .map((line) => line.trim())
-        .filter(Boolean);
-
-  useEffect(() => {
-    setCurrentImageIndex(0);
-    setNextImageIndex(null);
-    setPauseImageLoop(false);
-    imageFade.setValue(0);
-  }, [imageFade, exerciseId]);
-
-  useEffect(() => {
-    if (exerciseImages.length < 2 || pauseImageLoop || nextImageIndex !== null)
-      return;
-
-    const timerId = setTimeout(() => {
-      const nextIndex = (currentImageIndex + 1) % exerciseImages.length;
-      setNextImageIndex(nextIndex);
-      Animated.timing(imageFade, {
-        toValue: 1,
-        duration: 420,
-        useNativeDriver: true,
-      }).start(() => {
-        setCurrentImageIndex(nextIndex);
-        setNextImageIndex(null);
-        imageFade.setValue(0);
-      });
-    }, 2000);
-
-    return () => {
-      clearTimeout(timerId);
-      imageFade.stopAnimation();
-    };
-  }, [
-    currentImageIndex,
-    exerciseImages.length,
-    imageFade,
-    nextImageIndex,
-    pauseImageLoop,
-  ]);
-
-  return (
-    <View
-      className={cn(
-        "flex-1 rounded-t-3xl overflow-hidden",
-        isDark ? "bg-dark-bg" : "bg-light-bg",
-      )}
-    >
-      {/* Close bar */}
-      <View className="flex-row items-center justify-between px-4 pt-4 pb-2">
-        <Text
-          className="text-xl font-bold text-gray-900 dark:text-gray-100 flex-1"
-          numberOfLines={1}
-        >
-          {exerciseName}
-        </Text>
-        <Pressable
-          onPress={onClose}
-          className={cn(
-            "h-9 w-9 rounded-full items-center justify-center",
-            isDark ? "bg-dark-surface" : "bg-light-surface",
-          )}
-        >
-          <X size={18} color={colors.muted} />
-        </Pressable>
-      </View>
-
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 32 }}
-      >
-        {/* Image */}
-        <Pressable
-          className="mx-4 rounded-2xl overflow-hidden bg-black/15 mb-4"
-          style={{ aspectRatio: 16 / 9 }}
-          onPress={() => {
-            if (exerciseImages.length > 1) setPauseImageLoop((p) => !p);
-          }}
-        >
-          {currentImageUri ? (
-            <>
-              <Image
-                source={{ uri: currentImageUri }}
-                className="h-full w-full"
-                resizeMode="cover"
-              />
-              {nextImageUri ? (
-                <Animated.Image
-                  source={{ uri: nextImageUri }}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    opacity: imageFade,
-                  }}
-                  resizeMode="cover"
-                />
-              ) : null}
-            </>
-          ) : (
-            <View className="h-full w-full items-center justify-center">
-              <Dumbbell size={32} color={colors.muted} />
-            </View>
-          )}
-          {exerciseImages.length > 1 && (
-            <View
-              style={{
-                position: "absolute",
-                right: 10,
-                bottom: 10,
-                borderRadius: 999,
-                paddingHorizontal: 10,
-                paddingVertical: 5,
-                backgroundColor: "rgba(15,23,42,0.58)",
-              }}
-            >
-              <Text style={{ color: "#fff", fontSize: 11, fontWeight: "600" }}>
-                {pauseImageLoop ? "Paused" : "Tap to pause"}
-              </Text>
-            </View>
-          )}
-        </Pressable>
-
-        <View className="px-4">
-          {/* Stats row */}
-          <View
-            className={cn(
-              "rounded-2xl border p-4 mb-4 flex-row justify-between",
-              isDark
-                ? "bg-dark-card border-dark-border"
-                : "bg-light-card border-light-border",
-            )}
-          >
-            <View className="items-center gap-1">
-              <Text className="text-xs text-gray-500 dark:text-gray-400">
-                Sets
-              </Text>
-              <Text className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                {sets}
-              </Text>
-            </View>
-            <View className="items-center gap-1">
-              <Text className="text-xs text-gray-500 dark:text-gray-400">
-                Prescription
-              </Text>
-              <Text className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                {prescription || "-"}
-              </Text>
-            </View>
-            <View className="items-center gap-1">
-              <Text className="text-xs text-gray-500 dark:text-gray-400">
-                Equipment
-              </Text>
-              <Text
-                className="text-sm font-semibold text-gray-800 dark:text-gray-200"
-                numberOfLines={1}
-              >
-                {formatEquipment(official?.equipment)}
-              </Text>
-            </View>
-          </View>
-
-          {/* Muscle map */}
-          {(musclePrimary.length > 0 || muscleSecondary.length > 0) && (
-            <MuscleMap
-              primaryMuscles={musclePrimary}
-              secondaryMuscles={muscleSecondary}
-              title="Targeted muscle areas"
-              subtitle="Front and back activation"
-              bodySize={280}
-            />
-          )}
-
-          {/* How to */}
-          <View className="mt-5 mb-2">
-            <Text className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-              How to perform
-            </Text>
-          </View>
-          {howToSteps.length > 0 ? (
-            <View
-              className={cn(
-                "rounded-2xl border p-4 gap-3",
-                isDark
-                  ? "bg-dark-card border-dark-border"
-                  : "bg-light-card border-light-border",
-              )}
-            >
-              {howToSteps.map((step, index) => (
-                <View
-                  key={`step-${index}`}
-                  className="flex-row items-start gap-2"
-                >
-                  <Text className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-                    {index + 1}.
-                  </Text>
-                  <Text className="text-sm text-gray-700 dark:text-gray-300 flex-1">
-                    {step}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          ) : (
-            <Text className="text-sm text-gray-500 dark:text-gray-400">
-              Instructions not available for this exercise yet.
-            </Text>
-          )}
-        </View>
-      </ScrollView>
-    </View>
-  );
-}
 
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
@@ -786,70 +514,50 @@ export default function WorkoutDetailScreen() {
 
   const hasPausedSession = !!pausedSession;
   const tabBarClearance = insets.bottom + 160;
+  const headerHeight = insets.top + 56;
 
   return (
     <View className={cn("flex-1", isDark ? "bg-dark-bg" : "bg-light-bg")}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: tabBarClearance + 40 }}
+        contentContainerStyle={{
+          paddingTop: headerHeight + 8,
+          paddingBottom: tabBarClearance + 40,
+        }}
       >
-        {/* ── Header row ── */}
+        {/* ── Workout cover image (full bleed) ── */}
         <View
-          style={{ paddingTop: insets.top + 6 }}
-          className="px-4 mb-3 flex-row items-center justify-between"
+          className="w-full mb-4 overflow-hidden"
+          style={{
+            aspectRatio: 16 / 9,
+            backgroundColor: isDark ? "#22252f" : "#f1f5f9",
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: isDark ? 0.35 : 0.12,
+            shadowRadius: 14,
+            elevation: 10,
+          }}
         >
-          <Pressable
-            onPress={() => router.back()}
-            className={cn(
-              "h-11 w-11 rounded-2xl border items-center justify-center",
-              isDark
-                ? "bg-dark-surface border-dark-border"
-                : "bg-light-surface border-light-border",
-            )}
-          >
-            <ArrowLeft size={20} color={isDark ? "#f3f4f6" : "#0f172a"} />
-          </Pressable>
-          <Pressable
-            onPress={openSheet}
-            className={cn(
-              "h-11 w-11 rounded-2xl border items-center justify-center",
-              isDark
-                ? "bg-dark-surface border-dark-border"
-                : "bg-light-surface border-light-border",
-            )}
-          >
-            <MoreHorizontal size={20} color={isDark ? "#f3f4f6" : "#0f172a"} />
-          </Pressable>
+          {workout.cover_image_url ? (
+            <Image
+              source={{ uri: workout.cover_image_url }}
+              className="h-full w-full"
+              resizeMode="cover"
+            />
+          ) : (
+            <View className="h-full w-full items-center justify-center gap-2">
+              <Dumbbell size={40} color={colors.muted} />
+              <Text
+                className="text-sm text-gray-400 dark:text-gray-500"
+                style={{ marginTop: 8 }}
+              >
+                No cover image
+              </Text>
+            </View>
+          )}
         </View>
 
         <View className="px-4">
-          {/* ── Workout cover image ── */}
-          <View
-            className="rounded-3xl overflow-hidden mb-4"
-            style={{
-              aspectRatio: 16 / 9,
-              backgroundColor: isDark ? "#22252f" : "#f1f5f9",
-            }}
-          >
-            {workout.cover_image_url ? (
-              <Image
-                source={{ uri: workout.cover_image_url }}
-                className="h-full w-full"
-                resizeMode="cover"
-              />
-            ) : (
-              <View className="h-full w-full items-center justify-center gap-2">
-                <Dumbbell size={40} color={colors.muted} />
-                <Text
-                  className="text-sm text-gray-400 dark:text-gray-500"
-                  style={{ marginTop: 8 }}
-                >
-                  No cover image
-                </Text>
-              </View>
-            )}
-          </View>
-
           {/* ── Workout title & description ── */}
           <Text className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
             {workout.name}
@@ -1168,16 +876,67 @@ export default function WorkoutDetailScreen() {
 
           {/* ── Muscle overview ── */}
           {(workout.target_muscles ?? []).length > 0 && (
-            <MuscleMap
-              primaryMuscles={workout.target_muscles ?? []}
-              secondaryMuscles={[]}
-              title="Target muscle groups"
-              subtitle="Aggregated from all exercises"
-              bodySize={280}
-            />
+            <View
+              className={cn(
+                "rounded-2xl border p-3 overflow-hidden",
+                isDark
+                  ? "bg-dark-card border-dark-border"
+                  : "bg-light-card border-light-border",
+              )}
+            >
+              <MuscleMap
+                primaryMuscles={workout.target_muscles ?? []}
+                secondaryMuscles={[]}
+                title="Target muscle groups"
+                subtitle="Front and back balanced view"
+                bodySize={280}
+                scale={0.95}
+                className="border-0 bg-transparent p-0"
+              />
+            </View>
           )}
         </View>
       </ScrollView>
+
+      {/* ── Fixed top bar ── */}
+      <View
+        className="absolute left-0 right-0 px-4 flex-row items-center justify-between"
+        style={{
+          top: 0,
+          paddingTop: insets.top + 6,
+          height: headerHeight,
+          backgroundColor: isDark
+            ? "rgba(12,16,24,0.88)"
+            : "rgba(248,250,252,0.88)",
+          borderBottomWidth: 1,
+          borderBottomColor: isDark
+            ? "rgba(255,255,255,0.08)"
+            : "rgba(15,23,42,0.06)",
+        }}
+      >
+        <Pressable
+          onPress={() => router.back()}
+          className={cn(
+            "h-11 w-11 rounded-2xl border items-center justify-center",
+            isDark
+              ? "bg-dark-surface border-dark-border"
+              : "bg-light-surface border-light-border",
+          )}
+        >
+          <ArrowLeft size={20} color={isDark ? "#f3f4f6" : "#0f172a"} />
+        </Pressable>
+        <Pressable
+          onPress={openSheet}
+          className={cn(
+            "h-11 w-11 rounded-2xl border items-center justify-center",
+            isDark
+              ? "bg-dark-surface border-dark-border"
+              : "bg-light-surface border-light-border",
+          )}
+        >
+          <MoreHorizontal size={20} color={isDark ? "#f3f4f6" : "#0f172a"} />
+        </Pressable>
+      </View>
 
       {/* ── Bottom action bar ── */}
       <View
@@ -1548,25 +1307,17 @@ export default function WorkoutDetailScreen() {
       ) : null}
 
       {/* ── Exercise Inspect Modal ── */}
-      <RNModal
-        visible={!!inspectId}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={closeInspect}
-      >
-        {inspectId && inspectExercise ? (
-          <ExerciseInspectModal
-            exerciseId={inspectId}
-            exerciseName={inspectExercise.name}
-            sets={inspectExercise.sets}
-            prescription={inspectExercise.prescription}
-            official={inspectOfficial}
-            isDark={isDark}
-            colors={colors}
-            onClose={closeInspect}
-          />
-        ) : null}
-      </RNModal>
+      {inspectId && inspectExercise ? (
+        <ExerciseInspectModal
+          visible
+          exerciseId={inspectId}
+          exerciseName={inspectExercise.name}
+          sets={inspectExercise.sets}
+          prescription={inspectExercise.prescription}
+          official={inspectOfficial}
+          onClose={closeInspect}
+        />
+      ) : null}
     </View>
   );
 }
