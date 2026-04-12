@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from "react";
-import { View, Text, Pressable } from "react-native";
+import { View, Text, Pressable, FlatList } from "react-native";
 import * as Haptics from "expo-haptics";
 import DraggableFlatList, {
   ScaleDecorator,
@@ -166,6 +166,28 @@ export function WidgetGrid({
     </View>
   );
 
+  // In view mode, use a plain FlatList to avoid gesture/drag interception.
+  if (!isEditMode) {
+    return (
+      <FlatList
+        data={listData as any[]}
+        keyExtractor={keyExtractor as any}
+        renderItem={renderItem as any}
+        showsVerticalScrollIndicator={false}
+        style={{ flex: 1 }}
+        nestedScrollEnabled={true}
+        keyboardShouldPersistTaps="handled"
+        ListHeaderComponent={ListHeader}
+        ListFooterComponent={ListFooter}
+        contentContainerStyle={{
+          paddingHorizontal: spacing.md,
+          paddingBottom: insets.bottom + 100,
+        }}
+      />
+    );
+  }
+
+  // Edit mode: use DraggableFlatList for reordering
   return (
     <DraggableFlatList
       data={listData as any[]}
@@ -174,8 +196,6 @@ export function WidgetGrid({
       activationDistance={10}
       showsVerticalScrollIndicator={false}
       style={{ flex: 1 }}
-      nestedScrollEnabled={true}
-      keyboardShouldPersistTaps="handled"
       onDragBegin={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
       onDragEnd={({ data }) => {
         if (isEditMode) {
@@ -188,7 +208,6 @@ export function WidgetGrid({
       ListHeaderComponent={ListHeader}
       ListFooterComponent={ListFooter}
       contentContainerStyle={{
-        flexGrow: 1,
         paddingHorizontal: spacing.md,
         paddingBottom: insets.bottom + 100,
       }}

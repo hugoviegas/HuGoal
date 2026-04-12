@@ -3,33 +3,33 @@ import type { FormStepItem } from "@/components/ui/FormStepper";
 export const ONBOARDING_STEPS: FormStepItem[] = [
   {
     id: "gender",
-    title: "Gender",
-    description: "Tell us how you identify so we can personalize your plan.",
+    title: "What Is Your Gender?",
+    description: "This helps us personalize your workouts and recommendations.",
   },
   {
     id: "age",
-    title: "Age",
-    description: "Your age helps tailor safe training intensity.",
+    title: "How Old Are You?",
+    description: "Your age helps us recommend safe and effective intensity.",
   },
   {
     id: "weight",
-    title: "Weight",
-    description: "Set your current weight to calibrate targets.",
+    title: "What Is Your Weight?",
+    description: "Set your current weight so we can calibrate your targets.",
   },
   {
     id: "height",
-    title: "Height",
-    description: "Your height helps estimate healthy ranges.",
+    title: "What Is Your Height?",
+    description: "Your height helps estimate healthy ranges and progression.",
   },
   {
     id: "goal",
-    title: "Goal",
-    description: "Pick your primary fitness objective.",
+    title: "What Is Your Main Goal?",
+    description: "Choose the fitness objective you want to focus on first.",
   },
   {
     id: "level",
-    title: "Level",
-    description: "Choose your current training experience.",
+    title: "What Is Your Level?",
+    description: "Tell us your current training experience.",
   },
   {
     id: "profile-info",
@@ -44,3 +44,5 @@ export type OnboardingGoalTrack =
   | "muscle_mass_gain"
   | "shape_body"
   | "stay_fit";
+
+export default ONBOARDING_STEPS;
