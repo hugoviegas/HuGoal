@@ -107,7 +107,7 @@ export default function OnboardingGoalScreen() {
 
   const onPrevious = handleSubmit(async (data) => {
     await saveDraft(data);
-    router.back();
+    router.replace("/(auth)/onboarding/height");
   });
 
   return (

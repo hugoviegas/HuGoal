@@ -157,7 +157,7 @@ export default function OnboardingWeightScreen() {
       weight_unit: data.weight_unit,
       weight_kg: weightKg,
     });
-    router.back();
+    router.replace("/(auth)/onboarding/age");
   });
 
   return (

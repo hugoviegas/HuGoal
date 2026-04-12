@@ -10,6 +10,7 @@ export default function AuthLayout() {
   const segments = useSegments();
   const isOnboardingRoute = segments.includes("onboarding");
   const isVerifyEmailRoute = segments.includes("verify-email");
+  const isLogoutFeedbackRoute = segments.includes("logout-feedback");
 
   if (isInitializing || isLoading) {
     return (
@@ -24,6 +25,13 @@ export default function AuthLayout() {
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
+  }
+
+  if (
+    !isAuthenticated &&
+    (isOnboardingRoute || isVerifyEmailRoute || isLogoutFeedbackRoute)
+  ) {
+    return <Redirect href="/(auth)/login" />;
   }
 
   if (isAuthenticated && user && !user.emailVerified && !isVerifyEmailRoute) {

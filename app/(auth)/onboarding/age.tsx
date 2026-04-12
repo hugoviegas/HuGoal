@@ -76,7 +76,7 @@ export default function OnboardingAgeScreen() {
 
   const onPrevious = handleSubmit(async (data) => {
     await saveDraft(data);
-    router.back();
+    router.replace("/(auth)/onboarding/gender");
   });
 
   return (

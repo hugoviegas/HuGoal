@@ -56,6 +56,10 @@ export default function OnboardingGenderScreen() {
     router.push("/(auth)/onboarding/age");
   });
 
+  const onPrevious = () => {
+    router.replace("/(auth)/login");
+  };
+
   return (
     <View
       style={{
@@ -66,7 +70,12 @@ export default function OnboardingGenderScreen() {
         paddingHorizontal: 16,
       }}
     >
-      <FormStepper steps={ONBOARDING_STEPS} currentStep={0} onNext={onNext}>
+      <FormStepper
+        steps={ONBOARDING_STEPS}
+        currentStep={0}
+        onNext={onNext}
+        onPrevious={onPrevious}
+      >
         <ScrollView
           contentContainerStyle={{
             flexGrow: 1,

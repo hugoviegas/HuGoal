@@ -96,7 +96,7 @@ export default function OnboardingProfileInfoScreen() {
 
   const onPrevious = handleSubmit(async (data) => {
     await saveDraft(data);
-    router.back();
+    router.replace("/(auth)/onboarding/level");
   });
 
   const onComplete = handleSubmit(async (data) => {

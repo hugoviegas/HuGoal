@@ -41,7 +41,7 @@ export default function SettingsScreen() {
 
   const handleLogout = async () => {
     await logout();
-    router.replace("/(auth)/logout-feedback");
+    router.replace("/(auth)/login");
   };
 
   const handleCheckForUpdates = async () => {
@@ -212,7 +212,9 @@ export default function SettingsScreen() {
               >
                 <Sun
                   size={16}
-                  color={mode === "light" ? colors.primary : colors.mutedForeground}
+                  color={
+                    mode === "light" ? colors.primary : colors.mutedForeground
+                  }
                 />
               </Pressable>
 
@@ -223,7 +225,8 @@ export default function SettingsScreen() {
                   height: 34,
                   borderRadius: 10,
                   borderWidth: 1,
-                  borderColor: mode === "dark" ? colors.primary : colors.cardBorder,
+                  borderColor:
+                    mode === "dark" ? colors.primary : colors.cardBorder,
                   backgroundColor:
                     mode === "dark" ? colors.secondary : colors.background,
                   alignItems: "center",
@@ -232,7 +235,9 @@ export default function SettingsScreen() {
               >
                 <Moon
                   size={16}
-                  color={mode === "dark" ? colors.primary : colors.mutedForeground}
+                  color={
+                    mode === "dark" ? colors.primary : colors.mutedForeground
+                  }
                 />
               </Pressable>
 
@@ -253,7 +258,9 @@ export default function SettingsScreen() {
               >
                 <Smartphone
                   size={16}
-                  color={mode === "system" ? colors.primary : colors.mutedForeground}
+                  color={
+                    mode === "system" ? colors.primary : colors.mutedForeground
+                  }
                 />
               </Pressable>
             </View>

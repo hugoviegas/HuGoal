@@ -110,7 +110,7 @@ export default function OnboardingHeightScreen() {
 
   const onPrevious = handleSubmit(async (data) => {
     await saveDraft(data);
-    router.back();
+    router.replace("/(auth)/onboarding/weight");
   });
 
   return (

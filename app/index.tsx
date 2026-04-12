@@ -26,7 +26,7 @@ export default function Index() {
     );
   }
 
-  if (route === "welcome") return <Redirect href="/(auth)/login" />;
+  if (route === "login") return <Redirect href="/(auth)/login" />;
   if (route === "verify_email") return <Redirect href="/(auth)/verify-email" />;
   if (route === "onboarding") return <Redirect href="/(auth)/onboarding" />;
   if (route === "error") return <Redirect href="/(auth)/login" />;

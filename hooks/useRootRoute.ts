@@ -2,7 +2,7 @@ import { useAuthStore } from "@/stores/auth.store";
 
 export type RootRoute =
   | "loading"
-  | "welcome"
+  | "login"
   | "verify_email"
   | "onboarding"
   | "tabs"
@@ -26,7 +26,7 @@ export function useRootRoute(): RootRouteResult {
   }
 
   if (!user) {
-    return { route: "welcome" };
+    return { route: "login" };
   }
 
   if (!user.emailVerified) {

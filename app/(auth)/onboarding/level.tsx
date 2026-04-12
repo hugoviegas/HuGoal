@@ -77,7 +77,7 @@ export default function OnboardingLevelScreen() {
 
   const onPrevious = handleSubmit(async (data) => {
     await saveDraft(data);
-    router.back();
+    router.replace("/(auth)/onboarding/goal");
   });
 
   return (
