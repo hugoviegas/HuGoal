@@ -452,24 +452,16 @@ export default function OnboardingWeightScreen() {
                 }}
               >
                 {[-2, -1, 0, 1, 2].map((offset) => {
-<<<<<<< HEAD
                   const displayValue =
                     currentStepWeight + offset * stepByUnit * 5;
-=======
-                  const displayValue = currentStepWeight + offset * stepByUnit * 5;
->>>>>>> 6d177019c7f4375b236c32ce2a902d73586db807
                   return (
                     <Text
                       key={`weight-label-${offset}`}
                       style={{
-<<<<<<< HEAD
                         color:
                           offset === 0
                             ? colors.primary
                             : colors.mutedForeground,
-=======
-                        color: offset === 0 ? colors.primary : colors.mutedForeground,
->>>>>>> 6d177019c7f4375b236c32ce2a902d73586db807
                         fontSize: offset === 0 ? 18 : 14,
                         fontWeight: offset === 0 ? "800" : "600",
                         opacity: offset === 0 ? 1 : 0.7,
