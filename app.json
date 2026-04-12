@@ -53,13 +53,11 @@
       "typedRoutes": true
     },
     "updates": {
-      "fallbackToCacheTimeout": 0,
+      "fallbackToCacheTimeout": 3000,
       "checkAutomatically": "ON_LOAD",
       "url": "https://u.expo.dev/211cd445-e6d4-48c8-a1ee-c58716ec6a26"
     },
-    "runtimeVersion": {
-      "policy": "sdkVersion"
-    },
+    "runtimeVersion": "1.0.0",
     "extra": {
       "router": {},
       "eas": {

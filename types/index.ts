@@ -2,8 +2,37 @@
 export type Goal = "lose_fat" | "gain_muscle" | "maintain" | "recomp";
 export type FitnessLevel = "beginner" | "intermediate" | "advanced";
 export type Equipment = "home" | "gym" | "none";
+export type WorkoutLocationProfile = "home" | "gym" | "outdoor" | "studio";
+export type WorkoutHoursPerDayRange =
+  | "30m"
+  | "45m"
+  | "60m"
+  | "90m"
+  | "120m_plus";
+export type WorkoutExperienceTimeRange =
+  | "0_6_months"
+  | "6_12_months"
+  | "1_2_years"
+  | "2_plus_years";
 export type Sex = "male" | "female" | "other";
 export type AIProvider = "gemini" | "claude" | "openai";
+
+export interface WorkoutSettings {
+  completed: boolean;
+  locations: WorkoutLocationProfile[];
+  training_days_per_week: number;
+  training_days: number[];
+  training_hours_per_day: WorkoutHoursPerDayRange;
+  experience_level?: FitnessLevel;
+  experience_time_range?: WorkoutExperienceTimeRange;
+  limitations: string[];
+  limitations_other?: string;
+  equipment_by_location?: Partial<
+    Record<WorkoutLocationProfile, EquipmentType[]>
+  >;
+  excluded_exercise_ids?: string[];
+  updated_at?: string;
+}
 
 export interface UserProfile {
   id: string;
@@ -32,6 +61,7 @@ export interface UserProfile {
   last_activity_date?: string;
   preferred_ai_provider?: AIProvider;
   username_changed_at?: string;
+  workout_settings?: WorkoutSettings;
   onboarding_complete: boolean;
   created_at: string;
   updated_at?: string;

@@ -13,6 +13,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import type { WorkoutWeekPlanRecord } from "@/lib/workouts/weekly-schedule";
 
 function stripUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> {
   return Object.fromEntries(
@@ -825,4 +826,48 @@ export async function updateUserStreak(
     streak_longest: newLongest,
     last_activity_date: todayDate,
   };
+}
+
+// ─── Weekly Workout Plan ────────────────────────────────────────────────
+
+function workoutWeekPlansCollection() {
+  return collection(db, "workout_week_plans");
+}
+
+export async function getWorkoutWeekPlan(
+  uid: string,
+  weekStartDate: string,
+): Promise<WorkoutWeekPlanRecord | null> {
+  const id = `${uid}_${weekStartDate}`;
+  const snapshot = await getDoc(doc(db, "workout_week_plans", id));
+  if (!snapshot.exists()) {
+    return null;
+  }
+  return snapshot.data() as WorkoutWeekPlanRecord;
+}
+
+export async function upsertWorkoutWeekPlan(
+  plan: WorkoutWeekPlanRecord,
+): Promise<void> {
+  const reference = doc(db, "workout_week_plans", plan.id);
+  await setDoc(
+    reference,
+    sanitizeFirestoreValue(plan) as WorkoutWeekPlanRecord,
+    { merge: true },
+  );
+}
+
+export async function listWorkoutWeekPlans(
+  uid: string,
+): Promise<WorkoutWeekPlanRecord[]> {
+  const snapshot = await getDocs(
+    query(
+      workoutWeekPlansCollection(),
+      where("user_id", "==", uid),
+      orderBy("week_start_date", "desc"),
+      firestoreLimit(8),
+    ),
+  );
+
+  return snapshot.docs.map((item) => item.data() as WorkoutWeekPlanRecord);
 }

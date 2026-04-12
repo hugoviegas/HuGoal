@@ -4,7 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { auth } from "@/lib/firebase";
 import { getDocument, updateDocument } from "@/lib/firestore";
 import { deleteAllApiKeys } from "@/lib/api-key-store";
-import type { UserProfile } from "@/types";
+import type { UserProfile, WorkoutSettings } from "@/types";
 
 interface AuthState {
   user: User | null;
@@ -18,6 +18,7 @@ interface AuthState {
   fetchProfile: (uid: string) => Promise<void>;
   retryFetchProfile: () => Promise<void>;
   setOnboardingCompleted: (value: boolean) => Promise<void>;
+  setWorkoutSettings: (settings: WorkoutSettings) => Promise<void>;
   logout: () => Promise<void>;
   initialize: () => () => void;
 }
@@ -55,6 +56,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set((state) => ({
       profile: state.profile
         ? { ...state.profile, onboarding_complete: value }
+        : state.profile,
+    }));
+  },
+
+  setWorkoutSettings: async (settings) => {
+    const { user } = get();
+    if (!user) return;
+    await updateDocument("profiles", user.uid, {
+      workout_settings: settings,
+      updated_at: new Date().toISOString(),
+    });
+    set((state) => ({
+      profile: state.profile
+        ? {
+            ...state.profile,
+            workout_settings: settings,
+            updated_at: new Date().toISOString(),
+          }
         : state.profile,
     }));
   },

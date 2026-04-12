@@ -42,9 +42,15 @@ import {
   listWorkoutTemplates,
   getPausedWorkoutSession,
   getCompletedSessionDates,
+  getWorkoutWeekPlan,
+  upsertWorkoutWeekPlan,
   type WorkoutTemplateRecord,
 } from "@/lib/firestore/workouts";
 import { getExerciseCatalog } from "@/lib/workouts/exercise-catalog";
+import {
+  buildWorkoutWeekPlan,
+  formatLocalDateKey,
+} from "@/lib/workouts/weekly-schedule";
 import type { OfficialExerciseRecord } from "@/lib/workouts/generated/official-exercises";
 import { Button } from "@/components/ui/Button";
 import { useAuthStore } from "@/stores/auth.store";
@@ -264,6 +270,15 @@ export default function WorkoutsScreen() {
   const [, setWeekOffset] = useState(1);
   const [initialWeekMonday] = useState(() => startOfWeekMonday(new Date()));
   const [completedDates, setCompletedDates] = useState<Set<string>>(new Set());
+  const [
+    hasTriggeredWorkoutSetupRedirect,
+    setHasTriggeredWorkoutSetupRedirect,
+  ] = useState(false);
+  const [todayAssignedTemplateId, setTodayAssignedTemplateId] = useState<
+    string | null
+  >(null);
+  const [hasResolvedTodayAssignment, setHasResolvedTodayAssignment] =
+    useState(false);
 
   // Panel slide-up animation
   const COLLAPSED_H = insets.bottom + 144; // pt-3(12) + btn-lg(52) + tabBar(80)
@@ -296,7 +311,18 @@ export default function WorkoutsScreen() {
     null,
   );
 
-  const todayWorkout = workouts[0] ?? null;
+  const todayWorkout = useMemo(() => {
+    if (hasResolvedTodayAssignment) {
+      if (!todayAssignedTemplateId) {
+        return null;
+      }
+      return (
+        workouts.find((item) => item.id === todayAssignedTemplateId) ?? null
+      );
+    }
+
+    return workouts[0] ?? null;
+  }, [hasResolvedTodayAssignment, todayAssignedTemplateId, workouts]);
   const focusArea = useMemo(
     () => resolveFocusArea(todayWorkout),
     [todayWorkout],
@@ -461,6 +487,59 @@ export default function WorkoutsScreen() {
       );
       setWorkouts(sorted);
 
+      const workoutSettings = profile?.workout_settings;
+      if (
+        workoutSettings?.completed &&
+        Array.isArray(workoutSettings.training_days) &&
+        workoutSettings.training_days.length > 0
+      ) {
+        const currentMonday = startOfWeekMonday(new Date());
+        const nextMonday = new Date(currentMonday);
+        nextMonday.setDate(currentMonday.getDate() + 7);
+
+        const currentWeekStart = formatLocalDateKey(currentMonday);
+        const nextWeekStart = formatLocalDateKey(nextMonday);
+
+        let currentWeekPlan = await getWorkoutWeekPlan(
+          user.uid,
+          currentWeekStart,
+        );
+
+        if (!currentWeekPlan) {
+          currentWeekPlan = buildWorkoutWeekPlan({
+            uid: user.uid,
+            weekStartDate: currentWeekStart,
+            trainingDays: workoutSettings.training_days,
+            templates: sorted,
+            rotationOffset: 0,
+          });
+          await upsertWorkoutWeekPlan(currentWeekPlan);
+        }
+
+        let nextWeekPlan = await getWorkoutWeekPlan(user.uid, nextWeekStart);
+        if (!nextWeekPlan) {
+          nextWeekPlan = buildWorkoutWeekPlan({
+            uid: user.uid,
+            weekStartDate: nextWeekStart,
+            trainingDays: workoutSettings.training_days,
+            templates: sorted,
+            rotationOffset: currentWeekPlan.next_rotation_offset,
+          });
+          await upsertWorkoutWeekPlan(nextWeekPlan);
+        }
+
+        const todayDate = formatLocalDateKey(new Date());
+        const todayAssignment = currentWeekPlan.days.find(
+          (day) => day.date === todayDate,
+        );
+
+        setHasResolvedTodayAssignment(true);
+        setTodayAssignedTemplateId(todayAssignment?.template_id ?? null);
+      } else {
+        setHasResolvedTodayAssignment(false);
+        setTodayAssignedTemplateId(null);
+      }
+
       try {
         const doneDates = await getCompletedSessionDates(
           user.uid,
@@ -488,11 +567,34 @@ export default function WorkoutsScreen() {
     } finally {
       setLoading(false);
     }
-  }, [initialWeekMonday, showToast, user?.uid]);
+  }, [initialWeekMonday, profile?.workout_settings, showToast, user?.uid]);
 
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    if (!user?.uid || !profile) {
+      return;
+    }
+
+    if (hasTriggeredWorkoutSetupRedirect) {
+      return;
+    }
+
+    if (profile.workout_settings?.completed) {
+      return;
+    }
+
+    setHasTriggeredWorkoutSetupRedirect(true);
+    router.push("/(tabs)/workouts/settings?mode=onboarding");
+  }, [
+    hasTriggeredWorkoutSetupRedirect,
+    profile,
+    profile?.workout_settings?.completed,
+    router,
+    user?.uid,
+  ]);
 
   const openPanel = useCallback(() => {
     panelExpandedRef.current = true;
@@ -770,7 +872,7 @@ export default function WorkoutsScreen() {
           </View>
 
           <Pressable
-            onPress={() => router.push("/settings")}
+            onPress={() => router.push("/(tabs)/workouts/settings")}
             style={{
               width: 36,
               height: 36,
@@ -937,7 +1039,9 @@ export default function WorkoutsScreen() {
               No workout planned yet
             </Text>
             <Text className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-              Create your first template and we will build your daily flow here.
+              {hasResolvedTodayAssignment
+                ? "Today is configured as a rest day. You can still start a single workout or explore exercises."
+                : "Create your first template and we will build your daily flow here."}
             </Text>
             <View className="flex-row gap-2 mt-4">
               <Button
