@@ -4,11 +4,12 @@ import { useAuthStore } from "@/stores/auth.store";
 import { useThemeStore } from "@/stores/theme.store";
 
 export default function AuthLayout() {
-  const { isAuthenticated, profile, isInitializing, isLoading } =
+  const { user, isAuthenticated, profile, isInitializing, isLoading } =
     useAuthStore();
   const colors = useThemeStore((s) => s.colors);
   const segments = useSegments();
   const isOnboardingRoute = segments.includes("onboarding");
+  const isVerifyEmailRoute = segments.includes("verify-email");
 
   if (isInitializing || isLoading) {
     return (
@@ -25,6 +26,18 @@ export default function AuthLayout() {
     );
   }
 
+  if (isAuthenticated && user && !user.emailVerified && !isVerifyEmailRoute) {
+    return <Redirect href="/(auth)/verify-email" />;
+  }
+
+  // Verified users should not stay on the verify email screen.
+  if (isAuthenticated && user?.emailVerified && isVerifyEmailRoute) {
+    if (profile?.onboarding_complete) {
+      return <Redirect href="/(tabs)/dashboard" />;
+    }
+    return <Redirect href="/(auth)/onboarding/gender" />;
+  }
+
   // Already fully onboarded → go to tabs
   if (isAuthenticated && profile?.onboarding_complete) {
     return <Redirect href="/(tabs)/dashboard" />;
@@ -37,7 +50,7 @@ export default function AuthLayout() {
     !profile.onboarding_complete &&
     !isOnboardingRoute
   ) {
-    return <Redirect href="/(auth)/onboarding/personal" />;
+    return <Redirect href="/(auth)/onboarding/gender" />;
   }
 
   return (

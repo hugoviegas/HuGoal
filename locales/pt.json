@@ -27,7 +27,12 @@
     "login_with_google": "Continuar com Google",
     "login_with_facebook": "Continuar com Facebook",
     "no_account": "Não tem uma conta?",
-    "have_account": "Já tem uma conta?"
+    "have_account": "Já tem uma conta?",
+    "theme_dark": "Tema escuro",
+    "theme_light": "Tema claro",
+    "language_toggle": "Idioma",
+    "language_en": "EN",
+    "language_pt": "PT"
   },
   "onboarding": {
     "personal_title": "Sobre Você",

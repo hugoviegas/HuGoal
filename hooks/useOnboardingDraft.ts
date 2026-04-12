@@ -4,12 +4,20 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 export interface OnboardingDraftData {
   name?: string;
   username?: string;
+  phone?: string;
   avatar_url?: string;
   birth_date?: string;
   age?: number;
   sex?: "male" | "female" | "other";
   height_cm?: number;
   weight_kg?: number;
+  weight_unit?: "kg" | "lb";
+  goal_track?:
+    | "loss_weight"
+    | "gain_weight"
+    | "muscle_mass_gain"
+    | "shape_body"
+    | "stay_fit";
   goal?: "lose_fat" | "gain_muscle" | "maintain" | "recomp";
   target_timeline?: number;
   level?: "beginner" | "intermediate" | "advanced";

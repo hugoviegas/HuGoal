@@ -1,5 +1,5 @@
 import { Redirect } from "expo-router";
 
 export default function OnboardingIndex() {
-  return <Redirect href="/(auth)/onboarding/personal" />;
+  return <Redirect href="/(auth)/onboarding/gender" />;
 }

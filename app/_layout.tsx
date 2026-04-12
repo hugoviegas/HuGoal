@@ -1,6 +1,6 @@
 import "@/global.css";
 import "@/lib/i18n";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Appearance, View } from "react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -20,6 +20,7 @@ export default function RootLayout() {
   const isDark = useThemeStore((s) => s.isDark);
   const colors = useThemeStore((s) => s.colors);
   const { setColorScheme } = useColorScheme();
+  const lastAppliedMode = useRef<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = initialize();
@@ -32,8 +33,10 @@ export default function RootLayout() {
   }, [initializeTheme]);
 
   useEffect(() => {
+    if (lastAppliedMode.current === mode) return;
+    lastAppliedMode.current = mode;
     setColorScheme(mode);
-  }, [mode, setColorScheme]);
+  }, [mode]);
 
   useEffect(() => {
     const subscription = Appearance.addChangeListener(() => {

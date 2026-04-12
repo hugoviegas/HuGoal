@@ -10,6 +10,7 @@ export interface UserProfile {
   email: string;
   name: string;
   username: string;
+  phone?: string;
   avatar_url?: string;
   bio?: string;
   birth_date?: string;
@@ -34,6 +35,7 @@ export interface UserProfile {
   onboarding_complete: boolean;
   created_at: string;
   updated_at?: string;
+  dashboard_config?: import("./dashboard").DashboardConfig;
 }
 
 // ─── Exercises ──────────────────────────────────────────────────

@@ -10,7 +10,7 @@ export default function LogoutFeedbackScreen() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      router.replace("/(auth)/welcome");
+      router.replace("/(auth)/login");
     }, 2000);
     return () => clearTimeout(timer);
   }, [router]);
