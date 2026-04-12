@@ -17,6 +17,8 @@ interface ResponsiveModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   children: React.ReactNode;
+  position?: "bottom" | "center";
+  maxWidth?: number;
 }
 
 interface ResponsiveBlockProps {
@@ -28,6 +30,8 @@ export function ResponsiveModal({
   open,
   onOpenChange,
   children,
+  position = "bottom",
+  maxWidth,
 }: ResponsiveModalProps) {
   const { width } = useWindowDimensions();
   const isDark = useThemeStore((s) => s.isDark);
@@ -45,7 +49,7 @@ export function ResponsiveModal({
     borderRadius: isMobile ? 24 : 16,
     marginHorizontal: isMobile ? 0 : 24,
     width: "100%",
-    maxWidth: isMobile ? undefined : 448,
+    maxWidth: maxWidth ?? (isMobile ? undefined : 448),
     boxShadow: isDark
       ? "0px 10px 24px rgba(0, 0, 0, 0.35)"
       : "0px 10px 24px rgba(0, 0, 0, 0.15)",
@@ -96,7 +100,8 @@ export function ResponsiveModal({
       <Pressable
         style={{
           flex: 1,
-          justifyContent: isMobile ? "flex-end" : "center",
+          justifyContent:
+            position === "center" ? "center" : isMobile ? "flex-end" : "center",
           alignItems: isMobile ? "center" : "center",
         }}
         onPress={() => onOpenChange(false)}
@@ -172,9 +177,7 @@ export function ResponsiveModalBody({
   className,
   children,
 }: ResponsiveBlockProps) {
-  return (
-    <SafeView className={cn("px-5 py-4", className)}>{children}</SafeView>
-  );
+  return <SafeView className={cn("px-5 py-4", className)}>{children}</SafeView>;
 }
 
 export function ResponsiveModalFooter({

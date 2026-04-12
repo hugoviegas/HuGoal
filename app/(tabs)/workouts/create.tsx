@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { ExerciseCard } from "@/components/workouts/ExerciseCard";
+import { MuscleMap } from "@/components/workouts/MuscleMap";
 import { ProgressFormIndicator } from "@/components/ui/ProgressFormIndicator";
 import { Modal } from "@/components/ui/Modal";
 import { Spinner } from "@/components/ui/Spinner";
@@ -134,6 +135,15 @@ function getWorkoutCoverImageUri(
   asset?: WorkoutDraft["cover_image_asset"],
 ): string | undefined {
   return asset?.uri;
+}
+
+interface ReviewExerciseLine {
+  id: string;
+  name: string;
+  reps: string;
+  hasWeight: boolean;
+  weightKg?: number;
+  sectionLabel: string;
 }
 
 function createRound(name: string): WorkoutRound {
@@ -350,6 +360,87 @@ export default function CreateWorkoutScreen() {
 
     return () => clearInterval(interval);
   }, [selectedExercisePreview, selectedExercisePreviewImages.length]);
+
+  const reviewExerciseLines = useMemo(() => {
+    const lines: ReviewExerciseLine[] = [];
+
+    if (draft.warmupEnabled) {
+      for (const item of draft.warmupItems) {
+        if (item.type !== "exercise") continue;
+        lines.push({
+          id: item.id,
+          name: item.name,
+          reps: item.reps,
+          hasWeight: item.hasWeight,
+          weightKg: item.weightKg,
+          sectionLabel: "Warmup",
+        });
+      }
+    }
+
+    for (const round of draft.rounds) {
+      for (const item of round.items ?? []) {
+        if (item.type !== "exercise") continue;
+        lines.push({
+          id: item.id,
+          name: item.name,
+          reps: item.reps,
+          hasWeight: item.hasWeight,
+          weightKg: item.weightKg,
+          sectionLabel: round.name,
+        });
+      }
+    }
+
+    if (draft.cooldownEnabled) {
+      for (const item of draft.cooldownItems) {
+        if (item.type !== "exercise") continue;
+        lines.push({
+          id: item.id,
+          name: item.name,
+          reps: item.reps,
+          hasWeight: item.hasWeight,
+          weightKg: item.weightKg,
+          sectionLabel: "Cooldown",
+        });
+      }
+    }
+
+    return lines;
+  }, [
+    draft.cooldownEnabled,
+    draft.cooldownItems,
+    draft.rounds,
+    draft.warmupEnabled,
+    draft.warmupItems,
+  ]);
+
+  const workedMuscles = useMemo(() => {
+    const muscles = new Set<string>();
+
+    const appendExerciseMuscles = (items: BuilderItem[]) => {
+      for (const item of items) {
+        if (item.type !== "exercise") continue;
+        for (const muscle of item.muscleGroups ?? []) {
+          if (muscle) muscles.add(muscle);
+        }
+      }
+    };
+
+    if (draft.warmupEnabled) appendExerciseMuscles(draft.warmupItems);
+    for (const round of draft.rounds) {
+      appendExerciseMuscles(round.items ?? []);
+    }
+    if (draft.cooldownEnabled) appendExerciseMuscles(draft.cooldownItems);
+
+    return Array.from(muscles);
+  }, [
+    draft.cooldownEnabled,
+    draft.cooldownItems,
+    draft.rounds,
+    draft.warmupEnabled,
+    draft.warmupItems,
+  ]);
 
   const handleWorkflowSelect = (type: WorkflowType) => {
     setWorkflowType(type);
@@ -2059,6 +2150,9 @@ export default function CreateWorkoutScreen() {
   }
 
   // Preview Step
+  const reviewCoverImageUri =
+    getWorkoutCoverImageUri(draft.cover_image_asset) ?? GENERIC_EXERCISE_IMAGE;
+
   return (
     <View className={cn("flex-1", isDark ? "bg-dark-bg" : "bg-light-bg")}>
       {renderHeader("Review Workout")}
@@ -2067,76 +2161,118 @@ export default function CreateWorkoutScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: scrollPaddingBottom }}
       >
-        <Text className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-          {draft.name}
-        </Text>
-
-        {/* Details Card */}
         <View
           className={cn(
-            "p-4 rounded-lg border mb-4",
+            "rounded-3xl border overflow-hidden mb-4",
             isDark
               ? "bg-dark-surface border-dark-border"
               : "bg-light-surface border-light-border",
           )}
         >
-          <View className="mb-3">
-            <Text className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
-              Difficulty
+          <Image
+            source={{ uri: reviewCoverImageUri }}
+            className="w-full h-48"
+            resizeMode="cover"
+          />
+          <View className="p-4">
+            <Text className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              {draft.name.trim() || "Untitled workout"}
             </Text>
-            <Badge
-              variant={
-                draft.difficulty === "beginner"
-                  ? "success"
-                  : draft.difficulty === "intermediate"
-                    ? "secondary"
-                    : "destructive"
-              }
-            >
-              {DIFFICULTIES.find((d) => d.value === draft.difficulty)?.label}
-            </Badge>
-          </View>
+            {draft.description?.trim() ? (
+              <Text className="text-sm text-gray-600 dark:text-gray-400 mt-2 leading-6">
+                {draft.description.trim()}
+              </Text>
+            ) : null}
 
-          <View>
-            <Text className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
-              Exercises
-            </Text>
-            <Text className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-              {totalSelectedExercises} exercises in {draft.rounds.length} rounds
-            </Text>
+            <View className="flex-row flex-wrap gap-2 mt-3">
+              <Badge
+                variant={
+                  draft.difficulty === "beginner"
+                    ? "success"
+                    : draft.difficulty === "intermediate"
+                      ? "secondary"
+                      : "destructive"
+                }
+              >
+                {DIFFICULTIES.find((d) => d.value === draft.difficulty)?.label}
+              </Badge>
+              <Badge variant="secondary">
+                {`${totalSelectedExercises} exercises`}
+              </Badge>
+              <Badge variant="secondary">
+                {`${Math.max(1, Math.ceil(estimatedDuration / 60))} min`}
+              </Badge>
+            </View>
           </View>
         </View>
 
-        {/* Exercises Summary */}
-        <Text className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">
-          Round Plan
-        </Text>
-        {draft.rounds.map((round, roundIndex) => (
-          <View
-            key={round.id}
-            className={cn(
-              "p-3 rounded-lg mb-3 border",
-              isDark
-                ? "bg-dark-surface border-dark-border"
-                : "bg-light-surface border-light-border",
-            )}
-          >
-            <Text className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
-              {roundIndex + 1}. {round.name}
+        <View
+          className={cn(
+            "p-4 rounded-2xl border mb-4",
+            isDark
+              ? "bg-dark-surface border-dark-border"
+              : "bg-light-surface border-light-border",
+          )}
+        >
+          <Text className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">
+            Exercises summary
+          </Text>
+          {reviewExerciseLines.length === 0 ? (
+            <Text className="text-sm text-gray-600 dark:text-gray-400">
+              No exercises selected.
             </Text>
-
-            {(round.items ?? []).map((item, itemIndex) => (
-              <Text
-                key={item.id}
-                className="text-sm text-gray-600 dark:text-gray-400 mb-1"
+          ) : (
+            reviewExerciseLines.map((exercise, index) => (
+              <View
+                key={exercise.id}
+                className={cn(
+                  "rounded-xl px-3 py-2 mb-2 flex-row items-start justify-between",
+                  isDark ? "bg-dark-bg" : "bg-light-bg",
+                )}
               >
-                {item.type === "rest"
-                  ? `${itemIndex + 1}) Rest • ${item.durationSeconds}s`
-                  : `${itemIndex + 1}) ${item.name} • ${item.reps}${item.hasWeight ? ` • ${item.weightKg ?? 0}kg` : ""}`}
-              </Text>
-            ))}
-          </View>
-        ))}
+                <View className="flex-1 pr-3">
+                  <Text className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    {`${index + 1}. ${exercise.name}`}
+                  </Text>
+                  <Text className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                    {`${exercise.sectionLabel} • ${exercise.reps}`}
+                    {exercise.hasWeight ? ` • ${exercise.weightKg ?? 0}kg` : ""}
+                  </Text>
+                </View>
+              </View>
+            ))
+          )}
+        </View>
+
+        <View
+          className={cn(
+            "p-4 rounded-2xl border",
+            isDark
+              ? "bg-dark-surface border-dark-border"
+              : "bg-light-surface border-light-border",
+          )}
+        >
+          <Text className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">
+            Muscles worked
+          </Text>
+          <MuscleMap
+            primaryMuscles={workedMuscles}
+            secondaryMuscles={[]}
+            title=""
+            subtitle="Combined from all exercises in this workout"
+            bodySize={280}
+            scale={1.03}
+          />
+          {workedMuscles.length > 0 ? (
+            <View className="flex-row flex-wrap gap-2 mt-3">
+              {workedMuscles.map((muscle) => (
+                <Badge key={muscle} variant="secondary" size="sm">
+                  {muscleKeyToLabel(muscle)}
+                </Badge>
+              ))}
+            </View>
+          ) : null}
+        </View>
       </ScrollView>
 
       <View

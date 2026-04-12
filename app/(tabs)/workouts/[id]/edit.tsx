@@ -1,5 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, ScrollView, Pressable, TextInput } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  Pressable,
+  TextInput,
+  Image,
+} from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -18,9 +25,11 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { ExerciseCard } from "@/components/workouts/ExerciseCard";
+import { MuscleMap } from "@/components/workouts/MuscleMap";
 import { ProgressFormIndicator } from "@/components/ui/ProgressFormIndicator";
 import { Modal } from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
+import { muscleKeyToLabel } from "@/lib/workouts/exercise-catalog";
 import {
   getWorkoutTemplate,
   updateWorkoutTemplate,
@@ -56,9 +65,20 @@ interface WorkoutRound {
 interface WorkoutDraft {
   name: string;
   description: string;
+  coverImageUrl?: string;
   difficulty: "beginner" | "intermediate" | "advanced";
   rounds: WorkoutRound[];
   tags: string[];
+}
+
+interface ReviewExerciseLine {
+  id: string;
+  name: string;
+  sets: number;
+  reps: string;
+  hasWeight: boolean;
+  weightKg?: number;
+  roundName: string;
 }
 
 const DIFFICULTIES = [
@@ -215,6 +235,7 @@ export default function EditWorkoutScreen() {
   const [draft, setDraft] = useState<WorkoutDraft>({
     name: "",
     description: "",
+    coverImageUrl: undefined,
     difficulty: "intermediate",
     rounds: [createRound("Round 1")],
     tags: [],
@@ -254,6 +275,7 @@ export default function EditWorkoutScreen() {
         setDraft({
           name: workoutRecord.name,
           description: workoutRecord.description ?? "",
+          coverImageUrl: workoutRecord.cover_image_url,
           difficulty: workoutRecord.difficulty,
           rounds: [hydratedRound],
           tags: workoutRecord.tags ?? [],
@@ -329,6 +351,40 @@ export default function EditWorkoutScreen() {
       return acc;
     }, {});
   }, [selectedDifficulties, selectedEquipments, exerciseSearch]);
+
+  const reviewExerciseLines = useMemo(() => {
+    const lines: ReviewExerciseLine[] = [];
+
+    for (const round of draft.rounds) {
+      for (const exercise of round.exercises) {
+        lines.push({
+          id: exercise.id,
+          name: exercise.name,
+          sets: exercise.sets,
+          reps: exercise.reps,
+          hasWeight: exercise.hasWeight,
+          weightKg: exercise.weightKg,
+          roundName: round.name,
+        });
+      }
+    }
+
+    return lines;
+  }, [draft.rounds]);
+
+  const workedMuscles = useMemo(() => {
+    const muscles = new Set<string>();
+
+    for (const round of draft.rounds) {
+      for (const exercise of round.exercises) {
+        for (const muscle of exercise.muscleGroups ?? []) {
+          if (muscle) muscles.add(muscle);
+        }
+      }
+    }
+
+    return Array.from(muscles);
+  }, [draft.rounds]);
 
   const handleContinueToExercises = () => {
     if (!draft.name.trim()) {
@@ -1174,6 +1230,8 @@ export default function EditWorkoutScreen() {
     );
   }
 
+  const reviewCoverImageUri = draft.coverImageUrl || GENERIC_EXERCISE_IMAGE;
+
   return (
     <View className={cn("flex-1", isDark ? "bg-dark-bg" : "bg-light-bg")}>
       <ScrollView
@@ -1181,78 +1239,116 @@ export default function EditWorkoutScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 16 }}
       >
-        <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-          {draft.name}
-        </Text>
-
         <View
           className={cn(
-            "p-4 rounded-lg border mb-4",
+            "rounded-3xl border overflow-hidden mb-4",
             isDark
               ? "bg-dark-surface border-dark-border"
               : "bg-light-surface border-light-border",
           )}
         >
-          <View className="mb-3">
-            <Text className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
-              Difficulty
+          <Image
+            source={{ uri: reviewCoverImageUri }}
+            className="w-full h-48"
+            resizeMode="cover"
+          />
+          <View className="p-4">
+            <Text className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              {draft.name.trim() || "Untitled workout"}
             </Text>
-            <Badge
-              variant={
-                draft.difficulty === "beginner"
-                  ? "success"
-                  : draft.difficulty === "intermediate"
-                    ? "secondary"
-                    : "destructive"
-              }
-            >
-              {DIFFICULTIES.find((d) => d.value === draft.difficulty)?.label}
-            </Badge>
-          </View>
+            {draft.description?.trim() ? (
+              <Text className="text-sm text-gray-600 dark:text-gray-400 mt-2 leading-6">
+                {draft.description.trim()}
+              </Text>
+            ) : null}
 
-          <View>
-            <Text className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
-              Exercises
-            </Text>
-            <Text className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-              {totalSelectedExercises} exercises in {draft.rounds.length} rounds
-            </Text>
+            <View className="flex-row flex-wrap gap-2 mt-3">
+              <Badge
+                variant={
+                  draft.difficulty === "beginner"
+                    ? "success"
+                    : draft.difficulty === "intermediate"
+                      ? "secondary"
+                      : "destructive"
+                }
+              >
+                {DIFFICULTIES.find((d) => d.value === draft.difficulty)?.label}
+              </Badge>
+              <Badge variant="secondary">
+                {`${totalSelectedExercises} exercises`}
+              </Badge>
+              <Badge variant="secondary">
+                {`${Math.max(1, Math.ceil(estimatedDuration / 60))} min`}
+              </Badge>
+            </View>
           </View>
         </View>
 
-        <Text className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">
-          Round Plan
-        </Text>
-        {draft.rounds.map((round, roundIndex) => (
-          <View
-            key={round.id}
-            className={cn(
-              "p-3 rounded-lg mb-3 border",
-              isDark
-                ? "bg-dark-surface border-dark-border"
-                : "bg-light-surface border-light-border",
-            )}
-          >
-            <Text className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
-              {roundIndex + 1}. {round.name}
+        <View
+          className={cn(
+            "p-4 rounded-2xl border mb-4",
+            isDark
+              ? "bg-dark-surface border-dark-border"
+              : "bg-light-surface border-light-border",
+          )}
+        >
+          <Text className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">
+            Exercises summary
+          </Text>
+          {reviewExerciseLines.length === 0 ? (
+            <Text className="text-sm text-gray-600 dark:text-gray-400">
+              No exercises selected.
             </Text>
-
-            {round.exercises.map((exercise, exerciseIndex) => (
-              <Text
+          ) : (
+            reviewExerciseLines.map((exercise, index) => (
+              <View
                 key={exercise.id}
-                className="text-sm text-gray-600 dark:text-gray-400 mb-1"
+                className={cn(
+                  "rounded-xl px-3 py-2 mb-2",
+                  isDark ? "bg-dark-bg" : "bg-light-bg",
+                )}
               >
-                {exerciseIndex + 1}) {exercise.name} ΓÇó {exercise.sets} x{" "}
-                {exercise.reps}
-                {exercise.hasWeight ? ` ΓÇó ${exercise.weightKg ?? 0}kg` : ""}
-              </Text>
-            ))}
+                <Text className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  {`${index + 1}. ${exercise.name}`}
+                </Text>
+                <Text className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                  {`${exercise.roundName} • ${exercise.sets}x ${exercise.reps}`}
+                  {exercise.hasWeight ? ` • ${exercise.weightKg ?? 0}kg` : ""}
+                </Text>
+              </View>
+            ))
+          )}
+        </View>
 
-            <Text className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              Rest after round: {round.restAfterSeconds ?? 0}s
-            </Text>
-          </View>
-        ))}
+        <View
+          className={cn(
+            "p-4 rounded-2xl border",
+            isDark
+              ? "bg-dark-surface border-dark-border"
+              : "bg-light-surface border-light-border",
+          )}
+        >
+          <Text className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">
+            Muscles worked
+          </Text>
+          <MuscleMap
+            primaryMuscles={workedMuscles}
+            secondaryMuscles={[]}
+            title=""
+            subtitle="Combined from all exercises in this workout"
+            bodySize={280}
+            scale={1.03}
+          />
+          {workedMuscles.length > 0 ? (
+            <View className="flex-row flex-wrap gap-2 mt-3">
+              {workedMuscles.map((muscle) => (
+                <Badge key={muscle} variant="secondary" size="sm">
+                  {muscleKeyToLabel(muscle)}
+                </Badge>
+              ))}
+            </View>
+          ) : null}
+        </View>
       </ScrollView>
 
       <View

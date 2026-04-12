@@ -8,6 +8,9 @@ import {
   query,
   runTransaction,
   where,
+  orderBy,
+  limit as firestoreLimit,
+  updateDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
@@ -374,4 +377,222 @@ export async function clearPausedWorkoutSession(
   await deleteDoc(
     doc(db, "workout_sessions", workoutSessionDocId(uid, templateId)),
   );
+}
+
+// ─── Completed Workout Sessions ────────────────────────────────────────────
+
+export interface CompletedExerciseSummary {
+  exercise_id: string;
+  name: string;
+  sets_done: number;
+  total_reps: number;
+  total_volume_kg: number;
+}
+
+export interface CompletedWorkoutSessionRecord {
+  id: string;
+  user_id: string;
+  template_id: string;
+  workout_name: string;
+  started_at: string;
+  ended_at: string;
+  duration_seconds: number;
+  date: string; // YYYY-MM-DD
+  sets_completed: CompletedExerciseSetRecord[];
+  exercises_summary: CompletedExerciseSummary[];
+  total_volume_kg: number;
+  total_reps: number;
+  total_sets: number;
+  xp_earned: number;
+}
+
+export interface SaveCompletedWorkoutSessionInput {
+  templateId: string;
+  workoutName: string;
+  startedAt: string;
+  completedSets: CompletedExerciseSetRecord[];
+}
+
+function completedSessionsCollection() {
+  return collection(db, "workout_sessions_completed");
+}
+
+function toDateString(isoString: string): string {
+  return isoString.slice(0, 10); // "YYYY-MM-DD"
+}
+
+export async function saveCompletedWorkoutSession(
+  uid: string,
+  input: SaveCompletedWorkoutSessionInput,
+): Promise<CompletedWorkoutSessionRecord> {
+  const now = new Date().toISOString();
+  const startedAt = input.startedAt || now;
+  const durationSeconds = Math.max(
+    0,
+    Math.round((new Date(now).getTime() - new Date(startedAt).getTime()) / 1000),
+  );
+
+  // Aggregate per-exercise summaries
+  const exerciseMap = new Map<string, CompletedExerciseSummary>();
+  for (const set of input.completedSets) {
+    const key = set.exerciseId;
+    const existing = exerciseMap.get(key);
+    const reps = set.repsCompleted ?? 0;
+    const volume = reps * (set.weightKg ?? 0);
+    if (existing) {
+      existing.sets_done += 1;
+      existing.total_reps += reps;
+      existing.total_volume_kg += volume;
+    } else {
+      exerciseMap.set(key, {
+        exercise_id: key,
+        name: key, // will be overwritten below if available
+        sets_done: 1,
+        total_reps: reps,
+        total_volume_kg: volume,
+      });
+    }
+  }
+
+  const totalVolume = [...exerciseMap.values()].reduce(
+    (sum, e) => sum + e.total_volume_kg,
+    0,
+  );
+  const totalReps = [...exerciseMap.values()].reduce(
+    (sum, e) => sum + e.total_reps,
+    0,
+  );
+  const totalSets = input.completedSets.length;
+  const xpEarned = 50 + totalSets * 5;
+
+  const reference = doc(completedSessionsCollection());
+  const payload: CompletedWorkoutSessionRecord = {
+    id: reference.id,
+    user_id: uid,
+    template_id: input.templateId,
+    workout_name: input.workoutName,
+    started_at: startedAt,
+    ended_at: now,
+    duration_seconds: durationSeconds,
+    date: toDateString(now),
+    sets_completed: input.completedSets,
+    exercises_summary: [...exerciseMap.values()],
+    total_volume_kg: Math.round(totalVolume * 100) / 100,
+    total_reps: totalReps,
+    total_sets: totalSets,
+    xp_earned: xpEarned,
+  };
+
+  await setDoc(reference, sanitizeFirestoreValue(payload));
+
+  // Update user streak
+  try {
+    await updateUserStreak(uid, toDateString(now));
+  } catch (e) {
+    console.warn("[saveCompletedWorkoutSession] streak update failed", e);
+  }
+
+  return payload;
+}
+
+export async function getCompletedWorkoutSession(
+  sessionId: string,
+): Promise<CompletedWorkoutSessionRecord | null> {
+  const snapshot = await getDoc(doc(db, "workout_sessions_completed", sessionId));
+  if (!snapshot.exists()) return null;
+  return snapshot.data() as CompletedWorkoutSessionRecord;
+}
+
+export async function listCompletedWorkoutSessions(
+  uid: string,
+  maxResults = 50,
+): Promise<CompletedWorkoutSessionRecord[]> {
+  const snapshot = await getDocs(
+    query(
+      completedSessionsCollection(),
+      where("user_id", "==", uid),
+      orderBy("ended_at", "desc"),
+      firestoreLimit(maxResults),
+    ),
+  );
+  return snapshot.docs.map((d) => d.data() as CompletedWorkoutSessionRecord);
+}
+
+export async function getCompletedSessionDates(
+  uid: string,
+  startDate: string,
+  endDate: string,
+): Promise<string[]> {
+  const snapshot = await getDocs(
+    query(
+      completedSessionsCollection(),
+      where("user_id", "==", uid),
+      where("date", ">=", startDate),
+      where("date", "<=", endDate),
+    ),
+  );
+  const dates = new Set<string>();
+  for (const d of snapshot.docs) {
+    const record = d.data() as CompletedWorkoutSessionRecord;
+    dates.add(record.date);
+  }
+  return [...dates];
+}
+
+// ─── Streak Management ────────────────────────────────────────────────────
+
+interface StreakResult {
+  streak_current: number;
+  streak_longest: number;
+  last_activity_date: string;
+}
+
+export async function updateUserStreak(
+  uid: string,
+  todayDate: string,
+): Promise<StreakResult> {
+  const profileRef = doc(db, "profiles", uid);
+  const snapshot = await getDoc(profileRef);
+
+  if (!snapshot.exists()) {
+    return { streak_current: 1, streak_longest: 1, last_activity_date: todayDate };
+  }
+
+  const profile = snapshot.data() as {
+    streak_current?: number;
+    streak_longest?: number;
+    last_activity_date?: string;
+  };
+
+  const lastDate = profile.last_activity_date ?? "";
+  const currentStreak = profile.streak_current ?? 0;
+  const longestStreak = profile.streak_longest ?? 0;
+
+  // Already counted today
+  if (lastDate === todayDate) {
+    return {
+      streak_current: currentStreak,
+      streak_longest: longestStreak,
+      last_activity_date: lastDate,
+    };
+  }
+
+  const yesterday = new Date(todayDate);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().slice(0, 10);
+
+  const newStreak = lastDate === yesterdayStr ? currentStreak + 1 : 1;
+  const newLongest = Math.max(longestStreak, newStreak);
+
+  await updateDoc(profileRef, {
+    streak_current: newStreak,
+    streak_longest: newLongest,
+    last_activity_date: todayDate,
+  });
+
+  return {
+    streak_current: newStreak,
+    streak_longest: newLongest,
+    last_activity_date: todayDate,
+  };
 }
