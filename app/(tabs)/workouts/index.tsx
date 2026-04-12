@@ -27,7 +27,6 @@ import {
   Compass,
   Dumbbell,
   Flame,
-  FolderOpen,
   Play,
   Settings2,
   SlidersHorizontal,
@@ -171,6 +170,7 @@ export default function WorkoutsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
+  const profile = useAuthStore((state) => state.profile);
   const { isDark, colors } = useThemeStore();
   const showToast = useToastStore((state) => state.show);
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -193,6 +193,7 @@ export default function WorkoutsScreen() {
   const [panelExpanded, setPanelExpanded] = useState(false);
   const [weekOffset, setWeekOffset] = useState(1);
   const [initialWeekMonday] = useState(() => startOfWeekMonday(new Date()));
+  const [completedDates, setCompletedDates] = useState<Set<string>>(new Set());
 
   // Panel slide-up animation
   const COLLAPSED_H = insets.bottom + 144; // pt-3(12) + btn-lg(52) + tabBar(80)
@@ -230,10 +231,43 @@ export default function WorkoutsScreen() {
     () => resolveFocusArea(todayWorkout),
     [todayWorkout],
   );
-  const sections = useMemo(
-    () => buildSessionSections(todayWorkout?.exercises ?? []),
-    [todayWorkout],
-  );
+  const sections = useMemo(() => {
+    if (!todayWorkout) return buildSessionSections([]);
+    // Use structured sections when available
+    if (todayWorkout.sections && todayWorkout.sections.length > 0) {
+      return todayWorkout.sections
+        .slice()
+        .sort((a, b) => a.order - b.order)
+        .map((section) => {
+          const exercises = section.blocks
+            .filter((b) => b.type === "exercise" && b.exercise_id)
+            .sort((a, b) => a.order - b.order)
+            .map((b) => ({
+              id: b.exercise_id!,
+              name: b.name ?? b.exercise_id!,
+              sets: 1,
+              reps: b.reps ?? "",
+              muscleGroups: b.primary_muscles ?? [],
+            }));
+          const key =
+            section.type === "warmup"
+              ? "warmup"
+              : section.type === "cooldown"
+                ? "cooldown"
+                : "workout";
+          return {
+            key: key as SessionSectionKey,
+            title: section.name,
+            subtitle:
+              exercises.length > 0
+                ? `${exercises.length} exercise${exercises.length > 1 ? "s" : ""}`
+                : "Empty",
+            exercises,
+          };
+        });
+    }
+    return buildSessionSections(todayWorkout.exercises);
+  }, [todayWorkout]);
   const [pausedTemplateId, setPausedTemplateId] = useState<string | null>(null);
   const [checkingPaused, setCheckingPaused] = useState(false);
 
@@ -294,19 +328,6 @@ export default function WorkoutsScreen() {
     };
   }, [user?.uid, sessionActive, sessionTemplateId, todayWorkout?.id, workouts]);
 
-  const weekCompletion = useMemo(() => {
-    const todayIdx = toMondayFirstIndex(new Date());
-    const result = new Set<number>();
-    if (workouts.length > 0) {
-      result.add(todayIdx);
-      result.add((todayIdx + 6) % 7);
-      if (workouts.length > 1) {
-        result.add((todayIdx + 5) % 7);
-      }
-    }
-    return { todayIdx, done: result };
-  }, [workouts.length]);
-
   const weekPages = useMemo(() => {
     const today = new Date();
     const currentMonday = initialWeekMonday;
@@ -323,23 +344,23 @@ export default function WorkoutsScreen() {
           date.getFullYear() === today.getFullYear() &&
           date.getMonth() === today.getMonth() &&
           date.getDate() === today.getDate();
+        const dateStr = date.toISOString().slice(0, 10);
 
         return {
-          key: `${off}-${date.toISOString()}`,
+          key: `${off}-${dateStr}`,
           dayLabel: WEEK_DAYS[idx],
           dayNumber: date.getDate(),
           isToday,
-          isDone: off === 0 && weekCompletion.done.has(idx),
+          isDone: completedDates.has(dateStr),
         };
       });
     });
-  }, [initialWeekMonday, weekCompletion.done]);
+  }, [initialWeekMonday, completedDates]);
 
   const heroImageUri = useMemo(() => {
+    if (todayWorkout?.cover_image_url) return todayWorkout.cover_image_url;
     const firstExercise = todayWorkout?.exercises[0];
-    if (!firstExercise) {
-      return null;
-    }
+    if (!firstExercise) return null;
     return catalogById[firstExercise.id]?.remote_image_urls?.[0] ?? null;
   }, [catalogById, todayWorkout]);
 
@@ -353,6 +374,16 @@ export default function WorkoutsScreen() {
         return;
       }
 
+      // Build 3-week date range for the calendar
+      const startDate = new Date(initialWeekMonday);
+      startDate.setDate(initialWeekMonday.getDate() - 7);
+      const endDate = new Date(initialWeekMonday);
+      endDate.setDate(initialWeekMonday.getDate() + 13);
+      const startStr = startDate.toISOString().slice(0, 10);
+      const endStr = endDate.toISOString().slice(0, 10);
+
+      // Load templates and catalog in parallel; fetch session dates separately
+      // so a permissions error there doesn't break the whole workout load.
       const [templates, catalog] = await Promise.all([
         listWorkoutTemplates(user.uid),
         getExerciseCatalog(),
@@ -362,6 +393,14 @@ export default function WorkoutsScreen() {
         b.updated_at.localeCompare(a.updated_at),
       );
       setWorkouts(sorted);
+
+      try {
+        const doneDates = await getCompletedSessionDates(user.uid, startStr, endStr);
+        setCompletedDates(new Set(doneDates));
+      } catch (sessionErr) {
+        // Non-fatal — calendar dots just won't show until rules propagate
+        console.warn("[workouts] could not load session dates", sessionErr);
+      }
 
       const byId: Record<string, OfficialExerciseRecord> = {};
       for (const item of catalog.exercises) {
@@ -378,7 +417,7 @@ export default function WorkoutsScreen() {
     } finally {
       setLoading(false);
     }
-  }, [showToast, user?.uid]);
+  }, [initialWeekMonday, showToast, user?.uid]);
 
   useEffect(() => {
     void loadData();
@@ -574,7 +613,7 @@ export default function WorkoutsScreen() {
           <View className="flex-row items-center gap-2">
             <Flame size={16} color={colors.primary} />
             <Text className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-              Streak {weekCompletion.done.size}d
+              Streak {profile?.streak_current ?? 0}d
             </Text>
           </View>
 
@@ -861,117 +900,194 @@ export default function WorkoutsScreen() {
           </>
         )}
 
-        <View
-          className={cn(
-            "rounded-3xl p-4",
-            isDark ? "bg-dark-surface" : "bg-light-card",
-          )}
-        >
-          <Text className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-            Build and manage workouts
-          </Text>
-          <Text className="text-sm text-gray-600 dark:text-gray-400 mt-1 mb-4">
-            Open your templates, explore public workouts, or create custom plans
-            manually and with AI.
-          </Text>
-
-          <View className="gap-2">
-            <Pressable
-              onPress={() => router.push("/workouts")}
-              className={cn(
-                "rounded-2xl p-3 flex-row items-center justify-between",
-                isDark ? "bg-dark-surface" : "bg-light-surface",
-              )}
-            >
-              <View className="flex-row items-center gap-3">
-                <FolderOpen size={18} color={colors.muted} />
-                <Text className="text-base text-gray-900 dark:text-gray-100">
-                  My workout templates
+        {/* ── My Workouts section ── */}
+        <View className="mt-2">
+          {/* Section header */}
+          <View className="flex-row items-center justify-between mb-3">
+            <View>
+              <Text className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                My Workouts
+              </Text>
+              {workouts.length > 0 ? (
+                <Text className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  {workouts.filter((w) => w.is_active).length} active ·{" "}
+                  {workouts.length} total
                 </Text>
-              </View>
-              <ChevronRight size={16} color={colors.muted} />
-            </Pressable>
-
+              ) : null}
+            </View>
             <Pressable
-              onPress={() => router.push("/workouts/explore")}
-              className={cn(
-                "rounded-2xl p-3 flex-row items-center justify-between",
-                isDark ? "bg-dark-surface" : "bg-light-surface",
-              )}
+              onPress={() => router.push("/workouts/library")}
+              className="flex-row items-center gap-1 py-1 px-2"
             >
-              <View className="flex-row items-center gap-3">
-                <Compass size={18} color={colors.muted} />
-                <Text className="text-base text-gray-900 dark:text-gray-100">
-                  Explore public workouts
-                </Text>
-              </View>
-              <ChevronRight size={16} color={colors.muted} />
-            </Pressable>
-
-            <Pressable
-              onPress={() => router.push("/workouts/create")}
-              className={cn(
-                "rounded-2xl p-3 flex-row items-center justify-between",
-                isDark ? "bg-dark-surface" : "bg-light-surface",
-              )}
-            >
-              <View className="flex-row items-center gap-3">
-                <Sparkles size={18} color={colors.primary} />
-                <Text className="text-base text-gray-900 dark:text-gray-100">
-                  Create manual or AI workout
-                </Text>
-              </View>
-              <ChevronRight size={16} color={colors.muted} />
+              <Text className="text-sm text-primary-500 font-semibold">
+                See all
+              </Text>
+              <ChevronRight size={14} color={colors.primary} />
             </Pressable>
           </View>
+
+          {/* Horizontal scroll cards */}
+          {workouts.length > 0 ? (
+            <FlatList
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              data={workouts.slice(0, 8)}
+              keyExtractor={(item) => `card-${item.id}`}
+              contentContainerStyle={{ gap: 10 }}
+              renderItem={({ item: w }) => {
+                const firstExercise = w.exercises[0];
+                const thumbUri =
+                  w.cover_image_url ??
+                  (firstExercise
+                    ? (catalogById[firstExercise.id]?.remote_image_urls?.[0] ?? null)
+                    : null);
+                const DIFF_COLOR: Record<string, string> = {
+                  beginner: "#059669",
+                  intermediate: "#0284c7",
+                  advanced: "#dc2626",
+                };
+                const diffColor = DIFF_COLOR[w.difficulty] ?? "#0284c7";
+
+                return (
+                  <Pressable
+                    onPress={() => router.push(`/workouts/${w.id}`)}
+                    style={{
+                      width: 148,
+                      height: 116,
+                      borderRadius: 16,
+                      overflow: "hidden",
+                    }}
+                  >
+                    {thumbUri ? (
+                      <Image
+                        source={{ uri: thumbUri }}
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                        }}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          backgroundColor: diffColor + "22",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Dumbbell
+                          size={28}
+                          color={diffColor}
+                          strokeWidth={1.5}
+                        />
+                      </View>
+                    )}
+
+                    {/* Bottom overlay */}
+                    <View
+                      style={{
+                        position: "absolute",
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        height: 58,
+                        backgroundColor: "rgba(0,0,0,0.52)",
+                        paddingHorizontal: 10,
+                        paddingBottom: 8,
+                        justifyContent: "flex-end",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontWeight: "700",
+                          color: "#fff",
+                        }}
+                        numberOfLines={1}
+                      >
+                        {w.name}
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          color: "rgba(255,255,255,0.7)",
+                          marginTop: 1,
+                        }}
+                      >
+                        {w.estimated_duration_minutes} min
+                      </Text>
+                    </View>
+
+                    {/* Active indicator dot */}
+                    <View
+                      style={{
+                        position: "absolute",
+                        top: 8,
+                        right: 8,
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: w.is_active ? "#34d399" : "#64748b",
+                      }}
+                    />
+                  </Pressable>
+                );
+              }}
+            />
+          ) : (
+            <Pressable
+              onPress={() => router.push("/workouts/library")}
+              className={cn(
+                "rounded-2xl p-4 flex-row items-center justify-between",
+                isDark ? "bg-dark-surface" : "bg-light-card",
+              )}
+            >
+              <View>
+                <Text className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                  No workouts yet
+                </Text>
+                <Text className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  Create your first template to get started
+                </Text>
+              </View>
+              <ChevronRight size={16} color={colors.muted} />
+            </Pressable>
+          )}
         </View>
 
-        {workouts.length > 1 ? (
-          <View
+        {/* ── Quick actions ── */}
+        <View className="flex-row gap-2 mt-4">
+          <Pressable
+            onPress={() => router.push("/workouts/create")}
+            className="flex-1 flex-row items-center justify-center gap-2 py-3.5 rounded-2xl bg-primary-600 active:bg-primary-700"
+          >
+            <Sparkles size={15} color="#fff" />
+            <Text className="text-sm font-semibold text-white">
+              Create workout
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => router.push("/workouts/history")}
             className={cn(
-              "rounded-2xl p-4 mt-4",
+              "flex-1 flex-row items-center justify-center gap-2 py-3.5 rounded-2xl",
               isDark ? "bg-dark-surface" : "bg-light-card",
             )}
           >
-            <View className="flex-row items-center justify-between mb-2">
-              <Text className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                History
-              </Text>
-              <Pressable onPress={() => router.push("/workouts/history")}>
-                <Text className="text-sm text-primary-500">View all</Text>
-              </Pressable>
-            </View>
-
-            {workouts.slice(1, 4).map((w) => (
-              <Pressable
-                key={w.id}
-                onPress={() => router.push(`/workouts/${w.id}`)}
-                className={cn(
-                  "py-3",
-                  isDark
-                    ? "border-b border-dark-border"
-                    : "border-b border-light-border",
-                )}
-              >
-                <View className="flex-row items-center justify-between">
-                  <View>
-                    <Text className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {w.name}
-                    </Text>
-                    <Text className="text-xs text-gray-500 dark:text-gray-400">
-                      {new Date(
-                        w.updated_at || w.created_at,
-                      ).toLocaleDateString()}
-                    </Text>
-                  </View>
-                  <Text className="text-xs text-gray-500 dark:text-gray-400">
-                    {w.estimated_duration_minutes} min
-                  </Text>
-                </View>
-              </Pressable>
-            ))}
-          </View>
-        ) : null}
+            <Timer size={15} color={colors.muted} />
+            <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+              History
+            </Text>
+          </Pressable>
+        </View>
       </ScrollView>
 
       {todayWorkout ? (

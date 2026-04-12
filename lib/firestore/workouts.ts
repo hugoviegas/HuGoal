@@ -90,6 +90,10 @@ export interface WorkoutTemplateRecord {
   sections?: WorkoutTemplateSectionRecord[];
   target_muscles?: string[];
   is_active?: boolean;
+  is_public?: boolean;
+  is_draft?: boolean;
+  like_count?: number;
+  saved_by_count?: number;
   schedule_day_of_week?: number;
   estimated_duration_minutes: number;
   tags: string[];
@@ -108,6 +112,8 @@ export interface WorkoutTemplateInput {
   sections?: WorkoutTemplateSectionRecord[];
   target_muscles?: string[];
   is_active?: boolean;
+  is_public?: boolean;
+  is_draft?: boolean;
   schedule_day_of_week?: number;
   estimated_duration_minutes: number;
   tags?: string[];
@@ -182,6 +188,8 @@ export interface PausedWorkoutSessionRecord {
   rest_remaining_seconds: number;
   timed_remaining_seconds: number;
   completed_sets: CompletedExerciseSetRecord[];
+  paused_elapsed_seconds: number;
+  current_rest_elapsed_seconds: number;
   started_at: string;
   paused_at: string;
   expires_at: string;
@@ -195,6 +203,8 @@ export interface SavePausedWorkoutSessionInput {
   restRemainingSeconds: number;
   timedRemainingSeconds: number;
   completedSets: CompletedExerciseSetRecord[];
+  pausedElapsedSeconds: number;
+  currentRestElapsedSeconds: number;
   startedAt?: string;
 }
 
@@ -295,6 +305,49 @@ export async function updateWorkoutTemplate(
   });
 }
 
+export async function deleteWorkoutTemplate(templateId: string): Promise<void> {
+  await deleteDoc(doc(db, "workout_templates", templateId));
+}
+
+export async function duplicateWorkoutTemplate(
+  uid: string,
+  templateId: string,
+): Promise<WorkoutTemplateRecord> {
+  const source = await getWorkoutTemplate(templateId);
+  if (!source) throw new Error("Workout template not found");
+
+  return createWorkoutTemplate(uid, {
+    name: `${source.name} (Copy)`,
+    description: source.description,
+    cover_image_url: source.cover_image_url,
+    difficulty: source.difficulty,
+    is_ai_generated: source.is_ai_generated,
+    source_prompt: source.source_prompt,
+    exercises: source.exercises,
+    sections: source.sections,
+    target_muscles: source.target_muscles,
+    is_active: false,
+    is_public: false,
+    is_draft: false,
+    estimated_duration_minutes: source.estimated_duration_minutes,
+    tags: source.tags,
+  });
+}
+
+export async function listPublicWorkoutTemplates(
+  maxResults = 30,
+): Promise<WorkoutTemplateRecord[]> {
+  const snapshot = await getDocs(
+    query(
+      workoutsCollection(),
+      where("is_public", "==", true),
+      orderBy("updated_at", "desc"),
+      firestoreLimit(maxResults),
+    ),
+  );
+  return snapshot.docs.map((d) => d.data() as WorkoutTemplateRecord);
+}
+
 export async function getPausedWorkoutSession(
   uid: string,
   templateId: string,
@@ -357,6 +410,8 @@ export async function savePausedWorkoutSession(
     rest_remaining_seconds: input.restRemainingSeconds,
     timed_remaining_seconds: input.timedRemainingSeconds,
     completed_sets: input.completedSets,
+    paused_elapsed_seconds: input.pausedElapsedSeconds,
+    current_rest_elapsed_seconds: input.currentRestElapsedSeconds,
     started_at: input.startedAt ?? nowIso,
     paused_at: nowIso,
     expires_at: expiresAtIso,
@@ -389,6 +444,42 @@ export interface CompletedExerciseSummary {
   total_volume_kg: number;
 }
 
+export interface CompletedExerciseMetricRecord {
+  exercise_id: string;
+  name: string;
+  sets_done: number;
+  total_reps: number;
+  total_volume_kg: number;
+  avg_weight_kg: number;
+  max_weight_kg: number;
+  first_set_at?: string;
+  last_set_at?: string;
+  time_to_complete_seconds: number;
+}
+
+export interface CompletedRestSegmentRecord {
+  step_id: string;
+  exercise_id: string;
+  planned_seconds: number;
+  actual_seconds: number;
+  started_at: string;
+  ended_at: string;
+}
+
+export interface CompletedWorkoutSessionMetrics {
+  duration_seconds: number;
+  rest_time_seconds: number;
+  paused_time_seconds: number;
+  completed_exercises: number;
+  avg_reps_per_set: number;
+  avg_weight_per_set: number;
+  active_time_seconds: number;
+  difficulty_multiplier: number;
+  effort_score: number;
+  xp_base: number;
+  xp_time_multiplier: number;
+}
+
 export interface CompletedWorkoutSessionRecord {
   id: string;
   user_id: string;
@@ -400,6 +491,9 @@ export interface CompletedWorkoutSessionRecord {
   date: string; // YYYY-MM-DD
   sets_completed: CompletedExerciseSetRecord[];
   exercises_summary: CompletedExerciseSummary[];
+  exercise_metrics?: CompletedExerciseMetricRecord[];
+  rest_segments?: CompletedRestSegmentRecord[];
+  session_metrics?: CompletedWorkoutSessionMetrics;
   total_volume_kg: number;
   total_reps: number;
   total_sets: number;
@@ -409,8 +503,11 @@ export interface CompletedWorkoutSessionRecord {
 export interface SaveCompletedWorkoutSessionInput {
   templateId: string;
   workoutName: string;
+  templateDifficulty: WorkoutDifficulty;
   startedAt: string;
   completedSets: CompletedExerciseSetRecord[];
+  restSegments: CompletedRestSegmentRecord[];
+  pausedElapsedSeconds: number;
 }
 
 function completedSessionsCollection() {
@@ -429,7 +526,9 @@ export async function saveCompletedWorkoutSession(
   const startedAt = input.startedAt || now;
   const durationSeconds = Math.max(
     0,
-    Math.round((new Date(now).getTime() - new Date(startedAt).getTime()) / 1000),
+    Math.round(
+      (new Date(now).getTime() - new Date(startedAt).getTime()) / 1000,
+    ),
   );
 
   // Aggregate per-exercise summaries
@@ -463,7 +562,99 @@ export async function saveCompletedWorkoutSession(
     0,
   );
   const totalSets = input.completedSets.length;
-  const xpEarned = 50 + totalSets * 5;
+
+  const restTimeSeconds = input.restSegments.reduce(
+    (sum, segment) => sum + Math.max(0, segment.actual_seconds),
+    0,
+  );
+  const pausedTimeSeconds = Math.max(0, input.pausedElapsedSeconds);
+  const activeTimeSeconds = Math.max(
+    0,
+    durationSeconds - restTimeSeconds - pausedTimeSeconds,
+  );
+
+  const difficultyMultiplierMap: Record<WorkoutDifficulty, number> = {
+    beginner: 1,
+    intermediate: 1.12,
+    advanced: 1.25,
+  };
+
+  const difficultyMultiplier =
+    difficultyMultiplierMap[input.templateDifficulty] ?? 1;
+
+  const effortScore = Math.round(
+    totalSets * 6 + totalReps * 0.5 + totalVolume * 0.05,
+  );
+
+  const xpBase = Math.max(24, Math.round(28 + effortScore));
+  const xpTimeMultiplier = 1 + Math.min(activeTimeSeconds / 1800, 1.5) * 0.18;
+  const xpEarned = Math.max(
+    12,
+    Math.round(xpBase * difficultyMultiplier * xpTimeMultiplier),
+  );
+
+  const exerciseMetrics: CompletedExerciseMetricRecord[] = [
+    ...exerciseMap.values(),
+  ].map((summary) => {
+    const sourceSets = input.completedSets
+      .filter((set) => set.exerciseId === summary.exercise_id)
+      .sort((left, right) => left.completedAt.localeCompare(right.completedAt));
+
+    const weightedSets = sourceSets.filter(
+      (set) => Number.isFinite(set.weightKg) && (set.weightKg ?? 0) > 0,
+    );
+
+    const totalWeightAcrossSets = weightedSets.reduce(
+      (sum, set) => sum + (set.weightKg ?? 0),
+      0,
+    );
+
+    const maxWeight = weightedSets.reduce(
+      (max, set) => Math.max(max, set.weightKg ?? 0),
+      0,
+    );
+
+    const firstSetAt = sourceSets[0]?.completedAt;
+    const lastSetAt = sourceSets[sourceSets.length - 1]?.completedAt;
+
+    const timeToCompleteSeconds =
+      firstSetAt && lastSetAt
+        ? Math.max(
+            0,
+            Math.round(
+              (new Date(lastSetAt).getTime() - new Date(firstSetAt).getTime()) /
+                1000,
+            ),
+          )
+        : 0;
+
+    return {
+      exercise_id: summary.exercise_id,
+      name: summary.name,
+      sets_done: summary.sets_done,
+      total_reps: summary.total_reps,
+      total_volume_kg: Math.round(summary.total_volume_kg * 100) / 100,
+      avg_weight_kg:
+        weightedSets.length > 0
+          ? Math.round((totalWeightAcrossSets / weightedSets.length) * 100) /
+            100
+          : 0,
+      max_weight_kg: Math.round(maxWeight * 100) / 100,
+      first_set_at: firstSetAt,
+      last_set_at: lastSetAt,
+      time_to_complete_seconds: timeToCompleteSeconds,
+    };
+  });
+
+  const weightedSetCount = input.completedSets.filter(
+    (set) => Number.isFinite(set.weightKg) && (set.weightKg ?? 0) > 0,
+  ).length;
+
+  const totalWeightAcrossAllSets = input.completedSets.reduce(
+    (sum, set) =>
+      sum + (Number.isFinite(set.weightKg) ? (set.weightKg ?? 0) : 0),
+    0,
+  );
 
   const reference = doc(completedSessionsCollection());
   const payload: CompletedWorkoutSessionRecord = {
@@ -477,6 +668,27 @@ export async function saveCompletedWorkoutSession(
     date: toDateString(now),
     sets_completed: input.completedSets,
     exercises_summary: [...exerciseMap.values()],
+    exercise_metrics: exerciseMetrics,
+    rest_segments: input.restSegments,
+    session_metrics: {
+      duration_seconds: durationSeconds,
+      rest_time_seconds: restTimeSeconds,
+      paused_time_seconds: pausedTimeSeconds,
+      completed_exercises: exerciseMetrics.filter((m) => m.sets_done > 0)
+        .length,
+      avg_reps_per_set:
+        totalSets > 0 ? Math.round((totalReps / totalSets) * 100) / 100 : 0,
+      avg_weight_per_set:
+        weightedSetCount > 0
+          ? Math.round((totalWeightAcrossAllSets / weightedSetCount) * 100) /
+            100
+          : 0,
+      active_time_seconds: activeTimeSeconds,
+      difficulty_multiplier: Math.round(difficultyMultiplier * 100) / 100,
+      effort_score: effortScore,
+      xp_base: xpBase,
+      xp_time_multiplier: Math.round(xpTimeMultiplier * 100) / 100,
+    },
     total_volume_kg: Math.round(totalVolume * 100) / 100,
     total_reps: totalReps,
     total_sets: totalSets,
@@ -498,7 +710,9 @@ export async function saveCompletedWorkoutSession(
 export async function getCompletedWorkoutSession(
   sessionId: string,
 ): Promise<CompletedWorkoutSessionRecord | null> {
-  const snapshot = await getDoc(doc(db, "workout_sessions_completed", sessionId));
+  const snapshot = await getDoc(
+    doc(db, "workout_sessions_completed", sessionId),
+  );
   if (!snapshot.exists()) return null;
   return snapshot.data() as CompletedWorkoutSessionRecord;
 }
@@ -555,7 +769,11 @@ export async function updateUserStreak(
   const snapshot = await getDoc(profileRef);
 
   if (!snapshot.exists()) {
-    return { streak_current: 1, streak_longest: 1, last_activity_date: todayDate };
+    return {
+      streak_current: 1,
+      streak_longest: 1,
+      last_activity_date: todayDate,
+    };
   }
 
   const profile = snapshot.data() as {

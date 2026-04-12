@@ -56,9 +56,11 @@ service cloud.firestore {
     }
 
     // ── Workout Templates ─────────────────────────────────────────────
-    // User-owned templates.
+    // User-owned templates. Public templates (is_public == true) are readable
+    // by any authenticated user for the Discover feed.
     match /workout_templates/{templateId} {
-      allow read:   if isOwner(resource.data);
+      allow read:   if isOwner(resource.data)
+                       || (request.auth != null && resource.data.is_public == true);
       allow create: if request.auth != null
                        && (
                             request.resource.data.user_id == request.auth.uid
@@ -68,7 +70,17 @@ service cloud.firestore {
       allow delete: if isOwner(resource.data);
     }
 
-    // ── Workout Sessions ──────────────────────────────────────────────
+    // ── Completed Workout Sessions ────────────────────────────────────
+    // Immutable history records — users can create and read their own.
+    match /workout_sessions_completed/{sessionId} {
+      allow read: if request.auth != null
+                     && resource.data.user_id == request.auth.uid;
+      allow create: if request.auth != null
+                       && request.resource.data.user_id == request.auth.uid;
+      allow update, delete: if false; // History is immutable
+    }
+
+    // ── Paused Workout Sessions ───────────────────────────────────────
     match /workout_sessions/{sessionId} {
       allow read: if request.auth != null
                      && (

@@ -33,6 +33,22 @@
         { "fieldPath": "visibility", "order": "ASCENDING" },
         { "fieldPath": "member_count", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "workout_sessions_completed",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "user_id", "order": "ASCENDING" },
+        { "fieldPath": "ended_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "workout_sessions_completed",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "user_id", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

@@ -284,6 +284,19 @@ export default function RunWorkoutScreen() {
   const timedCountdownStartedRef = useRef(false);
   const furthestStepReachedRef = useRef(0);
   const lastCompletedCountSavedRef = useRef(0);
+  const totalPausedSecondsRef = useRef(0);
+  const restStepStartedAtRef = useRef<number | null>(null);
+  const restStepAccumulatedMsRef = useRef(0);
+  const restSegmentsRef = useRef<
+    {
+      step_id: string;
+      exercise_id: string;
+      planned_seconds: number;
+      actual_seconds: number;
+      started_at: string;
+      ended_at: string;
+    }[]
+  >([]);
 
   const collapsedSheetHeight = 118;
   const expandedSheetHeight = Math.min(viewportHeight * 0.52, 430);
@@ -388,6 +401,17 @@ export default function RunWorkoutScreen() {
           setRestRemainingSeconds(pausedSession.rest_remaining_seconds ?? -1);
           setTimedRemainingSeconds(pausedSession.timed_remaining_seconds ?? -1);
           setCompletedSets(pausedSession.completed_sets ?? []);
+          totalPausedSecondsRef.current =
+            (pausedSession.paused_elapsed_seconds ?? 0) +
+            Math.max(
+              0,
+              Math.round(
+                (Date.now() - new Date(pausedSession.paused_at).getTime()) /
+                  1000,
+              ),
+            );
+          restStepAccumulatedMsRef.current =
+            (pausedSession.current_rest_elapsed_seconds ?? 0) * 1000;
         }
       } catch (error) {
         console.error("[runWorkout] failed to restore paused session", {
@@ -414,6 +438,8 @@ export default function RunWorkoutScreen() {
     if (hydratingSession || !currentStep) return;
 
     if (currentStep.type === "exercise") {
+      restStepStartedAtRef.current = null;
+      restStepAccumulatedMsRef.current = 0;
       restCountdownStartedRef.current = false;
       setRestRemainingSeconds(-1);
 
@@ -440,6 +466,7 @@ export default function RunWorkoutScreen() {
       return;
     }
 
+    restStepStartedAtRef.current = Date.now();
     timedCountdownStartedRef.current = false;
     setTimedRemainingSeconds(-1);
     setRestRemainingSeconds(currentStep.restSeconds);
@@ -486,6 +513,56 @@ export default function RunWorkoutScreen() {
     [catalogById],
   );
 
+  const getCurrentRestElapsedSeconds = useCallback(() => {
+    if (currentStep?.type !== "rest") return 0;
+
+    const runningMs = restStepStartedAtRef.current
+      ? Date.now() - restStepStartedAtRef.current
+      : 0;
+
+    return Math.max(
+      0,
+      Math.round((restStepAccumulatedMsRef.current + runningMs) / 1000),
+    );
+  }, [currentStep?.type]);
+
+  const finalizeCurrentRestSegment = useCallback(() => {
+    if (currentStep?.type !== "rest") return;
+
+    const actualSeconds = getCurrentRestElapsedSeconds();
+    const exerciseStep = steps.find(
+      (step): step is ExerciseStep =>
+        step.type === "exercise" && step.id === currentStep.afterExerciseStepId,
+    );
+
+    if (!exerciseStep) {
+      restStepStartedAtRef.current = null;
+      restStepAccumulatedMsRef.current = 0;
+      return;
+    }
+
+    const startedAt = restStepStartedAtRef.current
+      ? new Date(
+          restStepStartedAtRef.current - restStepAccumulatedMsRef.current,
+        ).toISOString()
+      : new Date().toISOString();
+
+    restSegmentsRef.current = [
+      ...restSegmentsRef.current,
+      {
+        step_id: currentStep.id,
+        exercise_id: exerciseStep.exercise.id,
+        planned_seconds: currentStep.restSeconds,
+        actual_seconds: actualSeconds,
+        started_at: startedAt,
+        ended_at: new Date().toISOString(),
+      },
+    ];
+
+    restStepStartedAtRef.current = null;
+    restStepAccumulatedMsRef.current = 0;
+  }, [currentStep, getCurrentRestElapsedSeconds, steps]);
+
   const animateSheet = useCallback(
     (expanded: boolean) => {
       setSheetExpanded(expanded);
@@ -512,42 +589,82 @@ export default function RunWorkoutScreen() {
     });
   }, []);
 
-  const handleAdvance = useCallback(async () => {
-    if (isLastStep) {
-      // Save completed session
-      if (user?.uid && template) {
-        try {
-          await clearPausedWorkoutSession(user.uid, templateId);
-          const session = await saveCompletedWorkoutSession(user.uid, {
-            templateId: template.id,
-            workoutName: template.name,
-            startedAt: sessionStartedAt,
-            completedSets,
-          });
-          router.replace(`/workouts/${id}/summary?sessionId=${session.id}`);
-        } catch (saveError) {
-          console.error("[runWorkout] save session failed", saveError);
-          showToast("Could not save session.", "error");
+  const handleAdvance = useCallback(
+    async (nextCompletedSets?: CompletedExerciseSetRecord[]) => {
+      const completedSetsToPersist = nextCompletedSets ?? completedSets;
+
+      if (isLastStep) {
+        // Save completed session
+        if (user?.uid && template) {
+          try {
+            if (currentStep?.type === "rest") {
+              finalizeCurrentRestSegment();
+            }
+
+            const session = await saveCompletedWorkoutSession(user.uid, {
+              templateId: template.id,
+              workoutName: template.name,
+              templateDifficulty: template.difficulty,
+              startedAt: sessionStartedAt,
+              completedSets: completedSetsToPersist,
+              restSegments: restSegmentsRef.current,
+              pausedElapsedSeconds: totalPausedSecondsRef.current,
+            });
+
+            await clearPausedWorkoutSession(user.uid, templateId);
+            router.replace(`/workouts/${id}/summary?sessionId=${session.id}`);
+          } catch (saveError) {
+            console.error("[runWorkout] save session failed", saveError);
+
+            try {
+              await savePausedWorkoutSession(user.uid, templateId, {
+                currentStepIndex,
+                repsDone,
+                weightDone,
+                restRemainingSeconds,
+                timedRemainingSeconds,
+                completedSets: completedSetsToPersist,
+                pausedElapsedSeconds: totalPausedSecondsRef.current,
+                currentRestElapsedSeconds: getCurrentRestElapsedSeconds(),
+                startedAt: sessionStartedAt,
+              });
+            } catch (pauseSaveError) {
+              console.error(
+                "[runWorkout] failed to preserve session after completion save error",
+                pauseSaveError,
+              );
+            }
+
+            showToast("Could not save session. Try finishing again.", "error");
+          }
+        } else {
           router.replace(`/workouts/${id}/summary`);
         }
-      } else {
-        router.replace(`/workouts/${id}/summary`);
+        return;
       }
-      return;
-    }
 
-    setCurrentStepIndex((prev) => prev + 1);
-  }, [
-    completedSets,
-    id,
-    isLastStep,
-    router,
-    sessionStartedAt,
-    template,
-    templateId,
-    user?.uid,
-    showToast,
-  ]);
+      setCurrentStepIndex((prev) => prev + 1);
+    },
+    [
+      completedSets,
+      currentStepIndex,
+      currentStep,
+      id,
+      isLastStep,
+      finalizeCurrentRestSegment,
+      repsDone,
+      restRemainingSeconds,
+      router,
+      sessionStartedAt,
+      template,
+      getCurrentRestElapsedSeconds,
+      templateId,
+      timedRemainingSeconds,
+      user?.uid,
+      weightDone,
+      showToast,
+    ],
+  );
 
   const handleCompleteExerciseStep = useCallback(() => {
     if (!currentExerciseStep) return;
@@ -566,8 +683,8 @@ export default function RunWorkoutScreen() {
         ? parsedWeight
         : undefined;
 
-    setCompletedSets((prev) => [
-      ...prev,
+    const nextCompletedSets = [
+      ...completedSets,
       {
         stepId: currentExerciseStep.id,
         exerciseId: currentExerciseStep.exercise.id,
@@ -576,10 +693,11 @@ export default function RunWorkoutScreen() {
         weightKg,
         completedAt: new Date().toISOString(),
       },
-    ]);
+    ];
 
-    void handleAdvance();
-  }, [currentExerciseStep, handleAdvance, repsDone, weightDone]);
+    setCompletedSets(nextCompletedSets);
+    void handleAdvance(nextCompletedSets);
+  }, [completedSets, currentExerciseStep, handleAdvance, repsDone, weightDone]);
 
   useEffect(() => {
     if (
@@ -636,6 +754,8 @@ export default function RunWorkoutScreen() {
   const persistPausedSession = useCallback(async () => {
     if (!user?.uid || !templateId) return;
 
+    const currentRestElapsedSeconds = getCurrentRestElapsedSeconds();
+
     await savePausedWorkoutSession(user.uid, templateId, {
       currentStepIndex,
       repsDone,
@@ -643,10 +763,13 @@ export default function RunWorkoutScreen() {
       restRemainingSeconds,
       timedRemainingSeconds,
       completedSets,
+      pausedElapsedSeconds: totalPausedSecondsRef.current,
+      currentRestElapsedSeconds,
       startedAt: sessionStartedAt,
     });
   }, [
     completedSets,
+    getCurrentRestElapsedSeconds,
     currentStepIndex,
     repsDone,
     restRemainingSeconds,
@@ -881,6 +1004,8 @@ export default function RunWorkoutScreen() {
         restRemainingSeconds,
         timedRemainingSeconds,
         completedSets,
+        pausedElapsedSeconds: totalPausedSecondsRef.current,
+        currentRestElapsedSeconds: getCurrentRestElapsedSeconds(),
         startedAt: sessionStartedAt,
       })
         .then(() => {
@@ -900,6 +1025,7 @@ export default function RunWorkoutScreen() {
     currentStepIndex,
     hydratingSession,
     repsDone,
+    getCurrentRestElapsedSeconds,
     restRemainingSeconds,
     sessionHydrated,
     sessionStartedAt,

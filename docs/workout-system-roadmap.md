@@ -22,8 +22,27 @@ Fix the current broken workout display before building new features.
 - [x] Keep the tap-to-inspect exercise detail (catalog images, how-to, muscle map) as a secondary panel or modal
 
 ### 0.2 — Workouts Hub (`index.tsx`)
-- [ ] Prefer `workout.cover_image_url` as hero image instead of first-exercise catalog image
-- [ ] Use `workout.sections` data (when available) for the warmup/workout/cooldown section display instead of the artificial positional split
+- [x] Prefer `workout.cover_image_url` as hero image instead of first-exercise catalog image
+- [x] Use `workout.sections` data (when available) for the warmup/workout/cooldown section display instead of the artificial positional split
+
+### 0.3 — Run Screen (`run.tsx`)
+- [x] Remove MOCK_WORKOUT — load real `WorkoutTemplateRecord` from Firestore by route `id`
+- [x] Convert template exercises/sections to `RunningExercise[]` with catalog enrichment
+- [x] Save `CompletedWorkoutSessionRecord` to Firestore on last step completion
+- [x] Navigate to summary with `?sessionId=` param
+
+### 0.4 — Summary Screen (`summary.tsx`)
+- [x] Remove mock data — load real session by `sessionId` param
+- [x] Display duration, volume, sets, reps, XP earned, exercise breakdown
+
+### 0.5 — History Screen (`history.tsx`)
+- [x] Remove all mock data — load real `workout_sessions_completed` from Firestore
+- [x] Group by date, show per-session metrics, stats tab with real aggregates
+
+### 0.6 — Streak & Calendar
+- [x] `updateUserStreak` called automatically on session save
+- [x] Calendar dots driven by real `getCompletedSessionDates` query
+- [x] Streak badge reads from `profile.streak_current`
 
 ---
 
