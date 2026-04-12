@@ -1,15 +1,19 @@
 import React, { useCallback, useMemo } from "react";
-import { View, Text, Pressable, FlatList } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import * as Haptics from "expo-haptics";
 import DraggableFlatList, {
-  ScaleDecorator,
   type RenderItemParams,
 } from "react-native-draggable-flatlist";
+// Workaround: current typings for DraggableFlatList in this workspace
+// are incompatible with our usage (some props like `dragEnabled`
+// are not present). Cast to `any` for the JSX to keep runtime
+// behavior while TypeScript stays happy.
+const DraggableFlatListAny: any = DraggableFlatList as any;
 import type { EdgeInsets } from "react-native-safe-area-context";
 import { LayoutGrid } from "lucide-react-native";
 import { DashboardHeader } from "./DashboardHeader";
 import { WidgetRow } from "./WidgetRow";
-import { buildRowItems, rebuildFullList } from "@/lib/dashboard-layout";
+import { rebuildFullList } from "@/lib/dashboard-layout";
 import { useThemeStore } from "@/stores/theme.store";
 import { spacing } from "@/constants/spacing";
 import { typography } from "@/constants/typography";
@@ -56,11 +60,40 @@ export function WidgetGrid({
     [config.widgets],
   );
 
-  // In normal mode: grouped row items; in edit mode: flat per-widget list
-  const listData = useMemo(
-    () => (isEditMode ? enabledWidgets : buildRowItems(enabledWidgets)),
-    [isEditMode, enabledWidgets],
-  );
+  /**
+   * Always use flat WidgetConfig[] as FlatList data so that keys never change
+   * when toggling edit mode — prevents all items from unmounting/remounting.
+   *
+   * For normal mode, precompute a map from widget id → WidgetRowItem (or null
+   * for the right-hand item of a compact pair, which is rendered by the left).
+   */
+  const normalRenderMap = useMemo(() => {
+    const map = new Map<string, WidgetRowItem | null>();
+    let i = 0;
+    while (i < enabledWidgets.length) {
+      const cur = enabledWidgets[i];
+      if (cur.size === "full") {
+        map.set(cur.id, { kind: "full", id: cur.id, widget: cur });
+        i++;
+      } else {
+        const nxt = enabledWidgets[i + 1];
+        if (nxt?.size === "compact") {
+          map.set(cur.id, {
+            kind: "pair",
+            id: `${cur.id}:${nxt.id}`,
+            left: cur,
+            right: nxt,
+          });
+          map.set(nxt.id, null); // rendered inside the pair — skip own row
+          i += 2;
+        } else {
+          map.set(cur.id, { kind: "single", id: cur.id, widget: cur });
+          i++;
+        }
+      }
+    }
+    return map;
+  }, [enabledWidgets]);
 
   const handleRemoveWidget = useCallback(
     (widgetId: string) => {
@@ -71,55 +104,58 @@ export function WidgetGrid({
   );
 
   const handleToggleEditMode = useCallback(() => {
-    if (isEditMode) {
-      onExitEditMode();
-    } else {
-      onEnterEditMode();
-    }
+    if (isEditMode) onExitEditMode();
+    else onEnterEditMode();
   }, [isEditMode, onEnterEditMode, onExitEditMode]);
 
-  // ─── Render in edit mode: flat single widgets ────────────────────────────────
-  const renderEditItem = useCallback(
-    ({ item, drag, isActive }: RenderItemParams<WidgetConfig>) => {
-      const index = enabledWidgets.findIndex((w) => w.id === item.id);
-      return (
-        <ScaleDecorator activeScale={1.03}>
-          <WidgetRow
-            item={{ kind: "single", id: item.id, widget: item }}
-            staggerIndex={index}
-            isEditMode
-            isActive={isActive}
-            drag={drag}
-            onRemove={handleRemoveWidget}
-          />
-        </ScaleDecorator>
-      );
-    },
-    [enabledWidgets, handleRemoveWidget],
-  );
-
-  // ─── Render in normal mode: grouped row items ─────────────────────────────────
+  // ─── Normal mode: render grouped rows ────────────────────────────────────────
   const renderNormalItem = useCallback(
-    ({ item, drag, isActive }: RenderItemParams<WidgetRowItem>) => {
-      const index = listData.findIndex((r) => r.id === item.id);
+    (params: any) => {
+      const { item, index } = params as { item: WidgetConfig; index: number };
+      const rowItem = normalRenderMap.get(item.id);
+
+      // Right side of a pair — already rendered alongside the left item
+      if (rowItem === null) return <View style={{ height: 0 }} />;
+      if (!rowItem) return null;
+
       return (
         <WidgetRow
-          item={item}
+          item={rowItem}
           staggerIndex={index}
           isEditMode={false}
           onRemove={handleRemoveWidget}
         />
       );
     },
-    [listData, handleRemoveWidget],
+    [normalRenderMap, handleRemoveWidget],
+  );
+
+  // ─── Edit mode: every widget is a full-width, independently draggable row ────
+  const renderEditItem = useCallback(
+    (params: any) => {
+      const { item, drag, isActive } = params as {
+        item: WidgetConfig;
+        drag: () => void;
+        isActive: boolean;
+      };
+      const index = enabledWidgets.findIndex((w) => w.id === item.id);
+      return (
+        <WidgetRow
+          item={{ kind: "full", id: item.id, widget: item }}
+          staggerIndex={index}
+          isEditMode
+          isActive={isActive}
+          drag={drag}
+          onRemove={handleRemoveWidget}
+        />
+      );
+    },
+    [enabledWidgets, handleRemoveWidget],
   );
 
   const renderItem = isEditMode ? renderEditItem : (renderNormalItem as any);
 
-  const keyExtractor = useCallback(
-    (item: WidgetConfig | WidgetRowItem) => item.id,
-    [],
-  );
+  const keyExtractor = useCallback((item: WidgetConfig) => item.id, []);
 
   const ListHeader = (
     <DashboardHeader
@@ -147,7 +183,7 @@ export function WidgetGrid({
           paddingHorizontal: spacing.lg,
           paddingVertical: spacing.sm,
           borderRadius: radius.full,
-          backgroundColor: pressed ? colors.secondary : colors.secondary,
+          backgroundColor: pressed ? colors.surface : colors.secondary,
           borderWidth: 1,
           borderColor: colors.cardBorder,
         })}
@@ -166,43 +202,20 @@ export function WidgetGrid({
     </View>
   );
 
-  // In view mode, use a plain FlatList to avoid gesture/drag interception.
-  if (!isEditMode) {
-    return (
-      <FlatList
-        data={listData as any[]}
-        keyExtractor={keyExtractor as any}
-        renderItem={renderItem as any}
-        showsVerticalScrollIndicator={false}
-        style={{ flex: 1 }}
-        nestedScrollEnabled={true}
-        keyboardShouldPersistTaps="handled"
-        ListHeaderComponent={ListHeader}
-        ListFooterComponent={ListFooter}
-        contentContainerStyle={{
-          paddingHorizontal: spacing.md,
-          paddingBottom: insets.bottom + 100,
-        }}
-      />
-    );
-  }
-
-  // Edit mode: use DraggableFlatList for reordering
   return (
-    <DraggableFlatList
-      data={listData as any[]}
+    <DraggableFlatListAny
+      data={enabledWidgets}
       keyExtractor={keyExtractor as any}
       renderItem={renderItem as any}
+      dragEnabled={isEditMode}
       activationDistance={10}
       showsVerticalScrollIndicator={false}
       style={{ flex: 1 }}
       onDragBegin={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-      onDragEnd={({ data }) => {
-        if (isEditMode) {
-          const reorderedEnabled = data as WidgetConfig[];
-          const rebuilt = rebuildFullList(reorderedEnabled, config.widgets);
-          onReorder(rebuilt);
-        }
+      onDragEnd={({ data }: { data: WidgetConfig[] }) => {
+        // data is WidgetConfig[] — rebuild full list (including disabled widgets)
+        const rebuilt = rebuildFullList(data, config.widgets);
+        onReorder(rebuilt);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       }}
       ListHeaderComponent={ListHeader}

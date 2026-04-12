@@ -1,13 +1,13 @@
-import { useEffect, useState } from 'react';
-import { View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAuthStore } from '@/stores/auth.store';
-import { useCommunityStore } from '@/stores/community.store';
-import { useDashboardStore } from '@/stores/dashboard.store';
-import { WidgetGrid } from '@/components/dashboard/WidgetGrid';
-import { CustomizeSheet } from '@/components/dashboard/CustomizeSheet';
-import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
-import { useThemeStore } from '@/stores/theme.store';
+import { useEffect, useState } from "react";
+import { View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuthStore } from "@/stores/auth.store";
+import { useCommunityStore } from "@/stores/community.store";
+import { useDashboardStore } from "@/stores/dashboard.store";
+import { WidgetGrid } from "@/components/dashboard/WidgetGrid";
+import { CustomizeSheet } from "@/components/dashboard/CustomizeSheet";
+import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { useThemeStore } from "@/stores/theme.store";
 
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
@@ -27,30 +27,37 @@ export default function DashboardScreen() {
   } = useDashboardStore();
 
   const [customizeOpen, setCustomizeOpen] = useState(false);
+  const uid = user?.uid;
 
   useEffect(() => {
-    if (user?.uid) {
-      initialize(user.uid);
+    if (uid) {
+      initialize(uid);
     }
-  }, [user?.uid]);
+  }, [uid, initialize]);
 
-  if (isLoading) {
+  if (isLoading || !uid) {
     return <DashboardSkeleton />;
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: insets.top }}>
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: colors.background,
+        paddingTop: insets.top,
+      }}
+    >
       <WidgetGrid
         config={config}
         profile={profile}
         unreadCount={unreadCount}
         isEditMode={isEditMode}
-        uid={user!.uid}
+        uid={uid}
         insets={insets}
         onEnterEditMode={enterEditMode}
         onExitEditMode={exitEditMode}
-        onReorder={(widgets) => reorderWidgets(user!.uid, widgets)}
-        onToggle={(type, enabled) => toggleWidget(user!.uid, type, enabled)}
+        onReorder={(widgets) => reorderWidgets(uid, widgets)}
+        onToggle={(type, enabled) => toggleWidget(uid, type, enabled)}
         onOpenCustomize={() => setCustomizeOpen(true)}
       />
 
@@ -58,8 +65,8 @@ export default function DashboardScreen() {
         open={customizeOpen}
         onOpenChange={setCustomizeOpen}
         config={config}
-        uid={user!.uid}
-        onToggle={(type, enabled) => toggleWidget(user!.uid, type, enabled)}
+        uid={uid}
+        onToggle={(type, enabled) => toggleWidget(uid, type, enabled)}
       />
     </View>
   );

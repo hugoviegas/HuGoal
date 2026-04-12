@@ -41,7 +41,9 @@ export default function SettingsScreen() {
 
   const handleLogout = async () => {
     await logout();
-    router.replace("/(auth)/login");
+    // Root/auth guards will redirect after auth state changes.
+    // Avoid imperative navigation here to prevent "navigate before mount"
+    // race conditions during logout teardown.
   };
 
   const handleCheckForUpdates = async () => {

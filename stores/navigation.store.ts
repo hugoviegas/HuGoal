@@ -21,7 +21,7 @@ interface NavigationState {
 
 export const useNavigationStore = create<NavigationState>((set) => ({
   currentTab: "dashboard",
-  authFlow: "welcome",
+  authFlow: "login",
   onboardingStep: 1,
   navbarVisible: true,
 

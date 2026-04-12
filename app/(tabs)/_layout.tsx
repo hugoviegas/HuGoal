@@ -1,7 +1,32 @@
-import { Tabs } from "expo-router";
+import { ActivityIndicator, View } from "react-native";
+import { Redirect, Tabs } from "expo-router";
 import { ModernMobileMenu } from "@/components/ui/modern-mobile-menu";
+import { useAuthStore } from "@/stores/auth.store";
+import { useThemeStore } from "@/stores/theme.store";
 
 export default function TabsLayout() {
+  const { isAuthenticated, isInitializing, isLoading } = useAuthStore();
+  const colors = useThemeStore((s) => s.colors);
+
+  if (isInitializing || isLoading) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: colors.background,
+        }}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Redirect href="/(auth)/login" />;
+  }
+
   return (
     <Tabs
       backBehavior="history"
