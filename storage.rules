@@ -56,6 +56,34 @@ service firebase.storage {
       allow delete: if isOwner(userId);
     }
 
+    function isValidNutritionAudioUpload() {
+      return request.resource != null
+        && request.resource.size < 25 * 1024 * 1024
+        && request.resource.contentType.matches('audio/.*');
+    }
+
+    function isValidNutritionImageUpload() {
+      return request.resource != null
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // Nutrition temporary audio:
+    // users/{uid}/nutrition/audio/{date}/{timestamp}.m4a
+    match /users/{userId}/nutrition/audio/{date}/{fileName} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isValidNutritionAudioUpload();
+      allow delete: if isOwner(userId);
+    }
+
+    // Nutrition temporary images:
+    // users/{uid}/nutrition/images/{date}/{timestamp}.jpg
+    match /users/{userId}/nutrition/images/{date}/{fileName} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isValidNutritionImageUpload();
+      allow delete: if isOwner(userId);
+    }
+
     // Default deny for everything else.
     match /{allPaths=**} {
       allow read, write: if false;

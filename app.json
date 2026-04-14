@@ -39,6 +39,14 @@
       "expo-router",
       "expo-secure-store",
       [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Permitir que o HuGoal use o microfone.",
+          "speechRecognitionPermission": "Permitir que o HuGoal use reconhecimento de fala.",
+          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
+        }
+      ],
+      [
         "expo-notifications",
         {
           "icon": "./assets/notification-icon.png",

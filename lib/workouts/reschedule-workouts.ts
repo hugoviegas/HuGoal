@@ -11,6 +11,84 @@ import {
   formatLocalDateKey,
   startOfWeekMonday,
 } from "@/lib/workouts/weekly-schedule";
+import { filterTemplatesForLocation } from "@/lib/workouts/adapt-workout";
+import {
+  OFFICIAL_EXERCISES,
+  type OfficialExerciseRecord,
+} from "@/lib/workouts/generated/official-exercises";
+import type {
+  EquipmentItemId,
+  EquipmentType,
+  WorkoutLocationProfile,
+} from "@/types";
+
+interface RescheduleWorkoutOptions {
+  locationType?: WorkoutLocationProfile;
+  equipmentIds?: EquipmentItemId[];
+}
+
+const OFFICIAL_CATALOG_BY_ID: Record<string, OfficialExerciseRecord> =
+  OFFICIAL_EXERCISES.reduce<Record<string, OfficialExerciseRecord>>(
+    (acc, exercise) => {
+      acc[exercise.id] = exercise;
+      return acc;
+    },
+    {},
+  );
+
+const EQUIPMENT_ITEM_TO_LEGACY: Partial<Record<EquipmentItemId, EquipmentType>> = {
+  none: "none",
+  barbell: "barbell",
+  dumbbell: "dumbbell",
+  dumbbell_adjustable: "dumbbell",
+  kettlebell: "kettlebell",
+  plates: "barbell",
+  weighted_vest: "bodyweight",
+  dip_belt: "bodyweight",
+  ez_bar: "barbell",
+  machine_cable: "cable",
+  machine_chest_press: "machine",
+  machine_lat_pulldown: "machine",
+  machine_leg_extension: "machine",
+  machine_leg_lift: "machine",
+  machine_butterfly: "machine",
+  machine_pulley: "cable",
+  rack: "barbell",
+  smith_machine: "machine",
+  bodyweight: "bodyweight",
+  pullup_bar: "bodyweight",
+  dip_bars: "bodyweight",
+  pushup_bars: "bodyweight",
+  low_bar: "bodyweight",
+  ab_wheel: "bodyweight",
+  leg_lift_station: "bodyweight",
+  treadmill: "none",
+  exercise_bike: "none",
+  outdoor_bike: "none",
+  rower: "none",
+  jump_rope: "none",
+  bench: "bodyweight",
+  box: "bodyweight",
+  resistance_band: "band",
+  glute_band: "band",
+  foam_roller: "bodyweight",
+  gym_ball: "bodyweight",
+  suspension_trainer: "band",
+  gliding_discs: "bodyweight",
+  stick_towel_cord: "band",
+  pole: "bodyweight",
+  wall: "bodyweight",
+};
+
+function mapEquipmentItemsToLegacyTypes(ids: EquipmentItemId[] = []): EquipmentType[] {
+  return Array.from(
+    new Set(
+      ids
+        .map((itemId) => EQUIPMENT_ITEM_TO_LEGACY[itemId])
+        .filter((item): item is EquipmentType => !!item),
+    ),
+  );
+}
 
 /**
  * Rebuilds the current and next week workout plans for a user.
@@ -25,6 +103,7 @@ import {
 export async function rescheduleWorkouts(
   uid: string,
   trainingDays: number[],
+  options: RescheduleWorkoutOptions = {},
 ): Promise<void> {
   const today = startOfDay(new Date());
   const todayKey = formatLocalDateKey(today);
@@ -45,6 +124,20 @@ export async function rescheduleWorkouts(
       formatLocalDateKey(endOfNextWeek),
     ),
   ]);
+
+  const filteredTemplates = options.locationType
+    ? filterTemplatesForLocation(
+        templates,
+        options.locationType,
+        mapEquipmentItemsToLegacyTypes(options.equipmentIds),
+        OFFICIAL_CATALOG_BY_ID,
+      )
+    : templates;
+
+  // If profile filters become too restrictive, preserve current behavior.
+  const templatesForReschedule =
+    filteredTemplates.length > 0 ? filteredTemplates : templates;
+
   const completedSet = new Set(completedDates);
 
   // Check if today is protected (completed or manually set by the user)
@@ -59,7 +152,7 @@ export async function rescheduleWorkouts(
     uid,
     weekStartDate: currentWeekStart,
     trainingDays,
-    templates,
+    templates: templatesForReschedule,
     rotationOffset: 0,
   });
 
@@ -67,7 +160,7 @@ export async function rescheduleWorkouts(
     uid,
     weekStartDate: nextWeekStart,
     trainingDays,
-    templates,
+    templates: templatesForReschedule,
     rotationOffset: newCurrentPlan.next_rotation_offset,
   });
 

@@ -7,6 +7,7 @@ import {
   Pressable,
   ScrollView,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -14,6 +15,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   AlertCircle,
   ArrowLeft,
+  ChevronDown,
+  ChevronUp,
   Ban,
   Calendar,
   Check,
@@ -22,15 +25,18 @@ import {
   Home,
   Layers,
   MapPin,
+  Pencil,
+  Plus,
   RefreshCw,
   Search,
+  Trash2,
   Trees,
-  Wind,
   X,
 } from "lucide-react-native";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { OptionPicker } from "@/components/ui/OptionPicker";
+import { EquipmentPicker } from "@/components/workouts/EquipmentPicker";
 import { useAuthStore } from "@/stores/auth.store";
 import { useNavigationStore } from "@/stores/navigation.store";
 import { useThemeStore } from "@/stores/theme.store";
@@ -40,12 +46,15 @@ import {
   type CachedLibraryExercise,
 } from "@/lib/workouts/exercise-cache";
 import { rescheduleWorkouts } from "@/lib/workouts/reschedule-workouts";
+import { generateId } from "@/lib/utils";
 import type {
+  EquipmentItemId,
   EquipmentType,
   FitnessLevel,
   WorkoutExperienceTimeRange,
   WorkoutHoursPerDayRange,
   WorkoutLocationProfile,
+  WorkoutLocationProfileItem,
   WorkoutSettings,
 } from "@/types";
 
@@ -133,29 +142,87 @@ const LIMITATIONS_OPTIONS = [
   "Other",
 ] as const;
 
-const DEFAULT_GYM_EQUIPMENT: EquipmentType[] = [
-  "barbell",
-  "dumbbell",
-  "machine",
-  "cable",
-  "bodyweight",
-  "band",
-  "kettlebell",
-];
+const PROFILE_LIMIT = 3;
 
-const EQUIPMENT_LABELS: Record<EquipmentType, string> = {
-  none: "None",
-  barbell: "Barbell",
-  dumbbell: "Dumbbell",
-  machine: "Machine",
-  cable: "Cable",
-  bodyweight: "Bodyweight",
-  band: "Band",
-  kettlebell: "Kettlebell",
+const DEFAULT_EQUIPMENT_BY_LOCATION: Record<
+  WorkoutLocationProfile,
+  EquipmentItemId[]
+> = {
+  home: ["bodyweight"],
+  gym: [
+    "barbell",
+    "dumbbell",
+    "machine_cable",
+    "machine_leg_extension",
+    "machine_lat_pulldown",
+    "bodyweight",
+    "kettlebell",
+  ],
+  outdoor: ["bodyweight", "pullup_bar", "outdoor_bike", "jump_rope"],
+  studio: [
+    "bodyweight",
+    "dumbbell",
+    "kettlebell",
+    "resistance_band",
+    "bench",
+  ],
+};
+
+const LEGACY_EQUIPMENT_MAP: Record<EquipmentType, EquipmentItemId[]> = {
+  none: ["none"],
+  barbell: ["barbell", "plates", "rack"],
+  dumbbell: ["dumbbell", "dumbbell_adjustable"],
+  machine: [
+    "machine_cable",
+    "machine_chest_press",
+    "machine_lat_pulldown",
+    "machine_leg_extension",
+    "machine_leg_lift",
+    "machine_butterfly",
+    "machine_pulley",
+    "smith_machine",
+    "rack",
+  ],
+  cable: ["machine_cable", "machine_pulley"],
+  bodyweight: [
+    "bodyweight",
+    "pullup_bar",
+    "dip_bars",
+    "pushup_bars",
+    "low_bar",
+    "leg_lift_station",
+  ],
+  band: ["resistance_band", "glute_band", "suspension_trainer"],
+  kettlebell: ["kettlebell"],
 };
 
 function titleCaseLocation(location: WorkoutLocationProfile): string {
   return location.charAt(0).toUpperCase() + location.slice(1);
+}
+
+function normalizeProfileName(
+  name: string | undefined,
+  type: WorkoutLocationProfile,
+): string {
+  const normalized = (name ?? "").trim().slice(0, 30);
+  if (normalized.length > 0) return normalized;
+  return `My ${titleCaseLocation(type)}`;
+}
+
+function mapLegacyEquipmentToItems(
+  legacy: EquipmentType[] | undefined,
+  locationType: WorkoutLocationProfile,
+): EquipmentItemId[] {
+  if (!legacy || legacy.length === 0) {
+    return [...DEFAULT_EQUIPMENT_BY_LOCATION[locationType]];
+  }
+
+  const mapped = legacy.flatMap((item) => LEGACY_EQUIPMENT_MAP[item] ?? []);
+  if (mapped.length === 0) {
+    return [...DEFAULT_EQUIPMENT_BY_LOCATION[locationType]];
+  }
+
+  return Array.from(new Set(mapped));
 }
 
 function toSettingsDate(): string {
@@ -190,7 +257,24 @@ export default function WorkoutSettingsScreen() {
   const [catalog, setCatalog] = useState<CachedLibraryExercise[]>([]);
   const [isCatalogLoading, setIsCatalogLoading] = useState(true);
 
-  const [locations, setLocations] = useState<WorkoutLocationProfile[]>([]);
+  const [locationProfiles, setLocationProfiles] = useState<
+    WorkoutLocationProfileItem[]
+  >([]);
+  const [activeLocationProfileId, setActiveLocationProfileId] = useState<
+    string | null
+  >(null);
+  const [expandedLocationProfileId, setExpandedLocationProfileId] = useState<
+    string | null
+  >(null);
+  const [equipmentPickerProfileId, setEquipmentPickerProfileId] = useState<
+    string | null
+  >(null);
+  const [createProfileModalOpen, setCreateProfileModalOpen] = useState(false);
+  const [newProfileName, setNewProfileName] = useState("");
+  const [newProfileType, setNewProfileType] =
+    useState<WorkoutLocationProfile>("home");
+  const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
+  const [editingProfileName, setEditingProfileName] = useState("");
   const [trainingDaysPerWeek, setTrainingDaysPerWeek] = useState<number>(3);
   const [trainingDays, setTrainingDays] = useState<number[]>([]);
   const [trainingHoursPerDay, setTrainingHoursPerDay] =
@@ -203,9 +287,6 @@ export default function WorkoutSettingsScreen() {
   >(undefined);
   const [limitations, setLimitations] = useState<string[]>([]);
   const [limitationsOther, setLimitationsOther] = useState("");
-  const [equipmentByLocation, setEquipmentByLocation] = useState<
-    Partial<Record<WorkoutLocationProfile, EquipmentType[]>>
-  >({});
   const [excludedExerciseIds, setExcludedExerciseIds] = useState<string[]>([]);
   const [exclusionModalOpen, setExclusionModalOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -233,9 +314,9 @@ export default function WorkoutSettingsScreen() {
   // Seed form from profile
   useEffect(() => {
     if (!profile) return;
+
     const current = profile.workout_settings;
     if (current) {
-      setLocations(current.locations ?? []);
       setTrainingDaysPerWeek(current.training_days_per_week ?? 3);
       setTrainingDays((current.training_days ?? []).slice(0, 7));
       setTrainingHoursPerDay(current.training_hours_per_day ?? "60m");
@@ -243,22 +324,87 @@ export default function WorkoutSettingsScreen() {
       setExperienceTimeRange(current.experience_time_range);
       setLimitations(current.limitations ?? []);
       setLimitationsOther(current.limitations_other ?? "");
-      setEquipmentByLocation(current.equipment_by_location ?? {});
       setExcludedExerciseIds(current.excluded_exercise_ids ?? []);
+
+      const now = toSettingsDate();
+      let nextProfiles = (current.location_profiles ?? [])
+        .slice(0, PROFILE_LIMIT)
+        .map((profileItem) => ({
+          ...profileItem,
+          name: normalizeProfileName(profileItem.name, profileItem.type),
+          equipment_ids: Array.from(new Set(profileItem.equipment_ids ?? [])),
+          created_at: profileItem.created_at ?? now,
+          updated_at: profileItem.updated_at ?? now,
+        }));
+
+      // Backward compatibility bootstrap: migrate old shape to one profile.
+      if (
+        nextProfiles.length === 0 &&
+        (current.locations?.length ?? 0) > 0
+      ) {
+        const primaryLocation = current.locations?.[0];
+        if (primaryLocation) {
+          nextProfiles = [
+            {
+              id: generateId(),
+              name: `My ${titleCaseLocation(primaryLocation)}`,
+              type: primaryLocation,
+              equipment_ids: mapLegacyEquipmentToItems(
+                current.equipment_by_location?.[primaryLocation],
+                primaryLocation,
+              ),
+              created_at: now,
+              updated_at: now,
+            },
+          ];
+        }
+      }
+
+      setLocationProfiles(nextProfiles);
+      const resolvedActiveProfileId =
+        nextProfiles.find((item) => item.id === current.active_location_profile_id)
+          ?.id ?? nextProfiles[0]?.id ?? null;
+      setActiveLocationProfileId(resolvedActiveProfileId);
+      setExpandedLocationProfileId(resolvedActiveProfileId);
       return;
     }
+
     setTrainingDaysPerWeek(profile.available_days_per_week ?? 3);
     setExperienceLevel(profile.level);
+    setExcludedExerciseIds([]);
+
     if (profile.injuries) {
       setLimitations(["Other"]);
       setLimitationsOther(profile.injuries);
+    } else {
+      setLimitations([]);
+      setLimitationsOther("");
     }
-    if (profile.equipment === "gym") {
-      setLocations(["gym"]);
-      setEquipmentByLocation({ gym: DEFAULT_GYM_EQUIPMENT });
-    } else if (profile.equipment === "home") {
-      setLocations(["home"]);
-      setEquipmentByLocation({ home: ["bodyweight"] });
+
+    const defaultLocationType: WorkoutLocationProfile | null =
+      profile.equipment === "gym"
+        ? "gym"
+        : profile.equipment === "home"
+          ? "home"
+          : null;
+
+    if (defaultLocationType) {
+      const now = toSettingsDate();
+      const initialProfile: WorkoutLocationProfileItem = {
+        id: generateId(),
+        name: `My ${titleCaseLocation(defaultLocationType)}`,
+        type: defaultLocationType,
+        equipment_ids: [...DEFAULT_EQUIPMENT_BY_LOCATION[defaultLocationType]],
+        created_at: now,
+        updated_at: now,
+      };
+      setLocationProfiles([initialProfile]);
+      setActiveLocationProfileId(initialProfile.id);
+      setExpandedLocationProfileId(initialProfile.id);
+    } else {
+      setLocationProfiles([]);
+      setActiveLocationProfileId(null);
+      setExpandedLocationProfileId(null);
     }
   }, [profile]);
 
@@ -269,18 +415,6 @@ export default function WorkoutSettingsScreen() {
   }, [trainingDays.length, trainingDaysPerWeek]);
 
   // ── Derived ───────────────────────────────────────────────────────────────
-  const uniqueEquipment = useMemo<EquipmentType[]>(() => {
-    const fromCatalog = new Set<EquipmentType>();
-    for (const exercise of catalog) {
-      for (const equipment of exercise.equipment) {
-        if (equipment !== "none") fromCatalog.add(equipment);
-      }
-    }
-    const list = Array.from(fromCatalog);
-    if (list.length === 0) return DEFAULT_GYM_EQUIPMENT;
-    return list.sort((a, b) => EQUIPMENT_LABELS[a].localeCompare(EQUIPMENT_LABELS[b]));
-  }, [catalog]);
-
   const filteredExercises = useMemo(() => {
     const term = search.trim().toLowerCase();
     const base =
@@ -290,31 +424,173 @@ export default function WorkoutSettingsScreen() {
     return base.slice(0, 200);
   }, [catalog, search]);
 
+  const activeLocationProfile = useMemo(
+    () =>
+      locationProfiles.find((item) => item.id === activeLocationProfileId) ??
+      locationProfiles[0] ??
+      null,
+    [locationProfiles, activeLocationProfileId],
+  );
+
+  const equipmentPickerSelectedIds = useMemo(() => {
+    if (!equipmentPickerProfileId) return [];
+    return (
+      locationProfiles.find((item) => item.id === equipmentPickerProfileId)
+        ?.equipment_ids ?? []
+    );
+  }, [equipmentPickerProfileId, locationProfiles]);
+
   const selectedExcludedCount = excludedExerciseIds.length;
 
   const isValid =
-    locations.length > 0 &&
+    locationProfiles.length > 0 &&
+    !!activeLocationProfile &&
     trainingDaysPerWeek >= 1 &&
     trainingDaysPerWeek <= 7 &&
     trainingDays.length === trainingDaysPerWeek &&
     !!trainingHoursPerDay;
 
   // ── Handlers ──────────────────────────────────────────────────────────────
-  const toggleLocation = (location: WorkoutLocationProfile) => {
-    setLocations((prev) => {
-      const isSelected = prev.includes(location);
-      const next = isSelected
-        ? prev.filter((item) => item !== location)
-        : [...prev, location];
-      if (!isSelected) {
-        setEquipmentByLocation((old) => {
-          if (old[location]) return old;
-          if (location === "gym") return { ...old, [location]: [...uniqueEquipment] };
-          return { ...old, [location]: ["bodyweight"] };
-        });
-      }
-      return next;
-    });
+  const openCreateProfileModal = () => {
+    if (locationProfiles.length >= PROFILE_LIMIT) {
+      showToast(`You can create up to ${PROFILE_LIMIT} location profiles`, "info");
+      return;
+    }
+    setNewProfileName("");
+    setNewProfileType("home");
+    setCreateProfileModalOpen(true);
+  };
+
+  const createLocationProfile = () => {
+    if (locationProfiles.length >= PROFILE_LIMIT) {
+      showToast(`You can create up to ${PROFILE_LIMIT} location profiles`, "info");
+      return;
+    }
+
+    const name = newProfileName.trim().slice(0, 30);
+    if (!name) {
+      showToast("Profile name is required", "error");
+      return;
+    }
+
+    const now = toSettingsDate();
+    const createdProfile: WorkoutLocationProfileItem = {
+      id: generateId(),
+      name,
+      type: newProfileType,
+      equipment_ids: [],
+      created_at: now,
+      updated_at: now,
+    };
+
+    setLocationProfiles((prev) => [...prev, createdProfile]);
+    setActiveLocationProfileId(createdProfile.id);
+    setExpandedLocationProfileId(createdProfile.id);
+    setCreateProfileModalOpen(false);
+    setEquipmentPickerProfileId(createdProfile.id);
+  };
+
+  const startProfileNameEdit = (profileItem: WorkoutLocationProfileItem) => {
+    setEditingProfileId(profileItem.id);
+    setEditingProfileName(profileItem.name);
+  };
+
+  const commitProfileNameEdit = () => {
+    if (!editingProfileId) return;
+
+    const nextName = editingProfileName.trim().slice(0, 30);
+    if (!nextName) {
+      showToast("Profile name cannot be empty", "error");
+      return;
+    }
+
+    setLocationProfiles((prev) =>
+      prev.map((item) =>
+        item.id === editingProfileId
+          ? {
+              ...item,
+              name: nextName,
+              updated_at: toSettingsDate(),
+            }
+          : item,
+      ),
+    );
+    setEditingProfileId(null);
+    setEditingProfileName("");
+  };
+
+  const toggleProfileExpanded = (profileId: string) => {
+    setExpandedLocationProfileId((prev) => (prev === profileId ? null : profileId));
+  };
+
+  const selectActiveProfile = (profileId: string) => {
+    setActiveLocationProfileId(profileId);
+    setExpandedLocationProfileId(profileId);
+  };
+
+  const removeLocationProfile = (profileId: string) => {
+    if (locationProfiles.length <= 1) {
+      showToast("At least one location profile is required", "info");
+      return;
+    }
+
+    Alert.alert(
+      "Delete profile?",
+      "This will remove the profile and its equipment list.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            setLocationProfiles((prev) => {
+              if (prev.length <= 1) return prev;
+
+              const next = prev.filter((item) => item.id !== profileId);
+              const fallbackProfileId = next[0]?.id ?? null;
+
+              setActiveLocationProfileId((activeId) =>
+                activeId === profileId ? fallbackProfileId : activeId,
+              );
+              setExpandedLocationProfileId((expandedId) =>
+                expandedId === profileId ? fallbackProfileId : expandedId,
+              );
+              setEquipmentPickerProfileId((pickerId) =>
+                pickerId === profileId ? null : pickerId,
+              );
+              if (editingProfileId === profileId) {
+                setEditingProfileId(null);
+                setEditingProfileName("");
+              }
+
+              return next;
+            });
+          },
+        },
+      ],
+    );
+  };
+
+  const openEquipmentPickerForProfile = (profileId: string) => {
+    setEquipmentPickerProfileId(profileId);
+  };
+
+  const handleEquipmentPickerConfirm = (ids: EquipmentItemId[]) => {
+    if (!equipmentPickerProfileId) return;
+
+    const uniqueIds = Array.from(new Set(ids));
+    setLocationProfiles((prev) =>
+      prev.map((item) =>
+        item.id === equipmentPickerProfileId
+          ? {
+              ...item,
+              equipment_ids: uniqueIds,
+              updated_at: toSettingsDate(),
+            }
+          : item,
+      ),
+    );
+    setEquipmentPickerProfileId(null);
   };
 
   const toggleTrainingDay = (day: number) => {
@@ -336,22 +612,6 @@ export default function WorkoutSettingsScreen() {
     );
   };
 
-  const toggleEquipmentForLocation = (
-    location: WorkoutLocationProfile,
-    equipment: EquipmentType,
-  ) => {
-    setEquipmentByLocation((prev) => {
-      const current = prev[location] ?? [];
-      const has = current.includes(equipment);
-      return {
-        ...prev,
-        [location]: has
-          ? current.filter((item) => item !== equipment)
-          : [...current, equipment],
-      };
-    });
-  };
-
   const toggleExcludedExercise = (exerciseId: string) => {
     setExcludedExerciseIds((prev) =>
       prev.includes(exerciseId)
@@ -365,20 +625,35 @@ export default function WorkoutSettingsScreen() {
       showToast("Sign in required", "error");
       return;
     }
-    if (!isValid) {
-      showToast("Complete locations, weekly days and hours to continue", "error");
+
+    if (locationProfiles.length === 0) {
+      showToast("Create at least one location profile", "error");
       return;
     }
-    const preparedEquipmentByLocation = locations.reduce(
-      (acc, location) => {
-        acc[location] = equipmentByLocation[location] ?? [];
-        return acc;
-      },
-      {} as Partial<Record<WorkoutLocationProfile, EquipmentType[]>>,
-    );
-    const settings: WorkoutSettings = {
+
+    const normalizedProfiles = locationProfiles.slice(0, PROFILE_LIMIT).map((item) => ({
+      ...item,
+      name: normalizeProfileName(item.name, item.type),
+      equipment_ids: Array.from(new Set(item.equipment_ids)),
+      updated_at: toSettingsDate(),
+    }));
+
+    const resolvedActiveProfileId =
+      normalizedProfiles.find((item) => item.id === activeLocationProfileId)?.id ??
+      normalizedProfiles[0]?.id;
+
+    if (!resolvedActiveProfileId) {
+      showToast("Select an active location profile", "error");
+      return;
+    }
+
+    if (!isValid) {
+      showToast("Complete profiles, weekly days and hours to continue", "error");
+      return;
+    }
+
+    const settings = {
       completed: true,
-      locations,
       training_days_per_week: trainingDaysPerWeek,
       training_days: [...trainingDays].sort((a, b) => a - b),
       training_hours_per_day: trainingHoursPerDay,
@@ -386,10 +661,12 @@ export default function WorkoutSettingsScreen() {
       experience_time_range: experienceTimeRange,
       limitations,
       limitations_other: limitations.includes("Other") ? limitationsOther.trim() : "",
-      equipment_by_location: preparedEquipmentByLocation,
+      location_profiles: normalizedProfiles,
+      active_location_profile_id: resolvedActiveProfileId,
       excluded_exercise_ids: excludedExerciseIds,
       updated_at: toSettingsDate(),
-    };
+    } as WorkoutSettings;
+
     setIsSaving(true);
     try {
       await setWorkoutSettings(settings);
@@ -405,6 +682,12 @@ export default function WorkoutSettingsScreen() {
 
   const handleReschedule = () => {
     if (!user?.uid) return;
+
+    if (!activeLocationProfile) {
+      showToast("Select an active location profile first", "error");
+      return;
+    }
+
     Alert.alert(
       "Reschedule workouts?",
       "This will regenerate workouts for today and the next two weeks. Past and completed workouts will not change.",
@@ -418,6 +701,10 @@ export default function WorkoutSettingsScreen() {
               await rescheduleWorkouts(
                 user.uid,
                 [...trainingDays].sort((a, b) => a - b),
+                {
+                  locationType: activeLocationProfile.type,
+                  equipmentIds: activeLocationProfile.equipment_ids,
+                },
               );
               showToast("Workouts rescheduled", "success");
               if (router.canGoBack()) router.back();
@@ -530,57 +817,368 @@ export default function WorkoutSettingsScreen() {
             <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
               {isOnboardingMode
                 ? "Configure your training profile to personalise workouts"
-                : "Manage locations, schedule and exercise filters"}
+                : "Manage location profiles, schedule and exercise filters"}
             </Text>
           </View>
         </View>
 
-        {/* ── Section 1: Location ── */}
+        {/* ── Section 1: Location profiles ── */}
         <SectionCard
           icon={<MapPin size={16} color={colors.primary} />}
-          title="Where do you train?"
-          subtitle="Select all the places you work out"
+          title="Location profiles"
+          subtitle="Create up to 3 profiles with separate equipment lists"
         >
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
-            {LOCATION_OPTIONS.map((option) => {
-              const selected = locations.includes(option.value);
-              return (
-                <Pressable
-                  key={option.value}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${option.label} — ${option.description}${selected ? ", selected" : ""}`}
-                  onPress={() => toggleLocation(option.value)}
-                  style={{
-                    width: "47%",
-                    borderRadius: 14,
-                    borderWidth: selected ? 2 : 1,
-                    borderColor: selected ? colors.primary : colors.cardBorder,
-                    backgroundColor: selected
-                      ? colors.primary + "18"
-                      : colors.surface,
-                    padding: 14,
-                    gap: 8,
-                    alignItems: "flex-start",
-                  }}
-                >
-                  {locationIconMap[option.value]}
+          <View style={{ gap: 12 }}>
+            {locationProfiles.length > 0 ? (
+              <View style={{ gap: 12 }}>
+                <View style={{ gap: 8 }}>
                   <Text
                     style={{
-                      color: selected ? colors.primary : colors.foreground,
+                      color: colors.mutedForeground,
+                      fontSize: 12,
+                      fontWeight: "600",
+                    }}
+                  >
+                    Active profile
+                  </Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ gap: 8 }}
+                  >
+                    {locationProfiles.map((profileItem) => {
+                      const selected = activeLocationProfileId === profileItem.id;
+                      return (
+                        <Pressable
+                          key={`active-${profileItem.id}`}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${profileItem.name}${selected ? ", active" : ""}`}
+                          onPress={() => selectActiveProfile(profileItem.id)}
+                          style={{
+                            borderRadius: 999,
+                            borderWidth: selected ? 2 : 1,
+                            borderColor: selected
+                              ? colors.primary
+                              : colors.cardBorder,
+                            backgroundColor: selected
+                              ? colors.primary + "18"
+                              : colors.surface,
+                            paddingHorizontal: 14,
+                            paddingVertical: 8,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              color: selected ? colors.primary : colors.foreground,
+                              fontSize: 13,
+                              fontWeight: "700",
+                            }}
+                          >
+                            {profileItem.name}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+
+                <View style={{ gap: 10 }}>
+                  {locationProfiles.map((profileItem) => {
+                    const expanded = expandedLocationProfileId === profileItem.id;
+                    const isActive = activeLocationProfileId === profileItem.id;
+                    const isEditing = editingProfileId === profileItem.id;
+
+                    return (
+                      <View
+                        key={`profile-card-${profileItem.id}`}
+                        style={{
+                          borderWidth: 1,
+                          borderColor: isActive ? colors.primary : colors.cardBorder,
+                          backgroundColor: isActive
+                            ? colors.primary + "10"
+                            : colors.surface,
+                          borderRadius: 14,
+                          padding: 12,
+                          gap: 10,
+                        }}
+                      >
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 10,
+                          }}
+                        >
+                          <View
+                            style={{
+                              width: 34,
+                              height: 34,
+                              borderRadius: 10,
+                              alignItems: "center",
+                              justifyContent: "center",
+                              backgroundColor: colors.secondary,
+                            }}
+                          >
+                            {locationIconMap[profileItem.type]}
+                          </View>
+
+                          <View style={{ flex: 1, gap: 2 }}>
+                            {isEditing ? (
+                              <TextInput
+                                autoFocus
+                                value={editingProfileName}
+                                onChangeText={(value) =>
+                                  setEditingProfileName(value.slice(0, 30))
+                                }
+                                onBlur={commitProfileNameEdit}
+                                onSubmitEditing={commitProfileNameEdit}
+                                maxLength={30}
+                                returnKeyType="done"
+                                style={{
+                                  color: colors.foreground,
+                                  fontSize: 15,
+                                  fontWeight: "700",
+                                  borderBottomWidth: 1,
+                                  borderBottomColor: colors.cardBorder,
+                                  paddingVertical: 2,
+                                }}
+                              />
+                            ) : (
+                              <Pressable
+                                accessibilityRole="button"
+                                accessibilityLabel={`Edit ${profileItem.name} profile name`}
+                                onPress={() => startProfileNameEdit(profileItem)}
+                                style={{ alignSelf: "flex-start" }}
+                              >
+                                <Text
+                                  style={{
+                                    color: colors.foreground,
+                                    fontSize: 15,
+                                    fontWeight: "700",
+                                  }}
+                                >
+                                  {profileItem.name}
+                                </Text>
+                              </Pressable>
+                            )}
+                            <Text
+                              style={{
+                                color: colors.mutedForeground,
+                                fontSize: 12,
+                              }}
+                            >
+                              {titleCaseLocation(profileItem.type)} ·{" "}
+                              {profileItem.equipment_ids.length} equipment selected
+                            </Text>
+                          </View>
+
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={`Rename ${profileItem.name}`}
+                            onPress={() => startProfileNameEdit(profileItem)}
+                            style={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: 10,
+                              alignItems: "center",
+                              justifyContent: "center",
+                              backgroundColor: colors.secondary,
+                            }}
+                          >
+                            <Pencil size={16} color={colors.foreground} />
+                          </Pressable>
+
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={expanded ? "Collapse profile" : "Expand profile"}
+                            onPress={() => toggleProfileExpanded(profileItem.id)}
+                            style={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: 10,
+                              alignItems: "center",
+                              justifyContent: "center",
+                              backgroundColor: colors.secondary,
+                            }}
+                          >
+                            {expanded ? (
+                              <ChevronUp size={16} color={colors.foreground} />
+                            ) : (
+                              <ChevronDown size={16} color={colors.foreground} />
+                            )}
+                          </Pressable>
+                        </View>
+
+                        {expanded ? (
+                          <View style={{ gap: 8 }}>
+                            <Pressable
+                              accessibilityRole="button"
+                              accessibilityLabel={`Edit equipment for ${profileItem.name}`}
+                              onPress={() => openEquipmentPickerForProfile(profileItem.id)}
+                              style={{
+                                minHeight: 44,
+                                borderRadius: 12,
+                                borderWidth: 1,
+                                borderColor: colors.cardBorder,
+                                backgroundColor: colors.background,
+                                flexDirection: "row",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                paddingHorizontal: 12,
+                              }}
+                            >
+                              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                                <Dumbbell size={16} color={colors.mutedForeground} />
+                                <Text
+                                  style={{
+                                    color: colors.foreground,
+                                    fontSize: 13,
+                                    fontWeight: "600",
+                                  }}
+                                >
+                                  Select equipment
+                                </Text>
+                              </View>
+                              <Text
+                                style={{
+                                  color: colors.mutedForeground,
+                                  fontSize: 12,
+                                  fontWeight: "600",
+                                }}
+                              >
+                                {profileItem.equipment_ids.length} selected
+                              </Text>
+                            </Pressable>
+
+                            <Pressable
+                              accessibilityRole="button"
+                              accessibilityLabel={`Delete ${profileItem.name}`}
+                              onPress={() => removeLocationProfile(profileItem.id)}
+                              disabled={locationProfiles.length <= 1}
+                              style={{
+                                minHeight: 42,
+                                borderRadius: 12,
+                                borderWidth: 1,
+                                borderColor:
+                                  locationProfiles.length <= 1
+                                    ? colors.cardBorder
+                                    : colors.destructive,
+                                backgroundColor:
+                                  locationProfiles.length <= 1
+                                    ? colors.surface
+                                    : colors.destructive + "15",
+                                flexDirection: "row",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: 8,
+                              }}
+                            >
+                              <Trash2
+                                size={16}
+                                color={
+                                  locationProfiles.length <= 1
+                                    ? colors.mutedForeground
+                                    : colors.destructive
+                                }
+                              />
+                              <Text
+                                style={{
+                                  color:
+                                    locationProfiles.length <= 1
+                                      ? colors.mutedForeground
+                                      : colors.destructive,
+                                  fontSize: 13,
+                                  fontWeight: "700",
+                                }}
+                              >
+                                Delete profile
+                              </Text>
+                            </Pressable>
+                          </View>
+                        ) : null}
+                      </View>
+                    );
+                  })}
+                </View>
+
+                {locationProfiles.length < PROFILE_LIMIT ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Add location profile"
+                    onPress={openCreateProfileModal}
+                    style={{
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: colors.cardBorder,
+                      backgroundColor: colors.surface,
+                      minHeight: 46,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <Plus size={16} color={colors.primary} />
+                    <Text
+                      style={{
+                        color: colors.foreground,
+                        fontSize: 14,
+                        fontWeight: "700",
+                      }}
+                    >
+                      Add location profile
+                    </Text>
+                  </Pressable>
+                ) : (
+                  <Text
+                    style={{
+                      color: colors.mutedForeground,
+                      fontSize: 12,
+                    }}
+                  >
+                    Maximum of {PROFILE_LIMIT} profiles reached.
+                  </Text>
+                )}
+              </View>
+            ) : (
+              <View style={{ gap: 10 }}>
+                <Text
+                  style={{
+                    color: colors.mutedForeground,
+                    fontSize: 13,
+                  }}
+                >
+                  Create your first profile to set where and how you train.
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Create first location profile"
+                  onPress={openCreateProfileModal}
+                  style={{
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: colors.cardBorder,
+                    backgroundColor: colors.surface,
+                    minHeight: 46,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                  }}
+                >
+                  <Plus size={16} color={colors.primary} />
+                  <Text
+                    style={{
+                      color: colors.foreground,
                       fontSize: 14,
                       fontWeight: "700",
                     }}
                   >
-                    {option.label}
-                  </Text>
-                  <Text
-                    style={{ color: colors.mutedForeground, fontSize: 12 }}
-                  >
-                    {option.description}
+                    Add location profile
                   </Text>
                 </Pressable>
-              );
-            })}
+              </View>
+            )}
           </View>
         </SectionCard>
 
@@ -815,90 +1413,6 @@ export default function WorkoutSettingsScreen() {
           ) : null}
         </SectionCard>
 
-        {/* ── Section 6: Equipment by location ── */}
-        <SectionCard
-          icon={<MapPin size={16} color={colors.primary} />}
-          title="Equipment"
-          subtitle="What gear is available at each location?"
-        >
-          {locations.length === 0 ? (
-            <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>
-              Select at least one location above to configure equipment.
-            </Text>
-          ) : (
-            <View style={{ gap: 18 }}>
-              {locations.map((location) => {
-                const selectedEquipment = equipmentByLocation[location] ?? [];
-                return (
-                  <View key={`equipment-${location}`} style={{ gap: 8 }}>
-                    {/* Location label */}
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 6,
-                        paddingBottom: 4,
-                        borderBottomWidth: 1,
-                        borderBottomColor: colors.cardBorder,
-                      }}
-                    >
-                      {locationIconMap[location]}
-                      <Text
-                        style={{
-                          color: colors.foreground,
-                          fontWeight: "700",
-                          fontSize: 13,
-                        }}
-                      >
-                        {titleCaseLocation(location)}
-                      </Text>
-                    </View>
-                    {/* Equipment pills */}
-                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                      {uniqueEquipment.map((equipment) => {
-                        const selected = selectedEquipment.includes(equipment);
-                        return (
-                          <Pressable
-                            key={`${location}-${equipment}`}
-                            accessibilityRole="button"
-                            accessibilityLabel={`${EQUIPMENT_LABELS[equipment]}${selected ? ", selected" : ""}`}
-                            onPress={() =>
-                              toggleEquipmentForLocation(location, equipment)
-                            }
-                            style={{
-                              borderRadius: 999,
-                              borderWidth: selected ? 2 : 1,
-                              borderColor: selected
-                                ? colors.primary
-                                : colors.cardBorder,
-                              backgroundColor: selected
-                                ? colors.primary + "18"
-                                : colors.surface,
-                              paddingHorizontal: 11,
-                              paddingVertical: 7,
-                              minWidth: 44,
-                            }}
-                          >
-                            <Text
-                              style={{
-                                color: selected ? colors.primary : colors.foreground,
-                                fontSize: 12,
-                                fontWeight: "700",
-                              }}
-                            >
-                              {EQUIPMENT_LABELS[equipment]}
-                            </Text>
-                          </Pressable>
-                        );
-                      })}
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
-          )}
-        </SectionCard>
-
         {/* ── Section 7: Excluded exercises (non-onboarding) ── */}
         {!isOnboardingMode ? (
           <SectionCard
@@ -1001,6 +1515,144 @@ export default function WorkoutSettingsScreen() {
           {isOnboardingMode ? "Save and Continue" : "Save Workout Settings"}
         </Button>
       </ScrollView>
+
+      {/* ── Add location profile modal ── */}
+      <Modal
+        visible={createProfileModalOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCreateProfileModalOpen(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: isDark ? "rgba(0,0,0,0.8)" : "rgba(0,0,0,0.45)",
+            justifyContent: "flex-end",
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: colors.background,
+              borderTopLeftRadius: 18,
+              borderTopRightRadius: 18,
+              paddingTop: 12,
+              paddingHorizontal: 16,
+              paddingBottom: insets.bottom + 12,
+              gap: 12,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Text
+                style={{
+                  color: colors.foreground,
+                  fontSize: 18,
+                  fontWeight: "800",
+                }}
+              >
+                New location profile
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Close create profile modal"
+                onPress={() => setCreateProfileModalOpen(false)}
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 10,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: colors.secondary,
+                }}
+              >
+                <X size={18} color={colors.foreground} />
+              </Pressable>
+            </View>
+
+            <Input
+              label="Profile name"
+              placeholder="e.g. Home Morning"
+              value={newProfileName}
+              onChangeText={(value) => setNewProfileName(value.slice(0, 30))}
+            />
+            <Text
+              style={{
+                color: colors.mutedForeground,
+                fontSize: 12,
+                marginTop: -8,
+              }}
+            >
+              {newProfileName.length}/30 characters
+            </Text>
+
+            <View style={{ gap: 8 }}>
+              <Text
+                style={{
+                  color: colors.mutedForeground,
+                  fontSize: 12,
+                  fontWeight: "600",
+                }}
+              >
+                Location type
+              </Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {LOCATION_OPTIONS.map((option) => {
+                  const selected = option.value === newProfileType;
+                  return (
+                    <Pressable
+                      key={`create-type-${option.value}`}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${option.label}${selected ? ", selected" : ""}`}
+                      onPress={() => setNewProfileType(option.value)}
+                      style={{
+                        borderRadius: 999,
+                        borderWidth: selected ? 2 : 1,
+                        borderColor: selected ? colors.primary : colors.cardBorder,
+                        backgroundColor: selected
+                          ? colors.primary + "18"
+                          : colors.surface,
+                        paddingHorizontal: 13,
+                        paddingVertical: 8,
+                        minWidth: 44,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: selected ? colors.primary : colors.foreground,
+                          fontWeight: "700",
+                          fontSize: 13,
+                        }}
+                      >
+                        {option.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+
+            <Button
+              size="lg"
+              onPress={createLocationProfile}
+              disabled={!newProfileName.trim()}
+            >
+              Create profile and select equipment
+            </Button>
+          </View>
+        </View>
+      </Modal>
+
+      <EquipmentPicker
+        visible={!!equipmentPickerProfileId}
+        selectedIds={equipmentPickerSelectedIds}
+        onClose={() => setEquipmentPickerProfileId(null)}
+        onConfirm={handleEquipmentPickerConfirm}
+      />
 
       {/* ── Exercise exclusion modal ── */}
       <Modal

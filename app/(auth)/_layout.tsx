@@ -4,8 +4,14 @@ import { useAuthStore } from "@/stores/auth.store";
 import { useThemeStore } from "@/stores/theme.store";
 
 export default function AuthLayout() {
-  const { user, isAuthenticated, profile, isInitializing, isLoading } =
-    useAuthStore();
+  const {
+    user,
+    isAuthenticated,
+    profile,
+    profileError,
+    isInitializing,
+    isLoading,
+  } = useAuthStore();
   const colors = useThemeStore((s) => s.colors);
   const segments = useSegments();
   const isOnboardingRoute = segments.includes("onboarding");

@@ -257,7 +257,7 @@ export function WidgetGrid({
           ? DASHBOARD_EDIT_ACTIONS_CLEARANCE
           : FLOATING_TAB_BAR_CLEARANCE),
       flexGrow: 1,
-      minHeight: "100%",
+      minHeight: 1,
     },
   };
 

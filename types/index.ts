@@ -17,6 +17,79 @@ export type WorkoutExperienceTimeRange =
 export type Sex = "male" | "female" | "other";
 export type AIProvider = "gemini" | "claude" | "openai";
 
+// Expanded equipment catalog ID (replaces EquipmentType for location profiles)
+export type EquipmentItemId =
+  // Free Weights
+  | "barbell"
+  | "dumbbell"
+  | "dumbbell_adjustable"
+  | "kettlebell"
+  | "plates"
+  | "weighted_vest"
+  | "dip_belt"
+  | "ez_bar"
+  // Machines & Stations
+  | "machine_cable"
+  | "machine_chest_press"
+  | "machine_lat_pulldown"
+  | "machine_leg_extension"
+  | "machine_leg_lift"
+  | "machine_butterfly"
+  | "machine_pulley"
+  | "rack"
+  | "smith_machine"
+  // Bodyweight & Functional
+  | "bodyweight"
+  | "pullup_bar"
+  | "dip_bars"
+  | "pushup_bars"
+  | "low_bar"
+  | "ab_wheel"
+  | "leg_lift_station"
+  // Cardio
+  | "treadmill"
+  | "exercise_bike"
+  | "outdoor_bike"
+  | "rower"
+  | "jump_rope"
+  // Accessories
+  | "bench"
+  | "box"
+  | "resistance_band"
+  | "glute_band"
+  | "foam_roller"
+  | "gym_ball"
+  | "suspension_trainer"
+  | "gliding_discs"
+  | "stick_towel_cord"
+  | "pole"
+  | "wall"
+  | "none";
+
+export type EquipmentCategory =
+  | "free_weights"
+  | "machines_stations"
+  | "bodyweight_functional"
+  | "cardio"
+  | "accessories";
+
+export interface EquipmentItem {
+  id: EquipmentItemId;
+  label: string;
+  category: EquipmentCategory;
+  image_key?: string;
+}
+
+// Location Profile
+export interface WorkoutLocationProfileItem {
+  id: string;
+  name: string;
+  type: WorkoutLocationProfile;
+  equipment_ids: EquipmentItemId[];
+  created_at: string;
+  updated_at: string;
+}
+
 export interface WorkoutSettings {
   completed: boolean;
   locations: WorkoutLocationProfile[];
@@ -32,6 +105,11 @@ export interface WorkoutSettings {
   >;
   excluded_exercise_ids?: string[];
   updated_at?: string;
+  // Firestore path: users/{userId}.workout_settings.location_profiles
+  // Maximum of 3 profiles is enforced at application layer.
+  location_profiles?: WorkoutLocationProfileItem[];
+  active_location_profile_id?: string;
+  manually_set?: boolean;
 }
 
 export interface UserProfile {

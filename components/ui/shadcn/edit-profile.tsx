@@ -16,11 +16,6 @@ import {
 import { Input } from "@/components/ui/shadcn/input";
 import { Label } from "@/components/ui/shadcn/label";
 import { Textarea } from "@/components/ui/shadcn/textarea";
-import {
-  Avatar,
-  AvatarImage,
-  AvatarFallback,
-} from "@/components/ui/shadcn/avatar";
 import { Check, ImagePlus, X } from "lucide-react";
 import { useId, useState } from "react";
 

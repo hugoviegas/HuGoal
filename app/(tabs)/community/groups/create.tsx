@@ -86,7 +86,7 @@ export default function CreateGroupScreen() {
   const [goal, setGoal] = useState("");
   const [targetValue, setTargetValue] = useState("30");
   const [startDate] = useState("");
-  const [endDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [membership, setMembership] = useState<GroupMembership>("open");
   const [visibility, setVisibility] = useState<GroupVisibility>("public");
   const [creating, setCreating] = useState(false);
