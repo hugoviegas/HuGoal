@@ -25,6 +25,89 @@ export interface NutritionChatPantryItem {
   serving_size_g: number;
 }
 
+function normalizeName(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function pantryMatchScore(left: string, right: string): number {
+  const a = normalizeName(left);
+  const b = normalizeName(right);
+
+  if (!a || !b) {
+    return 0;
+  }
+
+  if (a === b) {
+    return 1;
+  }
+
+  if (a.includes(b) || b.includes(a)) {
+    return 0.9;
+  }
+
+  const aTokens = new Set(a.split(" "));
+  const bTokens = b.split(" ");
+  const overlap = bTokens.filter((token) => aTokens.has(token)).length;
+
+  if (overlap === 0) {
+    return 0;
+  }
+
+  return overlap / Math.max(aTokens.size, bTokens.length);
+}
+
+function findPantryMatch(
+  name: string,
+  pantryItems: NutritionChatPantryItem[],
+): NutritionChatPantryItem | null {
+  let best: NutritionChatPantryItem | null = null;
+  let score = 0;
+
+  for (const pantryItem of pantryItems) {
+    const nextScore = pantryMatchScore(name, pantryItem.name);
+    if (nextScore > score) {
+      best = pantryItem;
+      score = nextScore;
+    }
+  }
+
+  return score >= 0.6 ? best : null;
+}
+
+function applyPantryOverrides(
+  items: NutritionChatItem[],
+  pantryItems: NutritionChatPantryItem[],
+): NutritionChatItem[] {
+  if (pantryItems.length === 0) {
+    return items;
+  }
+
+  return items.map((item) => {
+    const match = findPantryMatch(item.name, pantryItems);
+    if (!match) {
+      return item;
+    }
+
+    return {
+      ...item,
+      name: match.name,
+      unit: "serving",
+      calories: Math.max(0, Math.round(match.calories)),
+      protein_g: Math.max(0, Math.round(match.protein_g * 10) / 10),
+      carbs_g: Math.max(0, Math.round(match.carbs_g * 10) / 10),
+      fat_g: Math.max(0, Math.round(match.fat_g * 10) / 10),
+      confidence: "high",
+      source: "pantry",
+    };
+  });
+}
+
 interface AnalyzeNutritionChatParams {
   preferredProvider: AIProvider;
   userMessage: string;
@@ -189,7 +272,8 @@ Current pending items (update these when user asks for corrections): ${JSON.stri
     try {
       const response = await generateText(provider, SYSTEM_PROMPT, userPrompt);
       const items = parseResponseToItems(response.text);
-      return { provider, items };
+        const withPantryPriority = applyPantryOverrides(items, params.pantryItems);
+        return { provider, items: withPantryPriority };
     } catch (error) {
       lastError = error;
     }

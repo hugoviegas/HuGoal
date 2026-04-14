@@ -204,6 +204,12 @@ service cloud.firestore {
                        && resource.data.user_id == request.auth.uid;
     }
 
+    // ── User Pantry ───────────────────────────────────────────────────
+    match /users/{userId}/pantry/{itemId} {
+      allow read, create, update, delete: if request.auth != null
+        && request.auth.uid == userId;
+    }
+
     // ── Meal Templates ────────────────────────────────────────────────
     match /meal_templates/{templateId} {
       allow read: if request.auth != null

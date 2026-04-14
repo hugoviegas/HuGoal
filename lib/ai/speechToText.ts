@@ -1,7 +1,3 @@
-import {
-  ExpoSpeechRecognitionModule,
-  type ExpoSpeechRecognitionResultEvent,
-} from "expo-speech-recognition";
 import { getLocales } from "expo-localization";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
@@ -32,6 +28,39 @@ type RecognitionSession = {
 
 let activeRecognitionSession: RecognitionSession | null = null;
 let recordingStartedAt = 0;
+let loadedSpeechRecognitionModule: ExpoSpeechRecognitionModuleType | null = null;
+
+type ExpoSpeechRecognitionModuleType = {
+  isRecognitionAvailable: () => boolean;
+  requestPermissionsAsync: () => Promise<{ granted: boolean }>;
+  addListener: (eventName: string, listener: (...args: unknown[]) => void) => {
+    remove: () => void;
+  };
+  start: (options: Record<string, unknown>) => void;
+  stop: () => void;
+  abort: () => void;
+};
+
+let speechRecognitionModulePromise:
+  | Promise<ExpoSpeechRecognitionModuleType | null>
+  | null = null;
+
+async function loadSpeechRecognitionModule(): Promise<ExpoSpeechRecognitionModuleType | null> {
+  if (!speechRecognitionModulePromise) {
+    speechRecognitionModulePromise = import("expo-speech-recognition")
+      .then((module) => {
+        const resolved = module as unknown as {
+          ExpoSpeechRecognitionModule?: ExpoSpeechRecognitionModuleType;
+        };
+
+        loadedSpeechRecognitionModule = resolved.ExpoSpeechRecognitionModule ?? null;
+        return loadedSpeechRecognitionModule;
+      })
+      .catch(() => null);
+  }
+
+  return speechRecognitionModulePromise;
+}
 
 function getRecognitionLocale(): string {
   const locales = getLocales();
@@ -113,6 +142,13 @@ export async function startNutritionAudioRecording(): Promise<void> {
     return;
   }
 
+  const ExpoSpeechRecognitionModule = await loadSpeechRecognitionModule();
+  if (!ExpoSpeechRecognitionModule) {
+    throw new Error(
+      "Speech recognition is unavailable in this build. Use text or image input.",
+    );
+  }
+
   if (!ExpoSpeechRecognitionModule.isRecognitionAvailable()) {
     throw new Error("Speech recognition is not available on this device");
   }
@@ -151,25 +187,27 @@ export async function startNutritionAudioRecording(): Promise<void> {
     },
   };
 
-  const resultSub = ExpoSpeechRecognitionModule.addListener(
-    "result",
-    (event: ExpoSpeechRecognitionResultEvent) => {
-      const transcript = event.results[0]?.transcript?.trim() ?? "";
-      if (transcript) {
-        session.transcript = transcript;
-      }
-    },
-  );
+  const resultSub = ExpoSpeechRecognitionModule.addListener("result", (event) => {
+    const castEvent = event as {
+      results?: Array<{ transcript?: string }>;
+    };
+    const transcript = castEvent.results?.[0]?.transcript?.trim() ?? "";
+    if (transcript) {
+      session.transcript = transcript;
+    }
+  });
 
   const errorSub = ExpoSpeechRecognitionModule.addListener("error", (ev) => {
     session.cleanup();
-    session.reject(new Error(ev.message || "Speech recognition failed"));
+    const errorEvent = ev as { message?: string };
+    session.reject(new Error(errorEvent.message || "Speech recognition failed"));
   });
 
   const audioEndSub = ExpoSpeechRecognitionModule.addListener(
     "audioend",
     (event) => {
-      session.audioUri = event.uri;
+      const audioEvent = event as { uri?: string };
+      session.audioUri = audioEvent.uri ?? null;
     },
   );
 
@@ -215,6 +253,13 @@ export async function cancelNutritionAudioRecording(): Promise<void> {
     return;
   }
 
+  const ExpoSpeechRecognitionModule = loadedSpeechRecognitionModule;
+  if (!ExpoSpeechRecognitionModule) {
+    activeRecognitionSession.cleanup();
+    recordingStartedAt = 0;
+    return;
+  }
+
   try {
     ExpoSpeechRecognitionModule.abort();
   } catch {
@@ -230,6 +275,15 @@ export async function stopNutritionAudioRecordingAndTranscribe(
 ): Promise<NutritionAudioTranscriptionResult> {
   if (!activeRecognitionSession) {
     throw new Error("No active recording to stop");
+  }
+
+  const ExpoSpeechRecognitionModule = loadedSpeechRecognitionModule;
+  if (!ExpoSpeechRecognitionModule) {
+    activeRecognitionSession.cleanup();
+    recordingStartedAt = 0;
+    throw new Error(
+      "Speech recognition is unavailable in this build. Use text or image input.",
+    );
   }
 
   const session = activeRecognitionSession;

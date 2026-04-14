@@ -1,10 +1,11 @@
 /*
-Phase 3 Test Checklist
-- [ ] Hold mic to record audio
-- [ ] Release mic to transcribe and show editable transcript bubble
-- [ ] Transcript auto-triggers AI food analysis
-- [ ] Audio uploads to Firebase Storage temp path
-- [ ] Edited transcript can be re-submitted to AI analysis
+Phase 4 Test Checklist
+- [ ] Send image in chat -> AI returns editable food items
+- [ ] Chat image is stored in Firebase Storage temp path
+- [ ] Pantry page can list, create, edit and delete items
+- [ ] AI nutrition label scan pre-fills pantry form
+- [ ] Chat AI uses pantry values for matched item names
+- [ ] Pantry tutorial modal shows only on first visit
 */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -14,6 +15,7 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
+import * as FileSystem from "expo-file-system/legacy";
 import { useIsFocused } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -32,16 +34,17 @@ import {
   type NutritionChatItem,
 } from "@/lib/ai/nutritionChatAI";
 import {
-  startNutritionAudioRecording,
-  stopNutritionAudioRecordingAndTranscribe,
-} from "@/lib/ai/speechToText";
+  analyzeMealImageToChatItems,
+  uploadNutritionImageTemp,
+} from "@/lib/ai/nutritionImageAI";
+import { stopNutritionAudioRecordingAndTranscribe } from "@/lib/ai/speechToText";
+import { listPantryItems } from "@/lib/firestore/pantry";
 import {
   loadTodayNutritionChatMessages,
   saveTodayNutritionChatMessages,
 } from "@/lib/firestore/nutritionChat";
 import {
   createNutritionLog,
-  listFoodLibrary,
   listNutritionLogs,
   listWaterLogs,
 } from "@/lib/firestore/nutrition";
@@ -177,9 +180,7 @@ export default function NutritionScreen() {
 
   const [allLogs, setAllLogs] = useState<NutritionLog[]>([]);
   const [loggedDateKeys, setLoggedDateKeys] = useState<string[]>([]);
-  const [chatInput, setChatInput] = useState("");
   const [sendingChat, setSendingChat] = useState(false);
-  const [recordingAudio, setRecordingAudio] = useState(false);
   const [savingPendingItems, setSavingPendingItems] = useState(false);
   const [pendingAiItems, setPendingAiItems] = useState<NutritionChatItem[]>([]);
   const [editableTranscript, setEditableTranscript] = useState<{
@@ -416,16 +417,20 @@ export default function NutritionScreen() {
       setSendingChat(true);
 
       try {
-        const pantryItemsRaw = await listFoodLibrary(user.uid);
-        const pantryItems = pantryItemsRaw.map((item) => ({
-          id: item.id,
-          name: item.name,
-          calories: item.calories,
-          protein_g: item.protein_g,
-          carbs_g: item.carbs_g,
-          fat_g: item.fat_g,
-          serving_size_g: item.serving_size_g,
-        }));
+        const pantryItemsRaw = await listPantryItems(user.uid);
+        const pantryItems = pantryItemsRaw.map((item) => {
+          const factor = Math.max(1, item.serving_size_g) / 100;
+
+          return {
+            id: item.id,
+            name: item.name,
+            calories: Math.round(item.calories_per_100g * factor),
+            protein_g: Math.round(item.protein_per_100g * factor * 10) / 10,
+            carbs_g: Math.round(item.carbs_per_100g * factor * 10) / 10,
+            fat_g: Math.round(item.fat_per_100g * factor * 10) / 10,
+            serving_size_g: item.serving_size_g,
+          };
+        });
 
         const { provider, items } = await analyzeNutritionChatText({
           preferredProvider: profile?.preferred_ai_provider ?? "gemini",
@@ -468,15 +473,162 @@ export default function NutritionScreen() {
     ],
   );
 
-  const handleSendChatMessage = useCallback(async () => {
-    const message = chatInput.trim();
-    if (!message) {
+  const handleSendChatMessage = useCallback(async (message: string) => {
+    const trimmed = message.trim();
+    if (!trimmed) {
       return;
     }
 
-    setChatInput("");
-    await runChatAnalysisFromMessage(message, "user_text", true);
-  }, [chatInput, runChatAnalysisFromMessage]);
+    await runChatAnalysisFromMessage(trimmed, "user_text", true);
+  }, [runChatAnalysisFromMessage]);
+
+  const handleAudioRecorded = useCallback(
+    async (localUri: string) => {
+      if (!user?.uid || !isViewingToday) {
+        return;
+      }
+
+      try {
+        setSendingChat(true);
+        await syncChatDateBoundary();
+
+        let transcript = "";
+        try {
+          const result = await stopNutritionAudioRecordingAndTranscribe(user.uid);
+          transcript = result.text.trim();
+        } catch {
+          // Fallback to manual prompt when transcription pipeline is unavailable.
+        }
+
+        const messageText = transcript || "Audio enviado. Ajuste o texto manualmente se necessario.";
+
+        appendChat({
+          type: "user_audio_transcript",
+          text: messageText,
+          payload: {
+            audio: {
+              localUri,
+            },
+          },
+        });
+
+        if (transcript) {
+          await runChatAnalysisFromMessage(transcript, "user_audio_transcript", false);
+        } else {
+          showToast("Audio capturado. Sem transcricao automatica neste build.", "info");
+        }
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Unable to process audio message";
+        showToast(message, "error");
+      } finally {
+        setSendingChat(false);
+      }
+    },
+    [
+      appendChat,
+      isViewingToday,
+      runChatAnalysisFromMessage,
+      showToast,
+      syncChatDateBoundary,
+      user?.uid,
+    ],
+  );
+
+  const handleImageSelected = useCallback(
+    async (localUri: string) => {
+      if (!user?.uid || !isViewingToday || sendingChat) {
+        return;
+      }
+
+      let base64 = "";
+
+      try {
+        base64 = await FileSystem.readAsStringAsync(localUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+      } catch {
+        showToast("Could not read selected image", "error");
+        return;
+      }
+
+      if (!base64) {
+        showToast("Could not read selected image", "error");
+        return;
+      }
+
+      setSendingChat(true);
+
+      try {
+        await syncChatDateBoundary();
+
+        let storagePath: string | undefined;
+        let downloadUrl: string | undefined;
+        let mimeType: string | undefined;
+
+        try {
+          const uploaded = await uploadNutritionImageTemp(user.uid, localUri);
+          storagePath = uploaded.storagePath;
+          downloadUrl = uploaded.downloadUrl;
+          mimeType = uploaded.mimeType;
+        } catch {
+          // Upload is best-effort for temporary media history.
+        }
+
+        appendChat({
+          type: "user_image",
+          text: "Meal image",
+          payload: {
+            image: {
+              localUri,
+              storagePath,
+              downloadUrl,
+              mimeType,
+            },
+          },
+        });
+
+        const pantryItems = await listPantryItems(user.uid);
+        const detectedItems = await analyzeMealImageToChatItems(
+          base64,
+          pantryItems,
+          profile?.preferred_ai_provider ?? "gemini",
+        );
+
+        setPendingAiItems(detectedItems);
+        appendChat({
+          type: "ai_response",
+          text: `Image analyzed. ${buildAiSummary(detectedItems)}`,
+        });
+        appendChat({
+          type: "ai_food_items",
+          text: "Detected items are ready for review below.",
+          payload: { items: detectedItems },
+        });
+      } catch (error) {
+        const messageText =
+          error instanceof Error
+            ? error.message
+            : "Unable to analyze this image right now.";
+
+        appendChat({ type: "ai_response", text: messageText });
+        showToast(messageText, "error");
+      } finally {
+        setSendingChat(false);
+      }
+    },
+    [
+      appendChat,
+      isViewingToday,
+      profile?.preferred_ai_provider,
+      sendingChat,
+      showToast,
+      syncChatDateBoundary,
+      user?.uid,
+    ],
+  );
 
   const submitTranscriptForAnalysis = useCallback(
     async (messageId: string, transcriptText: string) => {
@@ -542,96 +694,6 @@ export default function NutritionScreen() {
     submitTranscriptForAnalysis,
   ]);
 
-  const handleStartAudioRecording = useCallback(async () => {
-    if (!user?.uid || !isViewingToday || recordingAudio || sendingChat) {
-      return;
-    }
-
-    clearTranscriptAutoAnalyzeTimer();
-
-    try {
-      setRecordingAudio(true);
-      await startNutritionAudioRecording();
-    } catch (recordError) {
-      setRecordingAudio(false);
-
-      const message =
-        recordError instanceof Error
-          ? recordError.message
-          : "Unable to start recording";
-
-      showToast(message, "error");
-    }
-  }, [
-    clearTranscriptAutoAnalyzeTimer,
-    isViewingToday,
-    recordingAudio,
-    sendingChat,
-    showToast,
-    user?.uid,
-  ]);
-
-  const handleStopAudioRecording = useCallback(async () => {
-    if (!recordingAudio || !user?.uid || !isViewingToday) {
-      return;
-    }
-
-    setRecordingAudio(false);
-
-    try {
-      await syncChatDateBoundary();
-
-      const result = await stopNutritionAudioRecordingAndTranscribe(user.uid);
-      const transcript = result.text.trim();
-      if (!transcript) {
-        throw new Error("Could not transcribe audio message");
-      }
-
-      const audioPayload =
-        result.storagePath || result.downloadUrl || result.localUri
-          ? {
-              storagePath: result.storagePath,
-              downloadUrl: result.downloadUrl,
-              durationMs: result.durationMs,
-              mimeType: result.mimeType,
-              localUri: result.localUri,
-            }
-          : undefined;
-
-      const transcriptMessage = appendChat({
-        type: "user_audio_transcript",
-        text: transcript,
-        payload: audioPayload ? { audio: audioPayload } : undefined,
-      });
-
-      setEditableTranscript({
-        messageId: transcriptMessage.id,
-        value: transcript,
-      });
-
-      clearTranscriptAutoAnalyzeTimer();
-      transcriptAutoAnalyzeTimerRef.current = setTimeout(() => {
-        void submitTranscriptForAnalysis(transcriptMessage.id, transcript);
-        transcriptAutoAnalyzeTimerRef.current = null;
-      }, 1200);
-    } catch (recordError) {
-      const message =
-        recordError instanceof Error
-          ? recordError.message
-          : "Unable to transcribe this audio";
-
-      showToast(message, "error");
-    }
-  }, [
-    appendChat,
-    clearTranscriptAutoAnalyzeTimer,
-    isViewingToday,
-    recordingAudio,
-    showToast,
-    submitTranscriptForAnalysis,
-    syncChatDateBoundary,
-    user?.uid,
-  ]);
 
   const handlePendingItemChange = useCallback(
     (index: number, patch: Partial<NutritionChatItem>) => {
@@ -694,6 +756,7 @@ export default function NutritionScreen() {
     showToast,
     user?.uid,
   ]);
+
 
   if (isLoading) {
     return (
@@ -795,7 +858,7 @@ export default function NutritionScreen() {
         contentContainerStyle={{
           paddingTop: 14,
           paddingHorizontal: 16,
-          paddingBottom: 140,
+          paddingBottom: 16,
           gap: spacing.md,
         }}
         showsVerticalScrollIndicator={false}
@@ -820,9 +883,18 @@ export default function NutritionScreen() {
           </View>
 
           {isViewingToday ? (
-            <Button size="sm" onPress={() => router.push("/nutrition/log")}>
-              Log meal
-            </Button>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <Button
+                size="sm"
+                variant="outline"
+                onPress={() => router.push("/nutrition/pantry")}
+              >
+                Pantry
+              </Button>
+              <Button size="sm" onPress={() => router.push("/nutrition/log")}>
+                Log meal
+              </Button>
+            </View>
           ) : (
             <Text
               style={[typography.caption, { color: colors.mutedForeground }]}
@@ -930,32 +1002,27 @@ export default function NutritionScreen() {
           </View>
         ) : null}
 
-        <View style={{ height: chatHeight, minHeight: 320 }}>
-          <NutritionChat
-            messages={chatMessages}
-            inputValue={chatInput}
-            onInputChange={setChatInput}
-            onSend={handleSendChatMessage}
-            sending={sendingChat}
-            pendingItems={pendingAiItems}
-            onChangePendingItem={handlePendingItemChange}
-            onSaveAll={handleSaveAllPending}
-            savingAll={savingPendingItems}
-            disabled={!isViewingToday}
-            disabledReason="Chat is available only for today. Tap Today above to continue."
-            recordingAudio={recordingAudio}
-            onStartRecording={handleStartAudioRecording}
-            onStopRecording={handleStopAudioRecording}
-            onPressCamera={() =>
-              showToast("Image input will be enabled in Phase 4.", "info")
-            }
-            editableTranscript={editableTranscript}
-            onChangeEditableTranscript={handleChangeEditableTranscript}
-            onSubmitEditableTranscript={handleSubmitEditableTranscript}
-            submittingTranscript={sendingChat}
-          />
-        </View>
       </ScrollView>
+
+      <View style={{ height: chatHeight, minHeight: 320 }}>
+        <NutritionChat
+          messages={chatMessages}
+          isLoading={sendingChat}
+          onSendText={handleSendChatMessage}
+          onAudioRecorded={handleAudioRecorded}
+          onImageSelected={handleImageSelected}
+          pendingItems={pendingAiItems}
+          onChangePendingItem={handlePendingItemChange}
+          onSaveAll={handleSaveAllPending}
+          savingAll={savingPendingItems}
+          disabled={!isViewingToday}
+          disabledReason="Chat is available only for today. Tap Today above to continue."
+          editableTranscript={editableTranscript}
+          onChangeEditableTranscript={handleChangeEditableTranscript}
+          onSubmitEditableTranscript={handleSubmitEditableTranscript}
+          submittingTranscript={sendingChat}
+        />
+      </View>
     </View>
   );
 }

@@ -36,7 +36,9 @@ const OFFICIAL_CATALOG_BY_ID: Record<string, OfficialExerciseRecord> =
     {},
   );
 
-const EQUIPMENT_ITEM_TO_LEGACY: Partial<Record<EquipmentItemId, EquipmentType>> = {
+const EQUIPMENT_ITEM_TO_LEGACY: Partial<
+  Record<EquipmentItemId, EquipmentType>
+> = {
   none: "none",
   barbell: "barbell",
   dumbbell: "dumbbell",
@@ -80,7 +82,9 @@ const EQUIPMENT_ITEM_TO_LEGACY: Partial<Record<EquipmentItemId, EquipmentType>> 
   wall: "bodyweight",
 };
 
-function mapEquipmentItemsToLegacyTypes(ids: EquipmentItemId[] = []): EquipmentType[] {
+function mapEquipmentItemsToLegacyTypes(
+  ids: EquipmentItemId[] = [],
+): EquipmentType[] {
   return Array.from(
     new Set(
       ids
@@ -118,11 +122,7 @@ export async function rescheduleWorkouts(
   // Fetch templates and completed dates in parallel
   const [templates, completedDates] = await Promise.all([
     listWorkoutTemplates(uid),
-    getCompletedSessionDates(
-      uid,
-      todayKey,
-      formatLocalDateKey(endOfNextWeek),
-    ),
+    getCompletedSessionDates(uid, todayKey, formatLocalDateKey(endOfNextWeek)),
   ]);
 
   const filteredTemplates = options.locationType

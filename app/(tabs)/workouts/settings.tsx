@@ -159,13 +159,7 @@ const DEFAULT_EQUIPMENT_BY_LOCATION: Record<
     "kettlebell",
   ],
   outdoor: ["bodyweight", "pullup_bar", "outdoor_bike", "jump_rope"],
-  studio: [
-    "bodyweight",
-    "dumbbell",
-    "kettlebell",
-    "resistance_band",
-    "bench",
-  ],
+  studio: ["bodyweight", "dumbbell", "kettlebell", "resistance_band", "bench"],
 };
 
 const LEGACY_EQUIPMENT_MAP: Record<EquipmentType, EquipmentItemId[]> = {
@@ -338,10 +332,7 @@ export default function WorkoutSettingsScreen() {
         }));
 
       // Backward compatibility bootstrap: migrate old shape to one profile.
-      if (
-        nextProfiles.length === 0 &&
-        (current.locations?.length ?? 0) > 0
-      ) {
+      if (nextProfiles.length === 0 && (current.locations?.length ?? 0) > 0) {
         const primaryLocation = current.locations?.[0];
         if (primaryLocation) {
           nextProfiles = [
@@ -362,8 +353,11 @@ export default function WorkoutSettingsScreen() {
 
       setLocationProfiles(nextProfiles);
       const resolvedActiveProfileId =
-        nextProfiles.find((item) => item.id === current.active_location_profile_id)
-          ?.id ?? nextProfiles[0]?.id ?? null;
+        nextProfiles.find(
+          (item) => item.id === current.active_location_profile_id,
+        )?.id ??
+        nextProfiles[0]?.id ??
+        null;
       setActiveLocationProfileId(resolvedActiveProfileId);
       setExpandedLocationProfileId(resolvedActiveProfileId);
       return;
@@ -453,7 +447,10 @@ export default function WorkoutSettingsScreen() {
   // ── Handlers ──────────────────────────────────────────────────────────────
   const openCreateProfileModal = () => {
     if (locationProfiles.length >= PROFILE_LIMIT) {
-      showToast(`You can create up to ${PROFILE_LIMIT} location profiles`, "info");
+      showToast(
+        `You can create up to ${PROFILE_LIMIT} location profiles`,
+        "info",
+      );
       return;
     }
     setNewProfileName("");
@@ -463,7 +460,10 @@ export default function WorkoutSettingsScreen() {
 
   const createLocationProfile = () => {
     if (locationProfiles.length >= PROFILE_LIMIT) {
-      showToast(`You can create up to ${PROFILE_LIMIT} location profiles`, "info");
+      showToast(
+        `You can create up to ${PROFILE_LIMIT} location profiles`,
+        "info",
+      );
       return;
     }
 
@@ -520,7 +520,9 @@ export default function WorkoutSettingsScreen() {
   };
 
   const toggleProfileExpanded = (profileId: string) => {
-    setExpandedLocationProfileId((prev) => (prev === profileId ? null : profileId));
+    setExpandedLocationProfileId((prev) =>
+      prev === profileId ? null : profileId,
+    );
   };
 
   const selectActiveProfile = (profileId: string) => {
@@ -599,7 +601,10 @@ export default function WorkoutSettingsScreen() {
         return prev.filter((item) => item !== day).sort((a, b) => a - b);
       }
       if (prev.length >= trainingDaysPerWeek) {
-        showToast(`Select up to ${trainingDaysPerWeek} training day(s)`, "info");
+        showToast(
+          `Select up to ${trainingDaysPerWeek} training day(s)`,
+          "info",
+        );
         return prev;
       }
       return [...prev, day].sort((a, b) => a - b);
@@ -631,16 +636,18 @@ export default function WorkoutSettingsScreen() {
       return;
     }
 
-    const normalizedProfiles = locationProfiles.slice(0, PROFILE_LIMIT).map((item) => ({
-      ...item,
-      name: normalizeProfileName(item.name, item.type),
-      equipment_ids: Array.from(new Set(item.equipment_ids)),
-      updated_at: toSettingsDate(),
-    }));
+    const normalizedProfiles = locationProfiles
+      .slice(0, PROFILE_LIMIT)
+      .map((item) => ({
+        ...item,
+        name: normalizeProfileName(item.name, item.type),
+        equipment_ids: Array.from(new Set(item.equipment_ids)),
+        updated_at: toSettingsDate(),
+      }));
 
     const resolvedActiveProfileId =
-      normalizedProfiles.find((item) => item.id === activeLocationProfileId)?.id ??
-      normalizedProfiles[0]?.id;
+      normalizedProfiles.find((item) => item.id === activeLocationProfileId)
+        ?.id ?? normalizedProfiles[0]?.id;
 
     if (!resolvedActiveProfileId) {
       showToast("Select an active location profile", "error");
@@ -648,7 +655,10 @@ export default function WorkoutSettingsScreen() {
     }
 
     if (!isValid) {
-      showToast("Complete profiles, weekly days and hours to continue", "error");
+      showToast(
+        "Complete profiles, weekly days and hours to continue",
+        "error",
+      );
       return;
     }
 
@@ -660,7 +670,9 @@ export default function WorkoutSettingsScreen() {
       experience_level: experienceLevel,
       experience_time_range: experienceTimeRange,
       limitations,
-      limitations_other: limitations.includes("Other") ? limitationsOther.trim() : "",
+      limitations_other: limitations.includes("Other")
+        ? limitationsOther.trim()
+        : "",
       location_profiles: normalizedProfiles,
       active_location_profile_id: resolvedActiveProfileId,
       excluded_exercise_ids: excludedExerciseIds,
@@ -744,18 +756,24 @@ export default function WorkoutSettingsScreen() {
       }}
     >
       <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
-        {icon ? (
-          <View style={{ marginTop: 1 }}>{icon}</View>
-        ) : null}
+        {icon ? <View style={{ marginTop: 1 }}>{icon}</View> : null}
         <View style={{ flex: 1 }}>
           <Text
-            style={{ color: colors.foreground, fontSize: 15, fontWeight: "700" }}
+            style={{
+              color: colors.foreground,
+              fontSize: 15,
+              fontWeight: "700",
+            }}
           >
             {title}
           </Text>
           {subtitle ? (
             <Text
-              style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 2 }}
+              style={{
+                color: colors.mutedForeground,
+                fontSize: 12,
+                marginTop: 2,
+              }}
             >
               {subtitle}
             </Text>
@@ -810,7 +828,11 @@ export default function WorkoutSettingsScreen() {
 
           <View style={{ flex: 1 }}>
             <Text
-              style={{ color: colors.foreground, fontSize: 22, fontWeight: "800" }}
+              style={{
+                color: colors.foreground,
+                fontSize: 22,
+                fontWeight: "800",
+              }}
             >
               {isOnboardingMode ? "Workout Setup" : "Workout Settings"}
             </Text>
@@ -847,7 +869,8 @@ export default function WorkoutSettingsScreen() {
                     contentContainerStyle={{ gap: 8 }}
                   >
                     {locationProfiles.map((profileItem) => {
-                      const selected = activeLocationProfileId === profileItem.id;
+                      const selected =
+                        activeLocationProfileId === profileItem.id;
                       return (
                         <Pressable
                           key={`active-${profileItem.id}`}
@@ -869,7 +892,9 @@ export default function WorkoutSettingsScreen() {
                         >
                           <Text
                             style={{
-                              color: selected ? colors.primary : colors.foreground,
+                              color: selected
+                                ? colors.primary
+                                : colors.foreground,
                               fontSize: 13,
                               fontWeight: "700",
                             }}
@@ -884,7 +909,8 @@ export default function WorkoutSettingsScreen() {
 
                 <View style={{ gap: 10 }}>
                   {locationProfiles.map((profileItem) => {
-                    const expanded = expandedLocationProfileId === profileItem.id;
+                    const expanded =
+                      expandedLocationProfileId === profileItem.id;
                     const isActive = activeLocationProfileId === profileItem.id;
                     const isEditing = editingProfileId === profileItem.id;
 
@@ -893,7 +919,9 @@ export default function WorkoutSettingsScreen() {
                         key={`profile-card-${profileItem.id}`}
                         style={{
                           borderWidth: 1,
-                          borderColor: isActive ? colors.primary : colors.cardBorder,
+                          borderColor: isActive
+                            ? colors.primary
+                            : colors.cardBorder,
                           backgroundColor: isActive
                             ? colors.primary + "10"
                             : colors.surface,
@@ -947,7 +975,9 @@ export default function WorkoutSettingsScreen() {
                               <Pressable
                                 accessibilityRole="button"
                                 accessibilityLabel={`Edit ${profileItem.name} profile name`}
-                                onPress={() => startProfileNameEdit(profileItem)}
+                                onPress={() =>
+                                  startProfileNameEdit(profileItem)
+                                }
                                 style={{ alignSelf: "flex-start" }}
                               >
                                 <Text
@@ -968,7 +998,8 @@ export default function WorkoutSettingsScreen() {
                               }}
                             >
                               {titleCaseLocation(profileItem.type)} ·{" "}
-                              {profileItem.equipment_ids.length} equipment selected
+                              {profileItem.equipment_ids.length} equipment
+                              selected
                             </Text>
                           </View>
 
@@ -990,8 +1021,12 @@ export default function WorkoutSettingsScreen() {
 
                           <Pressable
                             accessibilityRole="button"
-                            accessibilityLabel={expanded ? "Collapse profile" : "Expand profile"}
-                            onPress={() => toggleProfileExpanded(profileItem.id)}
+                            accessibilityLabel={
+                              expanded ? "Collapse profile" : "Expand profile"
+                            }
+                            onPress={() =>
+                              toggleProfileExpanded(profileItem.id)
+                            }
                             style={{
                               width: 32,
                               height: 32,
@@ -1004,7 +1039,10 @@ export default function WorkoutSettingsScreen() {
                             {expanded ? (
                               <ChevronUp size={16} color={colors.foreground} />
                             ) : (
-                              <ChevronDown size={16} color={colors.foreground} />
+                              <ChevronDown
+                                size={16}
+                                color={colors.foreground}
+                              />
                             )}
                           </Pressable>
                         </View>
@@ -1014,7 +1052,9 @@ export default function WorkoutSettingsScreen() {
                             <Pressable
                               accessibilityRole="button"
                               accessibilityLabel={`Edit equipment for ${profileItem.name}`}
-                              onPress={() => openEquipmentPickerForProfile(profileItem.id)}
+                              onPress={() =>
+                                openEquipmentPickerForProfile(profileItem.id)
+                              }
                               style={{
                                 minHeight: 44,
                                 borderRadius: 12,
@@ -1027,8 +1067,17 @@ export default function WorkoutSettingsScreen() {
                                 paddingHorizontal: 12,
                               }}
                             >
-                              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                                <Dumbbell size={16} color={colors.mutedForeground} />
+                              <View
+                                style={{
+                                  flexDirection: "row",
+                                  alignItems: "center",
+                                  gap: 8,
+                                }}
+                              >
+                                <Dumbbell
+                                  size={16}
+                                  color={colors.mutedForeground}
+                                />
                                 <Text
                                   style={{
                                     color: colors.foreground,
@@ -1053,7 +1102,9 @@ export default function WorkoutSettingsScreen() {
                             <Pressable
                               accessibilityRole="button"
                               accessibilityLabel={`Delete ${profileItem.name}`}
-                              onPress={() => removeLocationProfile(profileItem.id)}
+                              onPress={() =>
+                                removeLocationProfile(profileItem.id)
+                              }
                               disabled={locationProfiles.length <= 1}
                               style={{
                                 minHeight: 42,
@@ -1190,7 +1241,13 @@ export default function WorkoutSettingsScreen() {
         >
           {/* Days-per-week number picker */}
           <View style={{ gap: 8 }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "600" }}>
+            <Text
+              style={{
+                color: colors.mutedForeground,
+                fontSize: 12,
+                fontWeight: "600",
+              }}
+            >
               Days per week
             </Text>
             <View style={{ flexDirection: "row", gap: 8 }}>
@@ -1207,8 +1264,12 @@ export default function WorkoutSettingsScreen() {
                       height: 38,
                       borderRadius: 10,
                       borderWidth: selected ? 2 : 1,
-                      borderColor: selected ? colors.primary : colors.cardBorder,
-                      backgroundColor: selected ? colors.primary + "18" : colors.surface,
+                      borderColor: selected
+                        ? colors.primary
+                        : colors.cardBorder,
+                      backgroundColor: selected
+                        ? colors.primary + "18"
+                        : colors.surface,
                       alignItems: "center",
                       justifyContent: "center",
                     }}
@@ -1230,8 +1291,20 @@ export default function WorkoutSettingsScreen() {
 
           {/* Day-of-week pills */}
           <View style={{ gap: 8 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-              <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "600" }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Text
+                style={{
+                  color: colors.mutedForeground,
+                  fontSize: 12,
+                  fontWeight: "600",
+                }}
+              >
                 Which days? (Mon–Sun)
               </Text>
               <Text
@@ -1259,8 +1332,12 @@ export default function WorkoutSettingsScreen() {
                     style={{
                       borderRadius: 999,
                       borderWidth: selected ? 2 : 1,
-                      borderColor: selected ? colors.primary : colors.cardBorder,
-                      backgroundColor: selected ? colors.primary + "18" : colors.surface,
+                      borderColor: selected
+                        ? colors.primary
+                        : colors.cardBorder,
+                      backgroundColor: selected
+                        ? colors.primary + "18"
+                        : colors.surface,
                       paddingHorizontal: 14,
                       paddingVertical: 9,
                       minWidth: 44,
@@ -1306,7 +1383,9 @@ export default function WorkoutSettingsScreen() {
                     borderRadius: 12,
                     borderWidth: selected ? 2 : 1,
                     borderColor: selected ? colors.primary : colors.cardBorder,
-                    backgroundColor: selected ? colors.primary + "18" : colors.surface,
+                    backgroundColor: selected
+                      ? colors.primary + "18"
+                      : colors.surface,
                     paddingHorizontal: 16,
                     paddingVertical: 10,
                     alignItems: "center",
@@ -1323,7 +1402,11 @@ export default function WorkoutSettingsScreen() {
                     {option.label}
                   </Text>
                   <Text
-                    style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }}
+                    style={{
+                      color: colors.mutedForeground,
+                      fontSize: 11,
+                      marginTop: 2,
+                    }}
                   >
                     {option.description}
                   </Text>
@@ -1383,7 +1466,9 @@ export default function WorkoutSettingsScreen() {
                     borderRadius: 999,
                     borderWidth: selected ? 2 : 1,
                     borderColor: selected ? colors.primary : colors.cardBorder,
-                    backgroundColor: selected ? colors.primary + "18" : colors.surface,
+                    backgroundColor: selected
+                      ? colors.primary + "18"
+                      : colors.surface,
                     paddingHorizontal: 13,
                     paddingVertical: 8,
                     minWidth: 44,
@@ -1612,7 +1697,9 @@ export default function WorkoutSettingsScreen() {
                       style={{
                         borderRadius: 999,
                         borderWidth: selected ? 2 : 1,
-                        borderColor: selected ? colors.primary : colors.cardBorder,
+                        borderColor: selected
+                          ? colors.primary
+                          : colors.cardBorder,
                         backgroundColor: selected
                           ? colors.primary + "18"
                           : colors.surface,
@@ -1808,7 +1895,9 @@ export default function WorkoutSettingsScreen() {
                           height: 24,
                           borderRadius: 12,
                           borderWidth: 1,
-                          borderColor: selected ? colors.primary : colors.cardBorder,
+                          borderColor: selected
+                            ? colors.primary
+                            : colors.cardBorder,
                           alignItems: "center",
                           justifyContent: "center",
                           backgroundColor: selected

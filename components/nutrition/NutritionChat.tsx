@@ -1,6 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import {
+  Animated,
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -9,21 +11,23 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { Sparkles } from "lucide-react-native";
+import { Sparkles, Mic } from "lucide-react-native";
+import { format } from "date-fns";
 
-import { ChatInput } from "@/components/nutrition/ChatInput";
+import { ChatInputBar } from "@/components/nutrition/ChatInputBar";
 import { spacing } from "@/constants/spacing";
 import { typography } from "@/constants/typography";
 import type { NutritionChatItem } from "@/lib/ai/nutritionChatAI";
 import type { ChatMessage } from "@/stores/nutrition.store";
+import { useAuthStore } from "@/stores/auth.store";
 import { useThemeStore } from "@/stores/theme.store";
 
 interface NutritionChatProps {
   messages: ChatMessage[];
-  inputValue: string;
-  onInputChange: (value: string) => void;
-  onSend: () => void;
-  sending: boolean;
+  isLoading: boolean;
+  onSendText: (text: string) => void;
+  onAudioRecorded: (uri: string) => void;
+  onImageSelected: (uri: string) => void;
   pendingItems: NutritionChatItem[];
   onChangePendingItem: (
     index: number,
@@ -33,10 +37,6 @@ interface NutritionChatProps {
   savingAll: boolean;
   disabled?: boolean;
   disabledReason?: string;
-  recordingAudio?: boolean;
-  onStartRecording?: () => void | Promise<void>;
-  onStopRecording?: () => void | Promise<void>;
-  onPressCamera?: () => void;
   editableTranscript?: {
     messageId: string;
     value: string;
@@ -44,6 +44,101 @@ interface NutritionChatProps {
   onChangeEditableTranscript?: (value: string) => void;
   onSubmitEditableTranscript?: () => void | Promise<void>;
   submittingTranscript?: boolean;
+}
+
+// MODIFIED: AI typing indicator for loading state.
+function TypingIndicator() {
+  const colors = useThemeStore((s) => s.colors);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const dotAnims = useRef([
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0),
+  ]).current;
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+
+    const loops = dotAnims.map((anim, index) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(index * 150),
+          Animated.timing(anim, {
+            toValue: -6,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+          Animated.timing(anim, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+        ]),
+      ),
+    );
+
+    loops.forEach((loop) => loop.start());
+
+    return () => {
+      loops.forEach((loop) => loop.stop());
+    };
+  }, [dotAnims, fadeAnim]);
+
+  return (
+    <Animated.View
+      style={{
+        opacity: fadeAnim,
+        flexDirection: "row",
+        alignItems: "flex-end",
+        gap: spacing.xs,
+      }}
+    >
+      <View
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: 14,
+          backgroundColor: `${colors.primary}22`,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Sparkles size={14} color={colors.primary} />
+      </View>
+
+      <View
+        style={{
+          backgroundColor: colors.card,
+          borderRadius: 18,
+          borderBottomLeftRadius: 4,
+          paddingHorizontal: 14,
+          paddingVertical: 10,
+          borderWidth: 1,
+          borderColor: colors.cardBorder,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 4,
+        }}
+      >
+        {dotAnims.map((anim, idx) => (
+          <Animated.View
+            key={`typing-dot-${idx}`}
+            style={{
+              width: 7,
+              height: 7,
+              borderRadius: 3.5,
+              backgroundColor: colors.mutedForeground,
+              transform: [{ translateY: anim }],
+            }}
+          />
+        ))}
+      </View>
+    </Animated.View>
+  );
 }
 
 function toNumber(value: string, fallback: number): number {
@@ -64,32 +159,33 @@ function isUserMessage(type: ChatMessage["type"]): boolean {
 
 export function NutritionChat({
   messages,
-  inputValue,
-  onInputChange,
-  onSend,
-  sending,
+  isLoading,
+  onSendText,
+  onAudioRecorded,
+  onImageSelected,
   pendingItems,
   onChangePendingItem,
   onSaveAll,
   savingAll,
   disabled = false,
   disabledReason,
-  recordingAudio = false,
-  onStartRecording,
-  onStopRecording,
-  onPressCamera,
   editableTranscript,
   onChangeEditableTranscript,
   onSubmitEditableTranscript,
   submittingTranscript = false,
 }: NutritionChatProps) {
   const colors = useThemeStore((s) => s.colors);
+  const userInitial =
+    useAuthStore((s) => s.user?.displayName?.trim()?.[0])?.toUpperCase() ??
+    "U";
   const listRef = useRef<FlatList<ChatMessage> | null>(null);
 
   useEffect(() => {
-    if (!messages.length) return;
+    if (!messages.length && !isLoading) return;
     listRef.current?.scrollToEnd({ animated: true });
-  }, [messages.length]);
+  }, [isLoading, messages.length]);
+
+  const loadingKey = useMemo(() => `typing-${messages.length}`, [messages.length]);
 
   return (
     <KeyboardAvoidingView
@@ -209,35 +305,162 @@ export function NutritionChat({
           }
 
           const userMessage = isUserMessage(item.type);
+          const assistantMessage = !userMessage;
+          const imagePayload =
+            item.type === "user_image" && item.payload
+              ? (item.payload as {
+                  image?: {
+                    localUri?: string;
+                    downloadUrl?: string;
+                  };
+                }).image
+              : undefined;
+          const imageUri = imagePayload?.downloadUrl ?? imagePayload?.localUri;
+
+          const messageTime = format(new Date(item.createdAt), "HH:mm");
+
+          const audioTranscriptLabel =
+            item.type === "user_audio_transcript" ? (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 4,
+                  marginBottom: 2,
+                }}
+              >
+                <Mic
+                  size={12}
+                  color={userMessage ? colors.primaryForeground : colors.mutedForeground}
+                />
+                <Text
+                  style={[
+                    typography.caption,
+                    {
+                      color: userMessage
+                        ? `${colors.primaryForeground}cc`
+                        : colors.mutedForeground,
+                    },
+                  ]}
+                >
+                  Audio ·
+                </Text>
+              </View>
+            ) : null;
 
           return (
             <View
               style={{
+                flexDirection: "row",
+                alignItems: "flex-end",
                 alignSelf: userMessage ? "flex-end" : "flex-start",
-                maxWidth: "88%",
-                paddingHorizontal: spacing.sm,
-                paddingVertical: spacing.xs,
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: userMessage ? colors.primary : colors.cardBorder,
-                backgroundColor: userMessage
-                  ? colors.primary
-                  : colors.background,
+                gap: spacing.xs,
+                maxWidth: "94%",
               }}
             >
-              <Text
+              {assistantMessage ? (
+                <View
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 14,
+                    backgroundColor: `${colors.primary}22`,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Sparkles size={14} color={colors.primary} />
+                </View>
+              ) : null}
+
+              <View
                 style={{
-                  ...typography.small,
-                  color: userMessage
-                    ? colors.primaryForeground
-                    : colors.foreground,
+                  maxWidth: "84%",
+                  paddingHorizontal: spacing.sm,
+                  paddingVertical: spacing.xs,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: userMessage ? colors.primary : colors.cardBorder,
+                  backgroundColor: userMessage
+                    ? colors.primary
+                    : colors.background,
                 }}
               >
-                {item.text ?? "Message"}
-              </Text>
+                {audioTranscriptLabel}
+
+                <Text
+                  style={{
+                    ...typography.small,
+                    color: userMessage
+                      ? colors.primaryForeground
+                      : colors.foreground,
+                  }}
+                >
+                  {item.text ?? "Message"}
+                </Text>
+
+                {imageUri ? (
+                  <Image
+                    source={{ uri: imageUri }}
+                    resizeMode="cover"
+                    style={{
+                      marginTop: spacing.xs,
+                      width: 180,
+                      height: 120,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: userMessage
+                        ? colors.primaryForeground + "30"
+                        : colors.cardBorder,
+                    }}
+                  />
+                ) : null}
+
+                {/* MODIFIED: timestamps below each message bubble. */}
+                <Text
+                  style={[
+                    typography.caption,
+                    {
+                      marginTop: 4,
+                      color: userMessage
+                        ? `${colors.primaryForeground}b3`
+                        : colors.mutedForeground,
+                    },
+                  ]}
+                >
+                  {messageTime}
+                </Text>
+              </View>
+
+              {userMessage ? (
+                <View
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 14,
+                    backgroundColor: colors.primary,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text
+                    style={[typography.caption, { color: colors.primaryForeground }]}
+                  >
+                    {userInitial}
+                  </Text>
+                </View>
+              ) : null}
             </View>
           );
         }}
+        ListFooterComponent={
+          // MODIFIED: typing indicator rendered inline at the end of the list.
+          isLoading ? (
+            <View key={loadingKey} style={{ marginTop: spacing.xs }}>
+              <TypingIndicator />
+            </View>
+          ) : null
+        }
       />
 
       {pendingItems.length > 0 ? (
@@ -463,17 +686,23 @@ export function NutritionChat({
         </View>
       ) : null}
 
-      <ChatInput
-        value={inputValue}
-        onChangeValue={onInputChange}
-        onSendText={onSend}
-        sending={sending || submittingTranscript}
-        recording={recordingAudio}
+      {/* MODIFIED: replaced old ChatInput with WhatsApp-style ChatInputBar. */}
+      <ChatInputBar
+        onSendText={onSendText}
+        onAudioRecorded={onAudioRecorded}
+        onImageSelected={onImageSelected}
         disabled={disabled}
-        onStartRecording={onStartRecording}
-        onStopRecording={onStopRecording}
-        onPressCamera={onPressCamera}
       />
     </KeyboardAvoidingView>
   );
 }
+
+// TEST:
+// - Send message -> typing indicator appears below last user message
+// - Indicator dots animate with staggered bounce
+// - AI response arrives -> indicator is replaced by message bubble
+// - AI bubbles have Sparkles avatar on left
+// - User bubbles have initial avatar on right
+// - Timestamps visible below each bubble
+// - Audio transcript messages show Mic icon prefix
+// - scrollToEnd fires when typing indicator appears
