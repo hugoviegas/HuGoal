@@ -471,12 +471,13 @@ export function ChatInputBar({
         pointerEvents={isRecording || isPreview ? "auto" : "none"}
         style={{
           position: "absolute",
-          left: 0,
-          right: 0,
+          left: 12,
+          right: 12,
           bottom: inputBarHeight,
           backgroundColor: colors.card,
-          borderTopWidth: 1,
-          borderTopColor: colors.cardBorder,
+          borderRadius: 14,
+          borderWidth: 1,
+          borderColor: colors.cardBorder,
           paddingHorizontal: 16,
           paddingVertical: 10,
           transform: [{ translateY: indicatorSlideAnim }],
@@ -585,12 +586,16 @@ export function ChatInputBar({
         }}
         style={{
           flexDirection: "row",
-          alignItems: "flex-end",
-          paddingHorizontal: spacing.md,
-          paddingVertical: spacing.sm,
+          alignItems: "center",
+          marginHorizontal: spacing.sm,
+          marginTop: spacing.xs,
+          marginBottom: spacing.xs,
+          paddingHorizontal: spacing.xs,
+          paddingVertical: 6,
           backgroundColor: colors.card,
-          borderTopWidth: 1,
-          borderTopColor: colors.cardBorder,
+          borderWidth: 1,
+          borderColor: colors.cardBorder,
+          borderRadius: 26,
           gap: spacing.xs,
         }}
       >
@@ -598,13 +603,15 @@ export function ChatInputBar({
           onPress={() => void handleAttachImage()}
           disabled={disabled || isPicking}
           style={{
-            paddingHorizontal: 8,
-            minHeight: 44,
-            justifyContent: "flex-end",
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            alignItems: "center",
+            justifyContent: "center",
             opacity: disabled || isPicking ? 0.6 : 1,
           }}
         >
-          <Paperclip size={24} color={colors.foreground} />
+          <Paperclip size={20} color={colors.foreground} />
         </Pressable>
 
         <TextInput
@@ -614,26 +621,27 @@ export function ChatInputBar({
           placeholder="O que comeste?"
           placeholderTextColor={colors.mutedForeground}
           multiline
+          numberOfLines={1}
           maxLength={1000}
           style={{
             flex: 1,
-            maxHeight: 120,
-            minHeight: 44,
-            borderRadius: 22,
-            backgroundColor: colors.background,
-            paddingHorizontal: 14,
-            paddingVertical: 10,
+            maxHeight: 92,
+            minHeight: 40,
+            borderRadius: 20,
+            backgroundColor: "transparent",
+            paddingHorizontal: 8,
+            paddingVertical: 8,
             fontSize: 15,
             color: colors.foreground,
-            textAlignVertical: "top",
+            textAlignVertical: "center",
           }}
         />
 
         <View
           style={{
-            width: 44,
-            height: 44,
-            borderRadius: 22,
+            width: 40,
+            height: 40,
+            borderRadius: 20,
             backgroundColor:
               isRecording && isSlideCancelCue ? colors.muted : colors.primary,
             alignItems: "center",
@@ -648,9 +656,9 @@ export function ChatInputBar({
                 pointerEvents="none"
                 style={{
                   position: "absolute",
-                  width: 44,
-                  height: 44,
-                  borderRadius: 22,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
                   borderWidth: 1,
                   borderColor: colors.primary,
                   transform: [{ scale: ringScale }],
@@ -661,7 +669,7 @@ export function ChatInputBar({
                 onPressOut={() => {
                   void handleStopRecording();
                 }}
-                style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}
+                style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
                 disabled={disabled}
               >
                 <MicOff size={20} color={colors.primaryForeground} />
@@ -683,7 +691,7 @@ export function ChatInputBar({
                 }
               }}
               disabled={disabled || isPreview}
-              style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}
+              style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
             >
               <Animated.View
                 style={{

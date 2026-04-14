@@ -298,6 +298,7 @@ export interface NutritionItem {
   fiber_g?: number;
   sugar_g?: number;
   source: FoodSource;
+  photo_url?: string; // local URI or Firebase Storage URL
 }
 
 export interface NutritionLog {

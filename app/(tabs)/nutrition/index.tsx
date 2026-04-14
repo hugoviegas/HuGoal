@@ -9,6 +9,7 @@ Phase 4 Test Checklist
 */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Animated,
   Pressable,
   ScrollView,
   Text,
@@ -22,7 +23,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { format } from "date-fns";
 import { CalendarDays, Flame } from "lucide-react-native";
 
-import { NutritionChat } from "@/components/nutrition/NutritionChat";
+import {
+  NutritionChat,
+  useNutritionChatPanel,
+} from "@/components/nutrition/NutritionChat";
 import { MacroWidget } from "@/components/nutrition/MacroWidget";
 import { NutritionWeekCalendar } from "@/components/nutrition/NutritionWeekCalendar";
 import { Button } from "@/components/ui/Button";
@@ -194,7 +198,21 @@ export default function NutritionScreen() {
 
   const todayDateKey = formatLocalDateKey(new Date());
   const isViewingToday = selectedDate === todayDateKey;
-  const chatHeight = Math.max(320, Math.floor(windowHeight * 0.6));
+
+  const {
+    panelHeight,
+    keyboardOffset,
+    composerBottomPadding,
+    panelExpanded,
+    backdropOpacity,
+    panelContentOpacity,
+    panelPanHandlers,
+    openPanel,
+    closePanel,
+  } = useNutritionChatPanel({
+    insetsBottom: insets.bottom,
+    windowHeight,
+  });
 
   const selectedDateLabel = useMemo(() => {
     const parsed = new Date(`${selectedDate}T00:00:00`);
@@ -858,7 +876,7 @@ export default function NutritionScreen() {
         contentContainerStyle={{
           paddingTop: 14,
           paddingHorizontal: 16,
-          paddingBottom: 16,
+          paddingBottom: insets.bottom + 160,
           gap: spacing.md,
         }}
         showsVerticalScrollIndicator={false}
@@ -1004,7 +1022,40 @@ export default function NutritionScreen() {
 
       </ScrollView>
 
-      <View style={{ height: chatHeight, minHeight: 320 }}>
+      <Animated.View
+        pointerEvents={panelExpanded ? "box-none" : "none"}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "#000",
+          opacity: backdropOpacity,
+        }}
+      >
+        <Pressable style={{ flex: 1 }} onPress={closePanel} />
+      </Animated.View>
+
+      <Animated.View
+        style={{
+          position: "absolute",
+          bottom: keyboardOffset,
+          left: 0,
+          right: 0,
+          height: panelHeight,
+          overflow: "hidden",
+          backgroundColor: colors.surface,
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: isDark ? 0.35 : 0.08,
+          shadowRadius: 10,
+          elevation: 10,
+        }}
+        {...panelPanHandlers}
+      >
         <NutritionChat
           messages={chatMessages}
           isLoading={sendingChat}
@@ -1021,8 +1072,18 @@ export default function NutritionScreen() {
           onChangeEditableTranscript={handleChangeEditableTranscript}
           onSubmitEditableTranscript={handleSubmitEditableTranscript}
           submittingTranscript={sendingChat}
+          expanded={panelExpanded}
+          onTogglePanel={() => {
+            if (panelExpanded) {
+              closePanel();
+            } else {
+              openPanel();
+            }
+          }}
+          panelContentOpacity={panelContentOpacity}
+          composerBottomOffset={composerBottomPadding}
         />
-      </View>
+      </Animated.View>
     </View>
   );
 }
