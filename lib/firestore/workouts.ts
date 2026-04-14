@@ -141,6 +141,8 @@ export interface WorkoutDailyOverrideRecord {
   target_minutes?: number;
   difficulty_mode?: "easier" | "harder";
   location?: string;
+  /** True when the user explicitly chose this workout — protects the day from reschedule. */
+  manually_set?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -937,6 +939,7 @@ export async function upsertWorkoutDailyOverride(
     target_minutes: patch.target_minutes,
     difficulty_mode: patch.difficulty_mode,
     location: patch.location,
+    manually_set: patch.manually_set,
     created_at: now,
     updated_at: now,
   };

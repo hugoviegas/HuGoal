@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   FlatList,
   Image,
   Modal,
@@ -10,17 +11,35 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ArrowLeft, Check, Search, Settings2, X } from "lucide-react-native";
+import {
+  AlertCircle,
+  ArrowLeft,
+  Ban,
+  Calendar,
+  Check,
+  Clock,
+  Dumbbell,
+  Home,
+  Layers,
+  MapPin,
+  RefreshCw,
+  Search,
+  Trees,
+  Wind,
+  X,
+} from "lucide-react-native";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { OptionPicker } from "@/components/ui/OptionPicker";
 import { useAuthStore } from "@/stores/auth.store";
+import { useNavigationStore } from "@/stores/navigation.store";
 import { useThemeStore } from "@/stores/theme.store";
 import { useToastStore } from "@/stores/toast.store";
 import {
   loadExerciseCache,
   type CachedLibraryExercise,
 } from "@/lib/workouts/exercise-cache";
+import { rescheduleWorkouts } from "@/lib/workouts/reschedule-workouts";
 import type {
   EquipmentType,
   FitnessLevel,
@@ -29,6 +48,8 @@ import type {
   WorkoutLocationProfile,
   WorkoutSettings,
 } from "@/types";
+
+// ─── Constants ───────────────────────────────────────────────────────────────
 
 const WEEK_DAYS = [
   { id: 0, label: "Mon" },
@@ -82,20 +103,20 @@ const EXPERIENCE_TIME_OPTIONS: {
   label: string;
   description: string;
 }[] = [
-  { value: "0_6_months", label: "0-6 months", description: "Initial phase" },
+  { value: "0_6_months", label: "0–6 mo", description: "Initial phase" },
   {
     value: "6_12_months",
-    label: "6-12 months",
+    label: "6–12 mo",
     description: "Developing consistency",
   },
   {
     value: "1_2_years",
-    label: "1-2 years",
+    label: "1–2 yr",
     description: "Good base",
   },
   {
     value: "2_plus_years",
-    label: "2+ years",
+    label: "2+ yr",
     description: "Long-term training",
   },
 ];
@@ -141,6 +162,8 @@ function toSettingsDate(): string {
   return new Date().toISOString();
 }
 
+// ─── Screen ───────────────────────────────────────────────────────────────────
+
 export default function WorkoutSettingsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ mode?: string }>();
@@ -151,10 +174,19 @@ export default function WorkoutSettingsScreen() {
   const profile = useAuthStore((s) => s.profile);
   const setWorkoutSettings = useAuthStore((s) => s.setWorkoutSettings);
   const showToast = useToastStore((s) => s.show);
+  const setNavbarVisible = useNavigationStore((s) => s.setNavbarVisible);
 
   const isOnboardingMode = params.mode === "onboarding";
 
+  // ── Part 1: Hide TabBar on mount ──────────────────────────────────────────
+  useEffect(() => {
+    setNavbarVisible(false);
+    return () => setNavbarVisible(true);
+  }, [setNavbarVisible]);
+
+  // ── Form state ────────────────────────────────────────────────────────────
   const [isSaving, setIsSaving] = useState(false);
+  const [isRescheduling, setIsRescheduling] = useState(false);
   const [catalog, setCatalog] = useState<CachedLibraryExercise[]>([]);
   const [isCatalogLoading, setIsCatalogLoading] = useState(true);
 
@@ -178,37 +210,29 @@ export default function WorkoutSettingsScreen() {
   const [exclusionModalOpen, setExclusionModalOpen] = useState(false);
   const [search, setSearch] = useState("");
 
+  // Load exercise catalog
   useEffect(() => {
     let isMounted = true;
-
     const loadCatalog = async () => {
       setIsCatalogLoading(true);
       try {
         const loaded = await loadExerciseCache();
-        if (isMounted) {
-          setCatalog(loaded);
-        }
+        if (isMounted) setCatalog(loaded);
       } catch {
-        if (isMounted) {
-          showToast("Could not load exercise data", "error");
-        }
+        if (isMounted) showToast("Could not load exercise data", "error");
       } finally {
-        if (isMounted) {
-          setIsCatalogLoading(false);
-        }
+        if (isMounted) setIsCatalogLoading(false);
       }
     };
-
     void loadCatalog();
-
     return () => {
       isMounted = false;
     };
   }, [showToast]);
 
+  // Seed form from profile
   useEffect(() => {
     if (!profile) return;
-
     const current = profile.workout_settings;
     if (current) {
       setLocations(current.locations ?? []);
@@ -223,8 +247,6 @@ export default function WorkoutSettingsScreen() {
       setExcludedExerciseIds(current.excluded_exercise_ids ?? []);
       return;
     }
-
-    // Bootstrap with existing profile data for backward compatibility.
     setTrainingDaysPerWeek(profile.available_days_per_week ?? 3);
     setExperienceLevel(profile.level);
     if (profile.injuries) {
@@ -240,27 +262,23 @@ export default function WorkoutSettingsScreen() {
     }
   }, [profile]);
 
+  // Trim selected days when count decreases
   useEffect(() => {
     if (trainingDays.length <= trainingDaysPerWeek) return;
     setTrainingDays((prev) => prev.slice(0, trainingDaysPerWeek));
   }, [trainingDays.length, trainingDaysPerWeek]);
 
+  // ── Derived ───────────────────────────────────────────────────────────────
   const uniqueEquipment = useMemo<EquipmentType[]>(() => {
     const fromCatalog = new Set<EquipmentType>();
     for (const exercise of catalog) {
       for (const equipment of exercise.equipment) {
-        if (equipment !== "none") {
-          fromCatalog.add(equipment);
-        }
+        if (equipment !== "none") fromCatalog.add(equipment);
       }
     }
-
     const list = Array.from(fromCatalog);
     if (list.length === 0) return DEFAULT_GYM_EQUIPMENT;
-
-    return list.sort((left, right) => {
-      return EQUIPMENT_LABELS[left].localeCompare(EQUIPMENT_LABELS[right]);
-    });
+    return list.sort((a, b) => EQUIPMENT_LABELS[a].localeCompare(EQUIPMENT_LABELS[b]));
   }, [catalog]);
 
   const filteredExercises = useMemo(() => {
@@ -268,10 +286,7 @@ export default function WorkoutSettingsScreen() {
     const base =
       term.length === 0
         ? catalog
-        : catalog.filter((exercise) =>
-            exercise.name.toLowerCase().includes(term),
-          );
-
+        : catalog.filter((ex) => ex.name.toLowerCase().includes(term));
     return base.slice(0, 200);
   }, [catalog, search]);
 
@@ -284,25 +299,20 @@ export default function WorkoutSettingsScreen() {
     trainingDays.length === trainingDaysPerWeek &&
     !!trainingHoursPerDay;
 
+  // ── Handlers ──────────────────────────────────────────────────────────────
   const toggleLocation = (location: WorkoutLocationProfile) => {
     setLocations((prev) => {
       const isSelected = prev.includes(location);
       const next = isSelected
         ? prev.filter((item) => item !== location)
         : [...prev, location];
-
       if (!isSelected) {
         setEquipmentByLocation((old) => {
           if (old[location]) return old;
-
-          if (location === "gym") {
-            return { ...old, [location]: [...uniqueEquipment] };
-          }
-
+          if (location === "gym") return { ...old, [location]: [...uniqueEquipment] };
           return { ...old, [location]: ["bodyweight"] };
         });
       }
-
       return next;
     });
   };
@@ -312,26 +322,18 @@ export default function WorkoutSettingsScreen() {
       if (prev.includes(day)) {
         return prev.filter((item) => item !== day).sort((a, b) => a - b);
       }
-
       if (prev.length >= trainingDaysPerWeek) {
-        showToast(
-          `Select up to ${trainingDaysPerWeek} training day(s)`,
-          "info",
-        );
+        showToast(`Select up to ${trainingDaysPerWeek} training day(s)`, "info");
         return prev;
       }
-
       return [...prev, day].sort((a, b) => a - b);
     });
   };
 
   const toggleLimitation = (item: string) => {
-    setLimitations((prev) => {
-      if (prev.includes(item)) {
-        return prev.filter((value) => value !== item);
-      }
-      return [...prev, item];
-    });
+    setLimitations((prev) =>
+      prev.includes(item) ? prev.filter((v) => v !== item) : [...prev, item],
+    );
   };
 
   const toggleEquipmentForLocation = (
@@ -341,24 +343,21 @@ export default function WorkoutSettingsScreen() {
     setEquipmentByLocation((prev) => {
       const current = prev[location] ?? [];
       const has = current.includes(equipment);
-      const next = has
-        ? current.filter((item) => item !== equipment)
-        : [...current, equipment];
-
       return {
         ...prev,
-        [location]: next,
+        [location]: has
+          ? current.filter((item) => item !== equipment)
+          : [...current, equipment],
       };
     });
   };
 
   const toggleExcludedExercise = (exerciseId: string) => {
-    setExcludedExerciseIds((prev) => {
-      if (prev.includes(exerciseId)) {
-        return prev.filter((id) => id !== exerciseId);
-      }
-      return [...prev, exerciseId];
-    });
+    setExcludedExerciseIds((prev) =>
+      prev.includes(exerciseId)
+        ? prev.filter((id) => id !== exerciseId)
+        : [...prev, exerciseId],
+    );
   };
 
   const save = async () => {
@@ -366,15 +365,10 @@ export default function WorkoutSettingsScreen() {
       showToast("Sign in required", "error");
       return;
     }
-
     if (!isValid) {
-      showToast(
-        "Complete locations, weekly days and hours to continue",
-        "error",
-      );
+      showToast("Complete locations, weekly days and hours to continue", "error");
       return;
     }
-
     const preparedEquipmentByLocation = locations.reduce(
       (acc, location) => {
         acc[location] = equipmentByLocation[location] ?? [];
@@ -382,7 +376,6 @@ export default function WorkoutSettingsScreen() {
       },
       {} as Partial<Record<WorkoutLocationProfile, EquipmentType[]>>,
     );
-
     const settings: WorkoutSettings = {
       completed: true,
       locations,
@@ -392,23 +385,17 @@ export default function WorkoutSettingsScreen() {
       experience_level: experienceLevel,
       experience_time_range: experienceTimeRange,
       limitations,
-      limitations_other: limitations.includes("Other")
-        ? limitationsOther.trim()
-        : "",
+      limitations_other: limitations.includes("Other") ? limitationsOther.trim() : "",
       equipment_by_location: preparedEquipmentByLocation,
       excluded_exercise_ids: excludedExerciseIds,
       updated_at: toSettingsDate(),
     };
-
     setIsSaving(true);
     try {
       await setWorkoutSettings(settings);
       showToast("Workout settings saved", "success");
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace("/(tabs)/workouts");
-      }
+      if (router.canGoBack()) router.back();
+      else router.replace("/(tabs)/workouts");
     } catch {
       showToast("Could not save workout settings", "error");
     } finally {
@@ -416,11 +403,47 @@ export default function WorkoutSettingsScreen() {
     }
   };
 
+  const handleReschedule = () => {
+    if (!user?.uid) return;
+    Alert.alert(
+      "Reschedule workouts?",
+      "This will regenerate workouts for today and the next two weeks. Past and completed workouts will not change.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Confirm",
+          onPress: async () => {
+            setIsRescheduling(true);
+            try {
+              await rescheduleWorkouts(
+                user.uid,
+                [...trainingDays].sort((a, b) => a - b),
+              );
+              showToast("Workouts rescheduled", "success");
+              if (router.canGoBack()) router.back();
+              else router.replace("/(tabs)/workouts");
+            } catch {
+              showToast("Could not reschedule workouts", "error");
+            } finally {
+              setIsRescheduling(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  // ── Sub-components ────────────────────────────────────────────────────────
+
   const SectionCard = ({
+    icon,
     title,
+    subtitle,
     children,
   }: {
+    icon?: React.ReactNode;
     title: string;
+    subtitle?: string;
     children: React.ReactNode;
   }) => (
     <View
@@ -429,23 +452,42 @@ export default function WorkoutSettingsScreen() {
         borderColor: colors.cardBorder,
         borderWidth: 1,
         borderRadius: 16,
-        padding: 14,
-        gap: 12,
+        padding: 16,
+        gap: 14,
       }}
     >
-      <Text
-        style={{
-          color: colors.foreground,
-          fontSize: 16,
-          fontWeight: "700",
-        }}
-      >
-        {title}
-      </Text>
+      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
+        {icon ? (
+          <View style={{ marginTop: 1 }}>{icon}</View>
+        ) : null}
+        <View style={{ flex: 1 }}>
+          <Text
+            style={{ color: colors.foreground, fontSize: 15, fontWeight: "700" }}
+          >
+            {title}
+          </Text>
+          {subtitle ? (
+            <Text
+              style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 2 }}
+            >
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
+      </View>
       {children}
     </View>
   );
 
+  // Icon map for location cards (rendered inside component for colors access)
+  const locationIconMap: Record<WorkoutLocationProfile, React.ReactNode> = {
+    home: <Home size={22} color={colors.primary} />,
+    gym: <Dumbbell size={22} color={colors.primary} />,
+    outdoor: <Trees size={22} color={colors.primary} />,
+    studio: <Layers size={22} color={colors.primary} />,
+  };
+
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView
@@ -453,24 +495,24 @@ export default function WorkoutSettingsScreen() {
         contentContainerStyle={{
           paddingTop: insets.top + 12,
           paddingHorizontal: 16,
-          paddingBottom: insets.bottom + 28,
+          paddingBottom: insets.bottom + 32,
           gap: 14,
         }}
         showsVerticalScrollIndicator={false}
       >
+        {/* ── Header ── */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
             onPress={() => {
-              if (router.canGoBack()) {
-                router.back();
-                return;
-              }
-              router.replace("/(tabs)/workouts");
+              if (router.canGoBack()) router.back();
+              else router.replace("/(tabs)/workouts");
             }}
             style={{
-              width: 34,
-              height: 34,
-              borderRadius: 10,
+              width: 40,
+              height: 40,
+              borderRadius: 12,
               alignItems: "center",
               justifyContent: "center",
               backgroundColor: colors.secondary,
@@ -481,50 +523,60 @@ export default function WorkoutSettingsScreen() {
 
           <View style={{ flex: 1 }}>
             <Text
-              style={{
-                color: colors.foreground,
-                fontSize: 22,
-                fontWeight: "800",
-              }}
+              style={{ color: colors.foreground, fontSize: 22, fontWeight: "800" }}
             >
               {isOnboardingMode ? "Workout Setup" : "Workout Settings"}
             </Text>
             <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
               {isOnboardingMode
-                ? "Configure your training profile to personalize workouts"
-                : "Manage profile, equipment and exercise filters"}
+                ? "Configure your training profile to personalise workouts"
+                : "Manage locations, schedule and exercise filters"}
             </Text>
           </View>
-          <Settings2 size={18} color={colors.mutedForeground} />
         </View>
 
-        <SectionCard title="Where do you usually train?">
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+        {/* ── Section 1: Location ── */}
+        <SectionCard
+          icon={<MapPin size={16} color={colors.primary} />}
+          title="Where do you train?"
+          subtitle="Select all the places you work out"
+        >
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
             {LOCATION_OPTIONS.map((option) => {
               const selected = locations.includes(option.value);
               return (
                 <Pressable
                   key={option.value}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${option.label} — ${option.description}${selected ? ", selected" : ""}`}
                   onPress={() => toggleLocation(option.value)}
                   style={{
-                    borderRadius: 999,
-                    borderWidth: 1,
+                    width: "47%",
+                    borderRadius: 14,
+                    borderWidth: selected ? 2 : 1,
                     borderColor: selected ? colors.primary : colors.cardBorder,
                     backgroundColor: selected
-                      ? `${colors.primary}1A`
-                      : colors.background,
-                    paddingHorizontal: 12,
-                    paddingVertical: 8,
+                      ? colors.primary + "18"
+                      : colors.surface,
+                    padding: 14,
+                    gap: 8,
+                    alignItems: "flex-start",
                   }}
                 >
+                  {locationIconMap[option.value]}
                   <Text
                     style={{
                       color: selected ? colors.primary : colors.foreground,
+                      fontSize: 14,
                       fontWeight: "700",
-                      fontSize: 13,
                     }}
                   >
                     {option.label}
+                  </Text>
+                  <Text
+                    style={{ color: colors.mutedForeground, fontSize: 12 }}
+                  >
+                    {option.description}
                   </Text>
                 </Pressable>
               );
@@ -532,69 +584,89 @@ export default function WorkoutSettingsScreen() {
           </View>
         </SectionCard>
 
-        <SectionCard title="Training frequency and days">
-          <View style={{ gap: 10 }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
+        {/* ── Section 2: Training frequency & days ── */}
+        <SectionCard
+          icon={<Calendar size={16} color={colors.primary} />}
+          title="Training schedule"
+          subtitle="How many days per week and which ones"
+        >
+          {/* Days-per-week number picker */}
+          <View style={{ gap: 8 }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "600" }}>
               Days per week
             </Text>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-              {Array.from({ length: 7 }, (_, index) => index + 1).map(
-                (value) => {
-                  const selected = trainingDaysPerWeek === value;
-                  return (
-                    <Pressable
-                      key={`days-count-${value}`}
-                      onPress={() => setTrainingDaysPerWeek(value)}
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              {Array.from({ length: 7 }, (_, i) => i + 1).map((value) => {
+                const selected = trainingDaysPerWeek === value;
+                return (
+                  <Pressable
+                    key={`count-${value}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${value} day${value > 1 ? "s" : ""} per week${selected ? ", selected" : ""}`}
+                    onPress={() => setTrainingDaysPerWeek(value)}
+                    style={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: 10,
+                      borderWidth: selected ? 2 : 1,
+                      borderColor: selected ? colors.primary : colors.cardBorder,
+                      backgroundColor: selected ? colors.primary + "18" : colors.surface,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text
                       style={{
-                        width: 34,
-                        height: 34,
-                        borderRadius: 10,
-                        borderWidth: 1,
-                        borderColor: selected
-                          ? colors.primary
-                          : colors.cardBorder,
-                        backgroundColor: selected
-                          ? `${colors.primary}1A`
-                          : colors.background,
-                        alignItems: "center",
-                        justifyContent: "center",
+                        color: selected ? colors.primary : colors.foreground,
+                        fontWeight: "800",
+                        fontSize: 14,
                       }}
                     >
-                      <Text
-                        style={{
-                          color: selected ? colors.primary : colors.foreground,
-                          fontWeight: "800",
-                        }}
-                      >
-                        {value}
-                      </Text>
-                    </Pressable>
-                  );
-                },
-              )}
+                      {value}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
+          </View>
 
-            <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
-              Select exact training days (Monday first)
-            </Text>
+          {/* Day-of-week pills */}
+          <View style={{ gap: 8 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "600" }}>
+                Which days? (Mon–Sun)
+              </Text>
+              <Text
+                style={{
+                  color:
+                    trainingDays.length === trainingDaysPerWeek
+                      ? colors.primary
+                      : colors.mutedForeground,
+                  fontSize: 12,
+                  fontWeight: "600",
+                }}
+              >
+                {trainingDays.length} of {trainingDaysPerWeek} selected
+              </Text>
+            </View>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
               {WEEK_DAYS.map((day) => {
                 const selected = trainingDays.includes(day.id);
                 return (
                   <Pressable
-                    key={`weekday-${day.id}`}
+                    key={`day-${day.id}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${day.label}${selected ? ", selected" : ""}`}
                     onPress={() => toggleTrainingDay(day.id)}
                     style={{
                       borderRadius: 999,
-                      borderWidth: 1,
-                      borderColor: selected
-                        ? colors.primary
-                        : colors.cardBorder,
-                      backgroundColor: selected
-                        ? `${colors.primary}1A`
-                        : colors.background,
-                      paddingHorizontal: 12,
-                      paddingVertical: 8,
+                      borderWidth: selected ? 2 : 1,
+                      borderColor: selected ? colors.primary : colors.cardBorder,
+                      backgroundColor: selected ? colors.primary + "18" : colors.surface,
+                      paddingHorizontal: 14,
+                      paddingVertical: 9,
+                      minWidth: 44,
+                      alignItems: "center",
                     }}
                   >
                     <Text
@@ -613,49 +685,110 @@ export default function WorkoutSettingsScreen() {
           </View>
         </SectionCard>
 
-        <SectionCard title="How long do you train each day?">
-          <OptionPicker
-            options={HOURS_OPTIONS}
-            value={trainingHoursPerDay}
-            onChange={setTrainingHoursPerDay}
-            columns={2}
-          />
+        {/* ── Section 3: Session duration ── */}
+        <SectionCard
+          icon={<Clock size={16} color={colors.primary} />}
+          title="Session duration"
+          subtitle="How long do you train each day?"
+        >
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8 }}
+          >
+            {HOURS_OPTIONS.map((option) => {
+              const selected = trainingHoursPerDay === option.value;
+              return (
+                <Pressable
+                  key={option.value}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${option.label}${selected ? ", selected" : ""}`}
+                  onPress={() => setTrainingHoursPerDay(option.value)}
+                  style={{
+                    borderRadius: 12,
+                    borderWidth: selected ? 2 : 1,
+                    borderColor: selected ? colors.primary : colors.cardBorder,
+                    backgroundColor: selected ? colors.primary + "18" : colors.surface,
+                    paddingHorizontal: 16,
+                    paddingVertical: 10,
+                    alignItems: "center",
+                    minWidth: 80,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: selected ? colors.primary : colors.foreground,
+                      fontWeight: "700",
+                      fontSize: 14,
+                    }}
+                  >
+                    {option.label}
+                  </Text>
+                  <Text
+                    style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }}
+                  >
+                    {option.description}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
         </SectionCard>
 
-        <SectionCard title="Experience level">
-          <View style={{ gap: 12 }}>
+        {/* ── Section 4: Experience (level + time range grouped) ── */}
+        <SectionCard
+          icon={<Dumbbell size={16} color={colors.primary} />}
+          title="Experience"
+          subtitle="Your current training level and time in sport"
+        >
+          <View style={{ gap: 16 }}>
             <OptionPicker
+              label="Level"
               options={EXPERIENCE_LEVEL_OPTIONS}
               value={experienceLevel}
-              onChange={(value) => setExperienceLevel(value)}
+              onChange={setExperienceLevel}
               columns={3}
             />
+            <View
+              style={{
+                height: 1,
+                backgroundColor: colors.cardBorder,
+                marginHorizontal: -2,
+              }}
+            />
             <OptionPicker
+              label="Time training"
               options={EXPERIENCE_TIME_OPTIONS}
               value={experienceTimeRange}
-              onChange={(value) => setExperienceTimeRange(value)}
+              onChange={setExperienceTimeRange}
               columns={2}
             />
           </View>
         </SectionCard>
 
-        <SectionCard title="Pain or limitations">
+        {/* ── Section 5: Physical limitations ── */}
+        <SectionCard
+          icon={<AlertCircle size={16} color={colors.primary} />}
+          title="Pain or limitations"
+          subtitle="Select any areas to take it easy on"
+        >
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {LIMITATIONS_OPTIONS.map((item) => {
               const selected = limitations.includes(item);
               return (
                 <Pressable
                   key={item}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${item}${selected ? ", selected" : ""}`}
                   onPress={() => toggleLimitation(item)}
                   style={{
                     borderRadius: 999,
-                    borderWidth: 1,
+                    borderWidth: selected ? 2 : 1,
                     borderColor: selected ? colors.primary : colors.cardBorder,
-                    backgroundColor: selected
-                      ? `${colors.primary}1A`
-                      : colors.background,
-                    paddingHorizontal: 12,
+                    backgroundColor: selected ? colors.primary + "18" : colors.surface,
+                    paddingHorizontal: 13,
                     paddingVertical: 8,
+                    minWidth: 44,
                   }}
                 >
                   <Text
@@ -682,59 +815,73 @@ export default function WorkoutSettingsScreen() {
           ) : null}
         </SectionCard>
 
-        <SectionCard title="Equipment by location">
+        {/* ── Section 6: Equipment by location ── */}
+        <SectionCard
+          icon={<MapPin size={16} color={colors.primary} />}
+          title="Equipment"
+          subtitle="What gear is available at each location?"
+        >
           {locations.length === 0 ? (
-            <Text style={{ color: colors.mutedForeground }}>
-              Select at least one location above.
+            <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>
+              Select at least one location above to configure equipment.
             </Text>
           ) : (
-            <View style={{ gap: 14 }}>
+            <View style={{ gap: 18 }}>
               {locations.map((location) => {
                 const selectedEquipment = equipmentByLocation[location] ?? [];
                 return (
                   <View key={`equipment-${location}`} style={{ gap: 8 }}>
-                    <Text
-                      style={{
-                        color: colors.foreground,
-                        fontWeight: "700",
-                        fontSize: 13,
-                      }}
-                    >
-                      {titleCaseLocation(location)} equipment
-                    </Text>
+                    {/* Location label */}
                     <View
                       style={{
                         flexDirection: "row",
-                        flexWrap: "wrap",
-                        gap: 8,
+                        alignItems: "center",
+                        gap: 6,
+                        paddingBottom: 4,
+                        borderBottomWidth: 1,
+                        borderBottomColor: colors.cardBorder,
                       }}
                     >
+                      {locationIconMap[location]}
+                      <Text
+                        style={{
+                          color: colors.foreground,
+                          fontWeight: "700",
+                          fontSize: 13,
+                        }}
+                      >
+                        {titleCaseLocation(location)}
+                      </Text>
+                    </View>
+                    {/* Equipment pills */}
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
                       {uniqueEquipment.map((equipment) => {
                         const selected = selectedEquipment.includes(equipment);
                         return (
                           <Pressable
                             key={`${location}-${equipment}`}
+                            accessibilityRole="button"
+                            accessibilityLabel={`${EQUIPMENT_LABELS[equipment]}${selected ? ", selected" : ""}`}
                             onPress={() =>
                               toggleEquipmentForLocation(location, equipment)
                             }
                             style={{
                               borderRadius: 999,
-                              borderWidth: 1,
+                              borderWidth: selected ? 2 : 1,
                               borderColor: selected
                                 ? colors.primary
                                 : colors.cardBorder,
                               backgroundColor: selected
-                                ? `${colors.primary}1A`
-                                : colors.background,
-                              paddingHorizontal: 10,
+                                ? colors.primary + "18"
+                                : colors.surface,
+                              paddingHorizontal: 11,
                               paddingVertical: 7,
+                              minWidth: 44,
                             }}
                           >
                             <Text
                               style={{
-                                color: selected
-                                  ? colors.primary
-                                  : colors.foreground,
+                                color: selected ? colors.primary : colors.foreground,
                                 fontSize: 12,
                                 fontWeight: "700",
                               }}
@@ -752,38 +899,110 @@ export default function WorkoutSettingsScreen() {
           )}
         </SectionCard>
 
+        {/* ── Section 7: Excluded exercises (non-onboarding) ── */}
         {!isOnboardingMode ? (
-          <SectionCard title="Exercise exclusions">
-            <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>
-              Exclude exercises from recommendations and generated plans.
-            </Text>
-            <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+          <SectionCard
+            icon={<Ban size={16} color={colors.primary} />}
+            title="Excluded exercises"
+            subtitle="Remove exercises from all generated plans"
+          >
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Select excluded exercises. ${selectedExcludedCount} selected`}
+              onPress={() => setExclusionModalOpen(true)}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 10,
+                paddingVertical: 12,
+                paddingHorizontal: 14,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: colors.cardBorder,
+                backgroundColor: colors.surface,
+              }}
             >
-              <Button
-                variant="outline"
-                onPress={() => setExclusionModalOpen(true)}
-                style={{ flex: 1 } as any}
+              <Ban size={16} color={colors.mutedForeground} />
+              <Text
+                style={{
+                  flex: 1,
+                  color: colors.foreground,
+                  fontSize: 14,
+                  fontWeight: "600",
+                }}
               >
-                Select excluded exercises
-              </Button>
-            </View>
-            <Text style={{ color: colors.foreground, fontWeight: "700" }}>
-              Selected: {selectedExcludedCount}
-            </Text>
+                Choose exercises to exclude
+              </Text>
+              {selectedExcludedCount > 0 ? (
+                <View
+                  style={{
+                    backgroundColor: colors.primary + "22",
+                    borderRadius: 999,
+                    paddingHorizontal: 9,
+                    paddingVertical: 3,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: colors.primary,
+                      fontSize: 12,
+                      fontWeight: "700",
+                    }}
+                  >
+                    {selectedExcludedCount} excluded
+                  </Text>
+                </View>
+              ) : null}
+            </Pressable>
           </SectionCard>
         ) : null}
 
+        {/* ── Part 3: Reschedule button (non-onboarding) ── */}
+        {!isOnboardingMode ? (
+          <Button
+            variant="outline"
+            size="lg"
+            onPress={handleReschedule}
+            isLoading={isRescheduling}
+            disabled={isRescheduling || !isValid}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+              }}
+            >
+              <RefreshCw
+                size={16}
+                color={isDark ? colors.foreground : colors.foreground}
+              />
+              <Text
+                style={{
+                  color: colors.foreground,
+                  fontWeight: "700",
+                  fontSize: 16,
+                }}
+              >
+                Reschedule This Week
+              </Text>
+            </View>
+          </Button>
+        ) : null}
+
+        {/* ── Save button ── */}
         <Button
           size="lg"
           onPress={save}
           isLoading={isSaving}
-          disabled={!isValid}
+          disabled={!isValid || isSaving}
         >
           {isOnboardingMode ? "Save and Continue" : "Save Workout Settings"}
         </Button>
       </ScrollView>
 
+      {/* ── Exercise exclusion modal ── */}
       <Modal
         visible={exclusionModalOpen}
         transparent
@@ -826,6 +1045,8 @@ export default function WorkoutSettingsScreen() {
                 Exclude exercises
               </Text>
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Close exclusion picker"
                 onPress={() => setExclusionModalOpen(false)}
                 style={{
                   width: 34,
@@ -868,6 +1089,8 @@ export default function WorkoutSettingsScreen() {
                     item.remote_image_urls?.[0] ?? item.images?.[0] ?? null;
                   return (
                     <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`${item.name}${selected ? ", excluded" : ""}`}
                       onPress={() => toggleExcludedExercise(item.id)}
                       style={{
                         flexDirection: "row",
@@ -933,13 +1156,11 @@ export default function WorkoutSettingsScreen() {
                           height: 24,
                           borderRadius: 12,
                           borderWidth: 1,
-                          borderColor: selected
-                            ? colors.primary
-                            : colors.cardBorder,
+                          borderColor: selected ? colors.primary : colors.cardBorder,
                           alignItems: "center",
                           justifyContent: "center",
                           backgroundColor: selected
-                            ? `${colors.primary}1A`
+                            ? colors.primary + "1A"
                             : "transparent",
                         }}
                       >
@@ -952,10 +1173,6 @@ export default function WorkoutSettingsScreen() {
                 }}
               />
             )}
-
-            <Button onPress={() => setExclusionModalOpen(false)}>
-              Done ({selectedExcludedCount})
-            </Button>
           </View>
         </View>
       </Modal>

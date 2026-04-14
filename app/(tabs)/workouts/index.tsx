@@ -22,6 +22,7 @@ import {
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
+  BedDouble,
   Check,
   ChevronDown,
   ChevronRight,
@@ -30,6 +31,7 @@ import {
   Dumbbell,
   Flame,
   Globe,
+  Lock,
   MapPin,
   Play,
   Settings2,
@@ -37,7 +39,11 @@ import {
   Sparkles,
   Target,
   Timer,
+  TrendingDown,
 } from "lucide-react-native";
+import { Modal } from "@/components/ui/Modal";
+import { useStreakValidator } from "@/hooks/useStreakValidator";
+import type { WorkoutWeekDayAssignment } from "@/lib/workouts/weekly-schedule";
 import { ExerciseInspectModal } from "@/components/workouts/ExerciseInspectModal";
 import {
   clearWorkoutDailyOverride,
@@ -303,6 +309,17 @@ export default function WorkoutsScreen() {
     useState(false);
   const [todayOverride, setTodayOverride] =
     useState<WorkoutDailyOverrideRecord | null>(null);
+  const [selectedDateKey, setSelectedDateKey] = useState<string>(
+    () => formatLocalDateKey(new Date()),
+  );
+  const [weekPlanDayMap, setWeekPlanDayMap] = useState<
+    Map<string, WorkoutWeekDayAssignment>
+  >(new Map());
+
+  const { brokenInfo: streakBrokenInfo, dismiss: dismissStreakAlert } =
+    useStreakValidator();
+
+  const todayDateKey = formatLocalDateKey(new Date());
 
   // Panel slide-up animation
   const COLLAPSED_H = insets.bottom + 144; // pt-3(12) + btn-lg(52) + tabBar(80)
@@ -361,15 +378,44 @@ export default function WorkoutsScreen() {
     todayAssignedTemplateId,
     workouts,
   ]);
-  const focusArea = useMemo(
-    () => resolveFocusArea(todayWorkout),
-    [todayWorkout],
+  // ── Selected-day derived state ─────────────────────────────────
+  const isViewingToday = selectedDateKey === todayDateKey;
+
+  const selectedDayWorkout = useMemo((): WorkoutTemplateRecord | null => {
+    if (isViewingToday) return todayWorkout;
+    const planDay = weekPlanDayMap.get(selectedDateKey);
+    if (planDay?.kind === "workout" && planDay.template_id) {
+      return workouts.find((w) => w.id === planDay.template_id) ?? null;
+    }
+    return null;
+  }, [isViewingToday, todayWorkout, weekPlanDayMap, selectedDateKey, workouts]);
+
+  const isSelectedDayRestOrUnplanned = useMemo((): boolean => {
+    if (isViewingToday) return hasResolvedTodayAssignment && !todayWorkout;
+    const planDay = weekPlanDayMap.get(selectedDateKey);
+    if (planDay) return planDay.kind === "rest";
+    // No plan data for this week — derive from configured training days
+    const selectedDateObj = new Date(selectedDateKey + "T00:00:00");
+    const dayIdx = toMondayFirstIndex(selectedDateObj);
+    return !(profile?.workout_settings?.training_days ?? []).includes(dayIdx);
+  }, [
+    isViewingToday,
+    hasResolvedTodayAssignment,
+    todayWorkout,
+    weekPlanDayMap,
+    selectedDateKey,
+    profile?.workout_settings?.training_days,
+  ]);
+
+  const displayFocusArea = useMemo(
+    () => resolveFocusArea(selectedDayWorkout),
+    [selectedDayWorkout],
   );
-  const sections = useMemo(() => {
-    if (!todayWorkout) return buildSessionSections([]);
-    // Use structured sections when available
-    if (todayWorkout.sections && todayWorkout.sections.length > 0) {
-      return todayWorkout.sections
+
+  const displaySections = useMemo(() => {
+    if (!selectedDayWorkout) return buildSessionSections([]);
+    if (selectedDayWorkout.sections && selectedDayWorkout.sections.length > 0) {
+      return selectedDayWorkout.sections
         .slice()
         .sort((a, b) => a.order - b.order)
         .map((section, sectionIndex) => {
@@ -401,8 +447,8 @@ export default function WorkoutsScreen() {
           };
         });
     }
-    return buildSessionSections(todayWorkout.exercises);
-  }, [todayWorkout]);
+    return buildSessionSections(selectedDayWorkout.exercises);
+  }, [selectedDayWorkout]);
   const [pausedTemplateId, setPausedTemplateId] = useState<string | null>(null);
 
   const sessionTargetId =
@@ -463,6 +509,7 @@ export default function WorkoutsScreen() {
     const today = new Date();
     const currentMonday = initialWeekMonday;
     const offsets = [-1, 0, 1];
+    const trainingDays = profile?.workout_settings?.training_days ?? [];
 
     return offsets.map((off) => {
       const monday = new Date(currentMonday);
@@ -475,25 +522,29 @@ export default function WorkoutsScreen() {
           date.getFullYear() === today.getFullYear() &&
           date.getMonth() === today.getMonth() &&
           date.getDate() === today.getDate();
-        const dateStr = date.toISOString().slice(0, 10);
+        const dateStr = formatLocalDateKey(date);
 
         return {
           key: `${off}-${dateStr}`,
+          dateKey: dateStr,
           dayLabel: WEEK_DAYS[idx],
           dayNumber: date.getDate(),
+          dayOfWeekIndex: idx, // 0 = Monday … 6 = Sunday
           isToday,
           isDone: completedDates.has(dateStr),
+          isScheduled: trainingDays.includes(idx),
         };
       });
     });
-  }, [initialWeekMonday, completedDates]);
+  }, [initialWeekMonday, completedDates, profile?.workout_settings?.training_days]);
 
   const heroImageUri = useMemo(() => {
-    if (todayWorkout?.cover_image_url) return todayWorkout.cover_image_url;
-    const firstExercise = todayWorkout?.exercises[0];
+    if (selectedDayWorkout?.cover_image_url)
+      return selectedDayWorkout.cover_image_url;
+    const firstExercise = selectedDayWorkout?.exercises[0];
     if (!firstExercise) return null;
     return catalogById[firstExercise.id]?.remote_image_urls?.[0] ?? null;
-  }, [catalogById, todayWorkout]);
+  }, [catalogById, selectedDayWorkout]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -540,6 +591,15 @@ export default function WorkoutsScreen() {
         setHasResolvedTodayAssignment(true);
         setTodayAssignedTemplateId(resolution.resolvedTemplateId);
         setTodayOverride(resolution.override);
+
+        const dayMap = new Map<string, WorkoutWeekDayAssignment>();
+        for (const day of resolution.currentWeekPlan.days) {
+          dayMap.set(day.date, day);
+        }
+        for (const day of resolution.nextWeekPlan.days) {
+          dayMap.set(day.date, day);
+        }
+        setWeekPlanDayMap(dayMap);
       } else {
         setHasResolvedTodayAssignment(false);
         setTodayAssignedTemplateId(null);
@@ -602,6 +662,8 @@ export default function WorkoutsScreen() {
         target_minutes: extra.target_minutes,
         difficulty_mode: extra.difficulty_mode,
         location: extra.location,
+        // All overrides through this function are user-initiated — protect from auto-reschedule.
+        manually_set: extra.source_type !== "auto_no_active_day",
       });
 
       setTodayAssignedTemplateId(template.id);
@@ -1048,8 +1110,8 @@ export default function WorkoutsScreen() {
 
   const inspectExercise = useMemo(() => {
     if (!inspectId) return null;
-    // find from today's sections
-    for (const sec of sections) {
+    // find from displayed day's sections
+    for (const sec of displaySections) {
       const found = sec.exercises.find((e) => e.id === inspectId);
       if (found) return found;
     }
@@ -1066,7 +1128,7 @@ export default function WorkoutsScreen() {
         };
     }
     return null;
-  }, [inspectId, sections, workouts]);
+  }, [inspectId, displaySections, workouts]);
 
   return (
     <View className="flex-1 bg-light-bg dark:bg-dark-bg">
@@ -1185,17 +1247,23 @@ export default function WorkoutsScreen() {
                 {days.map((item) => {
                   const filled = item.isDone;
                   const today = item.isToday;
+                  const isSelected = item.dateKey === selectedDateKey;
+                  const isActive = today || isSelected;
                   return (
-                    <View
+                    <Pressable
                       key={item.key}
-                      style={{ alignItems: "center", minWidth: 40 }}
+                      onPress={() => setSelectedDateKey(item.dateKey)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${item.dayLabel} ${item.dayNumber}${today ? ", today" : ""}${filled ? ", completed" : ""}${item.isScheduled ? ", workout scheduled" : ", rest day"}`}
+                      style={{ alignItems: "center", minWidth: 40, paddingVertical: 4 }}
                     >
+                      {/* Day-of-week label */}
                       <Text
                         style={{
                           fontSize: 11,
                           fontWeight: "500",
                           marginBottom: 5,
-                          color: today
+                          color: isActive
                             ? colors.primary
                             : isDark
                               ? "#4b5563"
@@ -1204,6 +1272,8 @@ export default function WorkoutsScreen() {
                       >
                         {item.dayLabel}
                       </Text>
+
+                      {/* Day-number circle */}
                       <View
                         style={{
                           width: 32,
@@ -1217,11 +1287,11 @@ export default function WorkoutsScreen() {
                               : isDark
                                 ? "rgba(14,165,176,0.22)"
                                 : "rgba(14,165,176,0.14)"
-                            : today
-                              ? "transparent"
-                              : "transparent",
-                          borderWidth: today && !filled ? 1.5 : 0,
-                          borderColor: colors.primary,
+                            : "transparent",
+                          borderWidth: !filled && isActive ? 1.5 : 0,
+                          borderColor: today
+                            ? colors.primary
+                            : "rgba(14,165,176,0.45)",
                         }}
                       >
                         {filled && today ? (
@@ -1230,12 +1300,12 @@ export default function WorkoutsScreen() {
                           <Text
                             style={{
                               fontSize: 13,
-                              fontWeight: today || filled ? "700" : "400",
+                              fontWeight: isActive || filled ? "700" : "400",
                               color: filled
                                 ? today
                                   ? "#fff"
                                   : colors.primary
-                                : today
+                                : isActive
                                   ? colors.primary
                                   : isDark
                                     ? "#d1d5db"
@@ -1246,7 +1316,32 @@ export default function WorkoutsScreen() {
                           </Text>
                         )}
                       </View>
-                    </View>
+
+                      {/* Scheduled-workout dot indicator */}
+                      <View
+                        style={{
+                          height: 5,
+                          marginTop: 3,
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        {item.isScheduled && !filled ? (
+                          <View
+                            style={{
+                              width: 4,
+                              height: 4,
+                              borderRadius: 2,
+                              backgroundColor: isActive
+                                ? colors.primary
+                                : isDark
+                                  ? "#4b5563"
+                                  : "#cbd5e1",
+                            }}
+                          />
+                        ) : null}
+                      </View>
+                    </Pressable>
                   );
                 })}
               </View>
@@ -1284,7 +1379,65 @@ export default function WorkoutsScreen() {
               Try again
             </Button>
           </View>
-        ) : !todayWorkout ? (
+        ) : !isViewingToday && isSelectedDayRestOrUnplanned ? (
+          /* ── Rest day view (Feature 2) ── */
+          <View
+            className={cn(
+              "rounded-3xl p-6 mb-5 items-center",
+              isDark ? "bg-dark-card" : "bg-light-card",
+            )}
+          >
+            <View
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: isDark
+                  ? "rgba(99,102,241,0.15)"
+                  : "rgba(99,102,241,0.08)",
+                marginBottom: 14,
+              }}
+            >
+              <BedDouble size={26} color={isDark ? "#a5b4fc" : "#6366f1"} />
+            </View>
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: "700",
+                color: isDark ? "#f3f4f6" : "#111827",
+                marginBottom: 6,
+                textAlign: "center",
+              }}
+            >
+              Rest Day
+            </Text>
+            <Text
+              style={{
+                fontSize: 14,
+                color: isDark ? "#9ca3af" : "#6b7280",
+                textAlign: "center",
+                lineHeight: 20,
+              }}
+            >
+              Recovery is part of the plan. Your body grows stronger on rest
+              days.
+            </Text>
+            <Text
+              style={{
+                fontSize: 12,
+                color: isDark ? "#4b5563" : "#9ca3af",
+                textAlign: "center",
+                marginTop: 12,
+                lineHeight: 18,
+              }}
+            >
+              Single exercises and custom sessions will be available in a future
+              update.
+            </Text>
+          </View>
+        ) : !selectedDayWorkout ? (
           <View
             className={cn(
               "rounded-3xl p-5 mb-5",
@@ -1292,32 +1445,36 @@ export default function WorkoutsScreen() {
             )}
           >
             <Text className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-              No workout planned yet
+              {isViewingToday ? "No workout planned yet" : "No workout assigned"}
             </Text>
             <Text className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-              {hasResolvedTodayAssignment
-                ? "Today is configured as a rest day. You can still start a single workout or explore exercises."
-                : "Create your first template and we will build your daily flow here."}
+              {isViewingToday
+                ? hasResolvedTodayAssignment
+                  ? "Today is configured as a rest day. You can still start a single workout or explore exercises."
+                  : "Create your first template and we will build your daily flow here."
+                : "No specific workout is assigned for this day yet."}
             </Text>
-            <View className="flex-row gap-2 mt-4">
-              <Button
-                className="flex-1"
-                onPress={() => router.push("/workouts/create")}
-              >
-                Create workout
-              </Button>
-              <Button
-                className="flex-1"
-                variant="secondary"
-                onPress={() => router.push("/workouts/explore")}
-              >
-                Explore
-              </Button>
-            </View>
+            {isViewingToday ? (
+              <View className="flex-row gap-2 mt-4">
+                <Button
+                  className="flex-1"
+                  onPress={() => router.push("/workouts/create")}
+                >
+                  Create workout
+                </Button>
+                <Button
+                  className="flex-1"
+                  variant="secondary"
+                  onPress={() => router.push("/workouts/explore")}
+                >
+                  Explore
+                </Button>
+              </View>
+            ) : null}
           </View>
         ) : (
           <>
-            {/* ── Today workout hero card ── */}
+            {/* ── Workout hero card (today or selected day preview) ── */}
             <View
               style={{
                 borderRadius: 24,
@@ -1366,7 +1523,7 @@ export default function WorkoutsScreen() {
                   </View>
                 )}
 
-                {/* Today badge — top left */}
+                {/* Day context badge — top left */}
                 <View style={{ position: "absolute", top: 12, left: 12 }}>
                   <View
                     style={{
@@ -1376,14 +1533,18 @@ export default function WorkoutsScreen() {
                       paddingHorizontal: 10,
                       paddingVertical: 5,
                       borderRadius: 20,
-                      backgroundColor: colors.primary,
+                      backgroundColor: isViewingToday
+                        ? colors.primary
+                        : "rgba(0,0,0,0.55)",
                     }}
                   >
-                    <Flame size={11} color="#fff" />
+                    {isViewingToday ? (
+                      <Flame size={11} color="#fff" />
+                    ) : null}
                     <Text
                       style={{ fontSize: 11, fontWeight: "700", color: "#fff" }}
                     >
-                      Today
+                      {isViewingToday ? "Today" : "Preview"}
                     </Text>
                   </View>
                 </View>
@@ -1395,7 +1556,7 @@ export default function WorkoutsScreen() {
                       paddingHorizontal: 10,
                       paddingVertical: 5,
                       borderRadius: 20,
-                      backgroundColor: todayWorkout.is_active
+                      backgroundColor: selectedDayWorkout.is_active
                         ? "rgba(5,150,105,0.85)"
                         : "rgba(100,116,139,0.75)",
                     }}
@@ -1403,7 +1564,7 @@ export default function WorkoutsScreen() {
                     <Text
                       style={{ fontSize: 11, fontWeight: "700", color: "#fff" }}
                     >
-                      {todayWorkout.is_active ? "Active" : "Inactive"}
+                      {selectedDayWorkout.is_active ? "Active" : "Inactive"}
                     </Text>
                   </View>
                 </View>
@@ -1426,7 +1587,7 @@ export default function WorkoutsScreen() {
                     style={{ fontSize: 20, fontWeight: "700", color: "#fff" }}
                     numberOfLines={1}
                   >
-                    {todayWorkout.name}
+                    {selectedDayWorkout.name}
                   </Text>
                 </View>
               </View>
@@ -1463,7 +1624,7 @@ export default function WorkoutsScreen() {
                         color: isDark ? "#d1d5db" : "#374151",
                       }}
                     >
-                      {todayWorkout.estimated_duration_minutes} min
+                      {selectedDayWorkout.estimated_duration_minutes} min
                     </Text>
                   </View>
                   <View
@@ -1480,7 +1641,7 @@ export default function WorkoutsScreen() {
                         color: isDark ? "#d1d5db" : "#374151",
                       }}
                     >
-                      {sections.reduce((acc, s) => acc + s.exercises.length, 0)}{" "}
+                      {displaySections.reduce((acc, s) => acc + s.exercises.length, 0)}{" "}
                       exercises
                     </Text>
                   </View>
@@ -1498,10 +1659,10 @@ export default function WorkoutsScreen() {
                         color: isDark ? "#d1d5db" : "#374151",
                       }}
                     >
-                      {focusArea}
+                      {displayFocusArea}
                     </Text>
                   </View>
-                  {todayWorkout.location ? (
+                  {selectedDayWorkout.location ? (
                     <View
                       style={{
                         flexDirection: "row",
@@ -1516,11 +1677,11 @@ export default function WorkoutsScreen() {
                           color: isDark ? "#d1d5db" : "#374151",
                         }}
                       >
-                        {todayWorkout.location}
+                        {selectedDayWorkout.location}
                       </Text>
                     </View>
                   ) : null}
-                  {todayWorkout.is_public ? (
+                  {selectedDayWorkout.is_public ? (
                     <View
                       style={{
                         flexDirection: "row",
@@ -1542,7 +1703,9 @@ export default function WorkoutsScreen() {
                 </View>
 
                 <Pressable
-                  onPress={() => router.push(`/workouts/${todayWorkout.id}`)}
+                  onPress={() =>
+                    router.push(`/workouts/${selectedDayWorkout.id}`)
+                  }
                   style={{ marginLeft: 8 }}
                 >
                   <Text
@@ -1571,7 +1734,7 @@ export default function WorkoutsScreen() {
             </Text>
 
             <View style={{ gap: 10, marginBottom: 20 }}>
-              {sections.map((section, sectionIndex) => {
+              {displaySections.map((section, sectionIndex) => {
                 const baseKey = section.key.split("-")[0] as SessionSectionKey;
                 const open = openSections[baseKey];
                 const sectionTheme = isDark
@@ -2005,8 +2168,14 @@ export default function WorkoutsScreen() {
                 <Button
                   className="flex-1"
                   size="lg"
+                  disabled={!isViewingToday}
+                  accessibilityLabel={
+                    isViewingToday
+                      ? `${startActionLabel} workout`
+                      : "Start is only available for today's workout"
+                  }
                   onPress={() => {
-                    if (!sessionTargetId) return;
+                    if (!isViewingToday || !sessionTargetId) return;
                     router.push(`/workouts/${sessionTargetId}/run`);
                   }}
                 >
@@ -2018,15 +2187,21 @@ export default function WorkoutsScreen() {
                       gap: 8,
                     }}
                   >
-                    <Play size={16} color="#ffffff" />
+                    {isViewingToday ? (
+                      <Play size={16} color="#ffffff" />
+                    ) : (
+                      <Lock size={16} color="rgba(255,255,255,0.6)" />
+                    )}
                     <Text
                       style={{
-                        color: "#ffffff",
+                        color: isViewingToday
+                          ? "#ffffff"
+                          : "rgba(255,255,255,0.6)",
                         fontWeight: "600",
                         fontSize: 16,
                       }}
                     >
-                      {startActionLabel}
+                      {isViewingToday ? startActionLabel : "Today only"}
                     </Text>
                   </View>
                 </Button>
@@ -2242,6 +2417,94 @@ export default function WorkoutsScreen() {
           onClose={() => setInspectId(null)}
         />
       ) : null}
+
+      {/* ── Streak broken alert (Feature 3) — once per session ── */}
+      <Modal
+        visible={!!streakBrokenInfo}
+        onClose={dismissStreakAlert}
+      >
+        <View
+          style={{
+            backgroundColor: isDark ? "#1c1f27" : "#ffffff",
+            borderRadius: 20,
+            padding: 24,
+            alignItems: "center",
+            maxWidth: 320,
+          }}
+        >
+          <View
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: 28,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: isDark
+                ? "rgba(239,68,68,0.15)"
+                : "rgba(239,68,68,0.08)",
+              marginBottom: 16,
+            }}
+          >
+            <TrendingDown
+              size={26}
+              color={isDark ? "#f87171" : "#ef4444"}
+            />
+          </View>
+          <Text
+            style={{
+              fontSize: 18,
+              fontWeight: "700",
+              color: isDark ? "#f3f4f6" : "#111827",
+              textAlign: "center",
+              marginBottom: 8,
+            }}
+          >
+            Streak lost
+          </Text>
+          <Text
+            style={{
+              fontSize: 14,
+              color: isDark ? "#9ca3af" : "#6b7280",
+              textAlign: "center",
+              lineHeight: 20,
+              marginBottom: 6,
+            }}
+          >
+            You lost your {streakBrokenInfo?.previousStreak}-day streak.
+          </Text>
+          <Text
+            style={{
+              fontSize: 13,
+              color: isDark ? "#6b7280" : "#9ca3af",
+              textAlign: "center",
+              lineHeight: 18,
+              marginBottom: 20,
+            }}
+          >
+            Every day is a fresh start. Get back on track and build a new
+            streak today.
+          </Text>
+          <Pressable
+            onPress={dismissStreakAlert}
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss streak alert"
+            style={{
+              backgroundColor: colors.primary,
+              borderRadius: 12,
+              paddingVertical: 12,
+              paddingHorizontal: 32,
+              alignSelf: "stretch",
+              alignItems: "center",
+            }}
+          >
+            <Text
+              style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}
+            >
+              {"Let's go"}
+            </Text>
+          </Pressable>
+        </View>
+      </Modal>
     </View>
   );
 }
