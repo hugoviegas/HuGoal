@@ -14,12 +14,24 @@ import { ArrowUp, Mic, MicOff, Paperclip, Play, Send, Square, X } from "lucide-r
 
 import { spacing } from "@/constants/spacing";
 import { typography } from "@/constants/typography";
+import {
+  cancelNutritionAudioRecording,
+  isNativeSpeechRecognitionAvailable,
+  startNutritionAudioRecording,
+  stopNutritionAudioRecordingAndTranscribe,
+  transcribeNutritionAudioFromFile,
+} from "@/lib/ai/speechToText";
 import { useThemeStore } from "@/stores/theme.store";
 import { useToastStore } from "@/stores/toast.store";
 
+export interface AudioRecordedPayload {
+  uri: string;
+  transcript?: string;
+}
+
 export interface ChatInputBarProps {
   onSendText: (text: string) => void;
-  onAudioRecorded: (uri: string) => void;
+  onAudioRecorded: (payload: AudioRecordedPayload) => void;
   onImageSelected: (uri: string) => void;
   disabled?: boolean;
 }
@@ -47,6 +59,9 @@ export function ChatInputBar({
   const [durationSec, setDurationSec] = useState(0);
   const [inputBarHeight, setInputBarHeight] = useState(64);
   const [isSlideCancelCue, setIsSlideCancelCue] = useState(false);
+  const [previewTranscript, setPreviewTranscript] = useState("");
+  const [nativeSpeechSessionStarted, setNativeSpeechSessionStarted] =
+    useState(false);
 
   const recordedUriRef = useRef<string | null>(null);
   const recordingRef = useRef<Audio.Recording | null>(null);
@@ -165,6 +180,7 @@ export function ChatInputBar({
     indicatorTranslateXAnim.setValue(0);
     hasCancelledRef.current = false;
     releasedByPanRef.current = false;
+    setNativeSpeechSessionStarted(false);
   }, [indicatorTranslateXAnim, stopDurationTimer]);
 
   const deleteRecordedFile = useCallback(async () => {
@@ -199,6 +215,12 @@ export function ChatInputBar({
   }, []);
 
   const cancelRecording = useCallback(async () => {
+    try {
+      await cancelNutritionAudioRecording();
+    } catch {
+      // Best-effort cancellation
+    }
+
     const recording = recordingRef.current;
     if (recording) {
       try {
@@ -211,6 +233,7 @@ export function ChatInputBar({
     recordingRef.current = null;
     await deleteRecordedFile();
     recordedUriRef.current = null;
+    setPreviewTranscript("");
     setIsPreview(false);
     resetRecordingUi();
   }, [deleteRecordedFile, resetRecordingUi]);
@@ -235,9 +258,21 @@ export function ChatInputBar({
       const recording = new Audio.Recording();
       await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
       await recording.startAsync();
+      if (isNativeSpeechRecognitionAvailable()) {
+        try {
+          await startNutritionAudioRecording();
+          setNativeSpeechSessionStarted(true);
+        } catch {
+          // Native speech module is optional in this build (e.g. Expo Go).
+          setNativeSpeechSessionStarted(false);
+        }
+      } else {
+        setNativeSpeechSessionStarted(false);
+      }
 
       recordingRef.current = recording;
       recordedUriRef.current = null;
+      setPreviewTranscript("");
       setDurationSec(0);
       setIsRecording(true);
       setIsPreview(false);
@@ -262,6 +297,25 @@ export function ChatInputBar({
 
     try {
       const uri = await stopAndStoreRecording();
+      let transcript = "";
+
+      if (nativeSpeechSessionStarted) {
+        try {
+          const transcription = await stopNutritionAudioRecordingAndTranscribe();
+          transcript = transcription.text.trim();
+        } catch {
+          // Fallback to file-based cloud transcription.
+        }
+      }
+
+      if (!transcript && uri) {
+        try {
+          transcript = (await transcribeNutritionAudioFromFile(uri)).trim();
+        } catch {
+          // Keep preview flow even if transcription fails on this device/build.
+        }
+      }
+
       resetRecordingUi();
 
       if (!uri) {
@@ -269,12 +323,20 @@ export function ChatInputBar({
         return;
       }
 
+      setPreviewTranscript(transcript);
       setIsPreview(true);
     } catch {
       await cancelRecording();
       showToast("Nao foi possivel finalizar a gravacao", "error");
     }
-  }, [cancelRecording, isRecording, resetRecordingUi, stopAndStoreRecording, showToast]);
+  }, [
+    cancelRecording,
+    isRecording,
+    nativeSpeechSessionStarted,
+    resetRecordingUi,
+    showToast,
+    stopAndStoreRecording,
+  ]);
 
   const panResponder = useMemo(
     () =>
@@ -414,6 +476,7 @@ export function ChatInputBar({
 
     setIsPlaying(false);
     setIsPreview(false);
+    setPreviewTranscript("");
     await deleteRecordedFile();
     recordedUriRef.current = null;
     setDurationSec(0);
@@ -425,12 +488,13 @@ export function ChatInputBar({
       return;
     }
 
-    onAudioRecorded(uri);
+    onAudioRecorded({ uri, transcript: previewTranscript });
     setIsPreview(false);
     setIsPlaying(false);
+    setPreviewTranscript("");
     recordedUriRef.current = null;
     setDurationSec(0);
-  }, [onAudioRecorded]);
+  }, [onAudioRecorded, previewTranscript]);
 
   const sendOpacity = modeAnim;
   const sendScale = modeAnim.interpolate({

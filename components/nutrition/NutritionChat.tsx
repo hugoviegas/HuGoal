@@ -16,6 +16,7 @@ import { Sparkles, Mic } from "lucide-react-native";
 import { format } from "date-fns";
 
 import { ChatInputBar } from "@/components/nutrition/ChatInputBar";
+import type { AudioRecordedPayload } from "@/components/nutrition/ChatInputBar";
 import { spacing } from "@/constants/spacing";
 import { typography } from "@/constants/typography";
 import type { NutritionChatItem } from "@/lib/ai/nutritionChatAI";
@@ -27,7 +28,7 @@ interface NutritionChatProps {
   messages: ChatMessage[];
   isLoading: boolean;
   onSendText: (text: string) => void;
-  onAudioRecorded: (uri: string) => void;
+  onAudioRecorded: (payload: AudioRecordedPayload) => void;
   onImageSelected: (uri: string) => void;
   pendingItems: NutritionChatItem[];
   onChangePendingItem: (

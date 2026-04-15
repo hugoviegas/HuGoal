@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -54,7 +54,7 @@ import { typography } from "@/constants/typography";
 import { radius } from "@/constants/radius";
 import type { NutritionItem } from "@/types";
 
-// ─── Design tokens ──────────────────────────────────────────────────────────
+// ─── Design tokens ───────────────────────────────────────────────────────────
 const MACRO_COLORS = {
   calories: "#f97316",
   protein: "#3b82f6",
@@ -64,7 +64,7 @@ const MACRO_COLORS = {
   sugar: "#a855f7",
 } as const;
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 type AddFoodMode = "pick" | "library" | "manual";
 type ServingUnit = "g" | "ml" | "unit";
 
@@ -79,10 +79,7 @@ function parsePositiveNumber(value: string, fallback = 0): number {
   return Math.max(0, Math.round(parsed * 100) / 100);
 }
 
-function scaleNutritionValue(
-  baseValue: number | undefined,
-  ratio: number,
-): number {
+function scaleNutritionValue(baseValue: number | undefined, ratio: number): number {
   if (typeof baseValue !== "number" || !Number.isFinite(baseValue)) return 0;
   return Math.max(0, Math.round(baseValue * ratio));
 }
@@ -91,8 +88,7 @@ function buildScaledNutritionItem(
   baseItem: NutritionItem,
   servingSize: number,
 ): NutritionItem {
-  const baseServing =
-    baseItem.serving_size_g > 0 ? baseItem.serving_size_g : 100;
+  const baseServing = baseItem.serving_size_g > 0 ? baseItem.serving_size_g : 100;
   const ratio = servingSize > 0 ? servingSize / baseServing : 0;
   return {
     ...baseItem,
@@ -106,7 +102,7 @@ function buildScaledNutritionItem(
   };
 }
 
-// ─── FoodSearchCard ─────────────────────────────────────────────────────────
+// ─── FoodSearchCard ──────────────────────────────────────────────────────────
 function FoodSearchCard({
   item,
   loading,
@@ -120,13 +116,8 @@ function FoodSearchCard({
 }) {
   const colors = useThemeStore((s) => s.colors);
   const macroTotal = item.protein_g + item.carbs_g + item.fat_g;
-
   const sourceLabel =
-    item.source === "library"
-      ? "Library"
-      : item.source === "edamam"
-        ? "Edamam"
-        : "USDA";
+    item.source === "library" ? "Library" : item.source === "edamam" ? "Edamam" : "USDA";
 
   return (
     <View
@@ -141,7 +132,6 @@ function FoodSearchCard({
     >
       {/* Top row */}
       <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
-        {/* Fallback icon (no photo on FoodSearchResult) */}
         <View
           style={{
             width: 52,
@@ -154,7 +144,6 @@ function FoodSearchCard({
         >
           <UtensilsCrossed size={22} color={colors.muted} />
         </View>
-
         <View style={{ flex: 1, gap: 3 }}>
           <Text
             style={[typography.bodyMedium, { color: colors.foreground }]}
@@ -163,9 +152,7 @@ function FoodSearchCard({
             {item.name}
           </Text>
           <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
-            <Text
-              style={[typography.caption, { color: colors.mutedForeground }]}
-            >
+            <Text style={[typography.caption, { color: colors.mutedForeground }]}>
               {item.serving_size_g}g
             </Text>
             <View
@@ -176,18 +163,13 @@ function FoodSearchCard({
                 backgroundColor: `${colors.primary}1A`,
               }}
             >
-              <Text
-                style={{ fontSize: 11, fontWeight: "600", color: colors.primary }}
-              >
+              <Text style={{ fontSize: 11, fontWeight: "600" as const, color: colors.primary }}>
                 {sourceLabel}
               </Text>
             </View>
           </View>
         </View>
-
-        <Text
-          style={[typography.bodyMedium, { color: MACRO_COLORS.calories }]}
-        >
+        <Text style={[typography.bodyMedium, { color: MACRO_COLORS.calories }]}>
           {item.calories} kcal
         </Text>
       </View>
@@ -215,7 +197,7 @@ function FoodSearchCard({
         </View>
       ) : null}
 
-      {/* Actions */}
+      {/* Action buttons */}
       <View style={{ flexDirection: "row", gap: spacing.xs }}>
         <Pressable
           onPress={() => onSave(item)}
@@ -231,15 +213,11 @@ function FoodSearchCard({
             backgroundColor: colors.background,
             opacity: loading ? 0.6 : 1,
           }}
-          accessibilityRole="button"
         >
-          <Text
-            style={[typography.smallMedium, { color: colors.foreground }]}
-          >
+          <Text style={[typography.smallMedium, { color: colors.foreground }]}>
             Save to library
           </Text>
         </Pressable>
-
         <Pressable
           onPress={() => onSaveAndUse(item)}
           disabled={loading}
@@ -252,90 +230,101 @@ function FoodSearchCard({
             backgroundColor: colors.primary,
             opacity: loading ? 0.6 : 1,
           }}
-          accessibilityRole="button"
         >
-          <Text style={[typography.smallMedium, { color: "#fff" }]}>
-            Save and use
-          </Text>
+          <Text style={[typography.smallMedium, { color: "#fff" }]}>Save and use</Text>
         </Pressable>
       </View>
     </View>
   );
 }
 
-// ─── Section header ──────────────────────────────────────────────────────────
-function SectionHeader({ title }: { title: string }) {
-  const colors = useThemeStore((s) => s.colors);
-  return (
-    <Text
-      style={[
-        typography.smallMedium,
-        {
-          color: colors.mutedForeground,
-          marginBottom: spacing.xs,
-          textTransform: "uppercase",
-          letterSpacing: 0.5,
-          fontSize: 11,
-        },
-      ]}
-    >
-      {title}
-    </Text>
-  );
-}
-
-// ─── Input wrapper ────────────────────────────────────────────────────────────
-function FieldBox({
-  borderColor,
-  children,
+// ─── Shared AI photo tips modal ───────────────────────────────────────────────
+function AITipsModal({
+  visible,
+  onClose,
+  onCamera,
+  onGallery,
+  insetBottom,
 }: {
-  borderColor?: string;
-  children: React.ReactNode;
+  visible: boolean;
+  onClose: () => void;
+  onCamera: () => void;
+  onGallery: () => void;
+  insetBottom: number;
 }) {
   const colors = useThemeStore((s) => s.colors);
   return (
-    <View
-      style={{
-        borderWidth: 1,
-        borderColor: colors.cardBorder,
-        borderLeftWidth: borderColor ? 3 : 1,
-        borderLeftColor: borderColor ?? colors.cardBorder,
-        borderRadius: radius.md,
-        backgroundColor: colors.card,
-        paddingHorizontal: spacing.sm,
-        minHeight: 48,
-        justifyContent: "center",
-      }}
-    >
-      {children}
-    </View>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={{ flex: 1, justifyContent: "flex-end" }}>
+        <Pressable
+          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.4)" }}
+          onPress={onClose}
+        />
+        <View
+          style={{
+            backgroundColor: colors.background,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            padding: spacing.xl,
+            paddingBottom: insetBottom + spacing.xl,
+            gap: spacing.lg,
+          }}
+        >
+          <View style={{ alignItems: "center", marginTop: -spacing.md }}>
+            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.muted }} />
+          </View>
+          <Text style={[typography.h3, { color: colors.foreground }]}>
+            Photo tips for best results
+          </Text>
+          {[
+            { icon: <Camera size={20} color={colors.primary} />, tip: "Lay food flat or at eye level" },
+            { icon: <Sun size={20} color={colors.primary} />, tip: "Good lighting, no blur" },
+            { icon: <UtensilsCrossed size={20} color={colors.primary} />, tip: "One plate at a time" },
+          ].map((row, i) => (
+            <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+              {row.icon}
+              <Text style={[typography.body, { color: colors.foreground, flex: 1 }]}>{row.tip}</Text>
+            </View>
+          ))}
+          <View style={{ gap: spacing.sm, marginTop: spacing.xs }}>
+            <Pressable
+              onPress={onCamera}
+              style={{ minHeight: 48, borderRadius: radius.md, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" }}
+            >
+              <Text style={[typography.bodyMedium, { color: colors.primaryForeground }]}>Take photo</Text>
+            </Pressable>
+            <Pressable
+              onPress={onGallery}
+              style={{ minHeight: 48, borderRadius: radius.md, borderWidth: 1, borderColor: colors.cardBorder, backgroundColor: colors.card, alignItems: "center", justifyContent: "center" }}
+            >
+              <Text style={[typography.bodyMedium, { color: colors.foreground }]}>Choose from gallery</Text>
+            </Pressable>
+            <Pressable onPress={onClose} style={{ alignItems: "center", paddingVertical: spacing.sm }}>
+              <Text style={[typography.body, { color: colors.mutedForeground }]}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
-// ─── Main screen ─────────────────────────────────────────────────────────────
+// ─── Main screen ──────────────────────────────────────────────────────────────
 export default function AddFoodScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { mode: modeParam } = useLocalSearchParams<{ mode?: string }>();
   const mode: AddFoodMode =
-    modeParam === "library"
-      ? "library"
-      : modeParam === "manual"
-        ? "manual"
-        : "pick";
+    modeParam === "library" ? "library" : modeParam === "manual" ? "manual" : "pick";
 
   const user = useAuthStore((s) => s.user);
   const profile = useAuthStore((s) => s.profile);
   const colors = useThemeStore((s) => s.colors);
   const showToast = useToastStore((s) => s.show);
-  const selectedFoodSelection = useNutritionStore(
-    (s) => s.selectedFoodSelection,
-  );
-  const setSelectedFoodSelection = useNutritionStore(
-    (s) => s.setSelectedFoodSelection,
-  );
+  const selectedFoodSelection = useNutritionStore((s) => s.selectedFoodSelection);
+  const setSelectedFoodSelection = useNutritionStore((s) => s.setSelectedFoodSelection);
 
-  // ── Manual mode state ──────────────────────────────────────────────────────
+  // ── Manual form state ─────────────────────────────────────────────────────
   const [manualFoodName, setManualFoodName] = useState("");
   const [manualBrand, setManualBrand] = useState("");
   const [manualServingSize, setManualServingSize] = useState("100");
@@ -348,15 +337,15 @@ export default function AddFoodScreen() {
   const [manualSugar, setManualSugar] = useState("0");
   const [manualNotes, setManualNotes] = useState("");
   const [manualPhotoUri, setManualPhotoUri] = useState<string | undefined>(undefined);
-  const [manualReferenceItem, setManualReferenceItem] =
-    useState<NutritionItem | null>(null);
+  const [manualReferenceItem, setManualReferenceItem] = useState<NutritionItem | null>(null);
 
   const [extraExpanded, setExtraExpanded] = useState(false);
   const [aiFillBannerVisible, setAiFillBannerVisible] = useState(false);
   const [aiTipsVisible, setAiTipsVisible] = useState(false);
   const [aiFillingManual, setAiFillingManual] = useState(false);
+  const [savingManual, setSavingManual] = useState(false);
 
-  // ── Library/pick mode state ────────────────────────────────────────────────
+  // ── Library/pick state ────────────────────────────────────────────────────
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<FoodSearchResult[]>([]);
   const [searchingLocal, setSearchingLocal] = useState(false);
@@ -368,10 +357,7 @@ export default function AddFoodScreen() {
     remaining: number | null;
   } | null>(null);
 
-  const canRemoteSearch = useMemo(
-    () => query.trim().length >= 2,
-    [query],
-  );
+  const canRemoteSearch = useMemo(() => query.trim().length >= 2, [query]);
 
   const loadUsage = useCallback(async () => {
     const info = await getEdamamUsageToday();
@@ -382,7 +368,7 @@ export default function AddFoodScreen() {
     loadUsage();
   }, [loadUsage]);
 
-  // Populate manual fields from selectedFoodSelection (edit mode)
+  // Populate manual fields from selected item (edit mode)
   useEffect(() => {
     if (mode !== "manual") return;
     if (!selectedFoodSelection?.item) {
@@ -417,11 +403,9 @@ export default function AddFoodScreen() {
 
   const isEditingManualItem =
     mode === "manual" &&
-    Boolean(
-      manualReferenceItem && selectedFoodSelection?.editIndex !== null,
-    );
+    Boolean(manualReferenceItem && selectedFoodSelection?.editIndex !== null);
 
-  // Auto-scale macros when editing and serving size changes
+  // Auto-scale macros when serving size changes in edit mode
   useEffect(() => {
     if (!isEditingManualItem || !manualReferenceItem) return;
     const servingSize = parsePositiveNumber(
@@ -437,7 +421,7 @@ export default function AddFoodScreen() {
     setManualSugar(toSafeString(scaled.sugar_g));
   }, [isEditingManualItem, manualReferenceItem, manualServingSize]);
 
-  // ── Library search ─────────────────────────────────────────────────────────
+  // ── Library search ────────────────────────────────────────────────────────
   const runLibrarySearch = useCallback(async () => {
     if (!user?.uid || query.trim().length < 2) {
       setResults([]);
@@ -460,14 +444,10 @@ export default function AddFoodScreen() {
     if (!user?.uid || !canRemoteSearch) return;
     try {
       setSearchingRemote(true);
-      const remote = await searchFoods(user.uid, query, 20, {
-        forceRemote: true,
-      });
+      const remote = await searchFoods(user.uid, query, 20, { forceRemote: true });
       setResults(remote);
       await loadUsage();
-      if (remote.length === 0) {
-        showToast("No remote results for this search", "info");
-      }
+      if (remote.length === 0) showToast("No remote results for this search", "info");
     } catch {
       showToast("Failed to search external food API", "error");
     } finally {
@@ -475,16 +455,13 @@ export default function AddFoodScreen() {
     }
   };
 
-  const saveToLibrary = async (
-    result: FoodSearchResult,
-    alsoUse: boolean,
-  ) => {
+  const saveToLibrary = async (result: FoodSearchResult, alsoUse: boolean) => {
     if (!user?.uid) return;
     try {
       setSavingId(result.id);
       const item = toNutritionItemFromSearch(result);
       await upsertFoodLibraryItemFromNutritionItem(user.uid, item);
-      if (alsoUse && (mode === "pick" || mode === "library")) {
+      if (alsoUse) {
         setSelectedFoodSelection(item, null);
         showToast("Food saved and selected", "success");
         router.back();
@@ -499,7 +476,7 @@ export default function AddFoodScreen() {
     }
   };
 
-  // ── Manual item build ──────────────────────────────────────────────────────
+  // ── Manual item build ─────────────────────────────────────────────────────
   const buildManualItem = (): NutritionItem | null => {
     const name = manualFoodName.trim();
     if (!name) return null;
@@ -517,25 +494,15 @@ export default function AddFoodScreen() {
       brand: manualBrand.trim() || undefined,
       notes: manualNotes.trim() || undefined,
       serving_size_g: servingSize,
-      calories: derived
-        ? derived.calories
-        : parsePositiveNumber(manualCalories, 0),
-      protein_g: derived
-        ? derived.protein_g
-        : parsePositiveNumber(manualProtein, 0),
-      carbs_g: derived
-        ? derived.carbs_g
-        : parsePositiveNumber(manualCarbs, 0),
+      calories: derived ? derived.calories : parsePositiveNumber(manualCalories, 0),
+      protein_g: derived ? derived.protein_g : parsePositiveNumber(manualProtein, 0),
+      carbs_g: derived ? derived.carbs_g : parsePositiveNumber(manualCarbs, 0),
       fat_g: derived ? derived.fat_g : parsePositiveNumber(manualFat, 0),
-      fiber_g: derived
-        ? derived.fiber_g
-        : parsePositiveNumber(manualFiber, 0),
-      sugar_g: derived
-        ? derived.sugar_g
-        : parsePositiveNumber(manualSugar, 0),
+      fiber_g: derived ? (derived.fiber_g ?? 0) : parsePositiveNumber(manualFiber, 0),
+      sugar_g: derived ? (derived.sugar_g ?? 0) : parsePositiveNumber(manualSugar, 0),
       source: "manual",
-      photo_url: manualPhotoUri,
-      // TODO: upload to Firebase Storage
+      // photo_url is local only — not saved to Firestore; TODO: upload to Firebase Storage
+      ...(manualPhotoUri ? { photo_url: manualPhotoUri } : {}),
     };
   };
 
@@ -547,9 +514,9 @@ export default function AddFoodScreen() {
       return;
     }
     try {
-      setSavingId("manual-item");
+      setSavingManual(true);
       await upsertFoodLibraryItemFromNutritionItem(user.uid, item);
-      if (alsoUse && (mode === "pick" || mode === "manual")) {
+      if (alsoUse) {
         const editIndex = selectedFoodSelection?.editIndex ?? null;
         setSelectedFoodSelection(item, editIndex);
         showToast("Food saved and selected", "success");
@@ -557,67 +524,42 @@ export default function AddFoodScreen() {
         return;
       }
       showToast("Manual food saved to library", "success");
-      if (mode === "manual") {
-        router.back();
-        return;
-      }
-      await runLibrarySearch();
-    } catch {
-      showToast("Failed to save manual food", "error");
+      router.back();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to save food";
+      showToast(message, "error");
     } finally {
-      setSavingId(null);
+      setSavingManual(false);
     }
   };
 
   // ── AI fill for manual form ────────────────────────────────────────────────
   const runAIFill = async (source: "camera" | "library") => {
     setAiTipsVisible(false);
-    try {
-      let base64: string | null | undefined = null;
+    let base64: string | null | undefined = null;
 
+    try {
       if (source === "camera") {
         const perm = await ImagePicker.requestCameraPermissionsAsync();
-        if (!perm.granted) {
-          showToast("Camera permission denied", "error");
-          return;
-        }
-        const result = await ImagePicker.launchCameraAsync({
-          mediaTypes: ["images"],
-          allowsEditing: false,
-          quality: 0.85,
-          base64: true,
-        });
+        if (!perm.granted) { showToast("Camera permission denied", "error"); return; }
+        const result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.85, base64: true });
         if (result.canceled || !result.assets[0]) return;
         base64 = result.assets[0].base64;
       } else {
         const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!perm.granted) {
-          showToast("Gallery permission denied", "error");
-          return;
-        }
-        const result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ["images"],
-          allowsEditing: false,
-          quality: 0.85,
-          base64: true,
-        });
+        if (!perm.granted) { showToast("Gallery permission denied", "error"); return; }
+        const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.85, base64: true });
         if (result.canceled || !result.assets[0]) return;
         base64 = result.assets[0].base64;
       }
 
-      if (!base64) {
-        showToast("Could not read selected image", "error");
-        return;
-      }
+      if (!base64) { showToast("Could not read image", "error"); return; }
 
       setAiFillingManual(true);
       const provider = profile?.preferred_ai_provider ?? "gemini";
       const detected = await analyzeMealPhoto(provider, base64);
 
-      if (!detected.length) {
-        showToast("No foods detected in image", "info");
-        return;
-      }
+      if (!detected.length) { showToast("No foods detected in image", "info"); return; }
 
       const fillFromItem = (foodItem: NutritionItem) => {
         setManualFoodName(foodItem.food_name);
@@ -649,8 +591,7 @@ export default function AddFoodScreen() {
         );
       }
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Failed to analyze image";
+      const message = error instanceof Error ? error.message : "Failed to analyze image";
       if (message.toLowerCase().includes("no api key configured")) {
         showToast("Add your AI key in Settings > AI Provider Keys", "info");
         router.push("/settings/ai-keys");
@@ -677,7 +618,7 @@ export default function AddFoodScreen() {
     }
   };
 
-  // ─── Manual mode UI ─────────────────────────────────────────────────────
+  // ── Manual mode ──────────────────────────────────────────────────────────
   if (mode === "manual") {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -697,64 +638,62 @@ export default function AddFoodScreen() {
           <Pressable
             onPress={() => router.back()}
             hitSlop={8}
-            style={{
-              width: 36,
-              height: 36,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
+            style={{ width: 36, height: 36, alignItems: "center", justifyContent: "center" }}
           >
             <ChevronLeft size={24} color={colors.foreground} strokeWidth={2} />
           </Pressable>
-          <View style={{ flex: 1 }}>
-            <Text style={[typography.h3, { color: colors.foreground }]}>
-              {isEditingManualItem ? "Edit food" : "Add food manually"}
-            </Text>
-          </View>
+          <Text style={[typography.h3, { color: colors.foreground, flex: 1 }]}>
+            {isEditingManualItem ? "Edit food" : "Add food manually"}
+          </Text>
         </View>
 
         <ScrollView
           contentContainerStyle={{
-            paddingHorizontal: spacing.md,
-            paddingTop: spacing.md,
-            paddingBottom: insets.bottom + spacing.xl,
+            padding: spacing.md,
+            paddingBottom: insets.bottom + 80,
             gap: spacing.md,
           }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* AI fill banner */}
+          {/* ── AI fill banner ── */}
           {aiFillBannerVisible ? (
             <View
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                backgroundColor: `${colors.primary}1A`,
+                backgroundColor: `${colors.primary}18`,
                 borderRadius: radius.md,
+                borderWidth: 1,
+                borderColor: `${colors.primary}40`,
                 padding: spacing.sm,
                 gap: spacing.sm,
               }}
             >
               <Sparkles size={16} color={colors.primary} />
-              <Text
-                style={[
-                  typography.small,
-                  { color: colors.primary, flex: 1 },
-                ]}
-              >
+              <Text style={[typography.small, { color: colors.primary, flex: 1 }]}>
                 Filled by AI — please review values before saving.
               </Text>
-              <Pressable
-                onPress={() => setAiFillBannerVisible(false)}
-                hitSlop={8}
-              >
+              <Pressable onPress={() => setAiFillBannerVisible(false)} hitSlop={8}>
                 <X size={16} color={colors.primary} />
               </Pressable>
             </View>
           ) : null}
 
-          {/* Photo field */}
-          <View style={{ alignItems: "center" }}>
+          {/* ── Card: Photo + AI ── */}
+          <View
+            style={{
+              backgroundColor: colors.card,
+              borderRadius: radius.lg,
+              borderWidth: 1,
+              borderColor: colors.cardBorder,
+              padding: spacing.md,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing.md,
+            }}
+          >
+            {/* Photo picker */}
             <Pressable
               onPress={handlePickManualPhoto}
               style={{
@@ -763,21 +702,17 @@ export default function AddFoodScreen() {
                 borderRadius: radius.md,
                 borderWidth: 1.5,
                 borderStyle: "dashed",
-                borderColor: colors.cardBorder,
+                borderColor: manualPhotoUri ? "transparent" : colors.cardBorder,
                 alignItems: "center",
                 justifyContent: "center",
                 overflow: "hidden",
-                backgroundColor: colors.card,
+                backgroundColor: colors.surface,
               }}
-              accessibilityRole="button"
               accessibilityLabel="Add food photo"
             >
               {manualPhotoUri ? (
                 <>
-                  <Image
-                    source={{ uri: manualPhotoUri }}
-                    style={{ width: 80, height: 80 }}
-                  />
+                  <Image source={{ uri: manualPhotoUri }} style={{ width: 80, height: 80 }} />
                   <Pressable
                     onPress={() => setManualPhotoUri(undefined)}
                     hitSlop={4}
@@ -799,261 +734,343 @@ export default function AddFoodScreen() {
               ) : (
                 <View style={{ alignItems: "center", gap: 4 }}>
                   <ImagePlus size={24} color={colors.muted} />
-                  <Text
-                    style={[
-                      typography.caption,
-                      { color: colors.mutedForeground },
-                    ]}
-                  >
-                    Add photo
+                  <Text style={[typography.caption, { color: colors.mutedForeground }]}>
+                    Photo
                   </Text>
                 </View>
               )}
             </Pressable>
+
+            {/* AI fill */}
+            <View style={{ flex: 1, gap: spacing.xs }}>
+              <Text style={[typography.bodyMedium, { color: colors.foreground }]}>
+                Fill with AI
+              </Text>
+              <Text style={[typography.caption, { color: colors.mutedForeground }]}>
+                Take or choose a photo to auto-fill nutritional values
+              </Text>
+              <Pressable
+                onPress={() => setAiTipsVisible(true)}
+                disabled={aiFillingManual}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: spacing.xs,
+                  alignSelf: "flex-start",
+                  paddingHorizontal: spacing.sm,
+                  paddingVertical: 8,
+                  borderRadius: radius.md,
+                  backgroundColor: `${colors.primary}1A`,
+                  borderWidth: 1,
+                  borderColor: `${colors.primary}40`,
+                  opacity: aiFillingManual ? 0.6 : 1,
+                }}
+              >
+                {aiFillingManual ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <Sparkles size={15} color={colors.primary} />
+                )}
+                <Text style={[typography.smallMedium, { color: colors.primary }]}>
+                  {aiFillingManual ? "Analyzing..." : "Scan with AI"}
+                </Text>
+              </Pressable>
+            </View>
           </View>
 
-          {/* Section: Identification */}
-          <View style={{ gap: spacing.xs }}>
-            <SectionHeader title="Identification" />
+          {/* ── Card: Identification ── */}
+          <View
+            style={{
+              backgroundColor: colors.card,
+              borderRadius: radius.lg,
+              borderWidth: 1,
+              borderColor: colors.cardBorder,
+              overflow: "hidden",
+            }}
+          >
+            {/* Section header */}
+            <View
+              style={{
+                paddingHorizontal: spacing.md,
+                paddingVertical: spacing.xs,
+                backgroundColor: colors.surface,
+                borderBottomWidth: 1,
+                borderBottomColor: colors.cardBorder,
+              }}
+            >
+              <Text
+                style={[
+                  typography.label,
+                  { color: colors.mutedForeground },
+                ]}
+              >
+                Identification
+              </Text>
+            </View>
 
             {/* Food name */}
-            <FieldBox>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingHorizontal: spacing.md,
+                minHeight: 52,
+                borderBottomWidth: 1,
+                borderBottomColor: colors.cardBorder,
+                gap: spacing.sm,
+              }}
+            >
+              <UtensilsCrossed size={18} color={colors.muted} />
               <TextInput
                 value={manualFoodName}
                 onChangeText={setManualFoodName}
                 placeholder="Food name *"
                 placeholderTextColor={colors.muted}
-                style={[typography.body, { color: colors.foreground }]}
+                style={[typography.body, { flex: 1, color: colors.foreground }]}
                 accessibilityLabel="Food name (required)"
               />
-            </FieldBox>
+            </View>
 
             {/* Brand */}
-            <FieldBox>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingHorizontal: spacing.md,
+                minHeight: 52,
+                gap: spacing.sm,
+              }}
+            >
+              <View style={{ width: 18, height: 18 }} />
               <TextInput
                 value={manualBrand}
                 onChangeText={setManualBrand}
                 placeholder="Brand (optional)"
                 placeholderTextColor={colors.muted}
-                style={[typography.body, { color: colors.foreground }]}
+                style={[typography.body, { flex: 1, color: colors.foreground }]}
               />
-            </FieldBox>
-
-            {/* Fill with AI button */}
-            <Pressable
-              onPress={() => setAiTipsVisible(true)}
-              disabled={aiFillingManual}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: spacing.xs,
-                minHeight: 44,
-                borderRadius: radius.md,
-                borderWidth: 1,
-                borderColor: colors.primary,
-                backgroundColor: `${colors.primary}1A`,
-                opacity: aiFillingManual ? 0.6 : 1,
-              }}
-              accessibilityRole="button"
-            >
-              {aiFillingManual ? (
-                <ActivityIndicator size="small" color={colors.primary} />
-              ) : (
-                <Sparkles size={16} color={colors.primary} />
-              )}
-              <Text
-                style={[typography.smallMedium, { color: colors.primary }]}
-              >
-                {aiFillingManual ? "Analyzing..." : "Fill with AI"}
-              </Text>
-            </Pressable>
-          </View>
-
-          {/* Section: Serving */}
-          <View style={{ gap: spacing.xs }}>
-            <SectionHeader title="Serving" />
-            <View style={{ flexDirection: "row", gap: spacing.sm }}>
-              <View style={{ flex: 2 }}>
-                <FieldBox>
-                  <TextInput
-                    value={manualServingSize}
-                    onChangeText={setManualServingSize}
-                    placeholder="Amount"
-                    placeholderTextColor={colors.muted}
-                    keyboardType="decimal-pad"
-                    style={[typography.body, { color: colors.foreground }]}
-                    accessibilityLabel="Serving amount"
-                  />
-                </FieldBox>
-              </View>
-              {/* Unit selector pills */}
-              <View
-                style={{
-                  flex: 3,
-                  flexDirection: "row",
-                  gap: spacing.xs,
-                  alignItems: "center",
-                }}
-              >
-                {(["g", "ml", "unit"] as ServingUnit[]).map((u) => (
-                  <Pressable
-                    key={u}
-                    onPress={() => setManualUnit(u)}
-                    style={{
-                      flex: 1,
-                      minHeight: 48,
-                      borderRadius: radius.md,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      backgroundColor:
-                        manualUnit === u ? colors.primary : colors.card,
-                      borderWidth: 1,
-                      borderColor:
-                        manualUnit === u ? colors.primary : colors.cardBorder,
-                    }}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: manualUnit === u }}
-                  >
-                    <Text
-                      style={[
-                        typography.smallMedium,
-                        {
-                          color:
-                            manualUnit === u ? "#fff" : colors.foreground,
-                        },
-                      ]}
-                    >
-                      {u}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
             </View>
           </View>
 
-          {/* Section: Macronutrients */}
-          <View style={{ gap: spacing.xs }}>
-            <SectionHeader title="Macronutrients" />
-            {isEditingManualItem ? (
-              <Text
-                style={[
-                  typography.caption,
-                  { color: colors.mutedForeground },
-                ]}
-              >
-                Macros update automatically from serving weight.
+          {/* ── Card: Serving ── */}
+          <View
+            style={{
+              backgroundColor: colors.card,
+              borderRadius: radius.lg,
+              borderWidth: 1,
+              borderColor: colors.cardBorder,
+              overflow: "hidden",
+            }}
+          >
+            <View
+              style={{
+                paddingHorizontal: spacing.md,
+                paddingVertical: spacing.xs,
+                backgroundColor: colors.surface,
+                borderBottomWidth: 1,
+                borderBottomColor: colors.cardBorder,
+              }}
+            >
+              <Text style={[typography.label, { color: colors.mutedForeground }]}>
+                Serving
               </Text>
-            ) : null}
+            </View>
 
-            {/* 2-column grid */}
-            <View style={{ gap: spacing.sm }}>
-              {[
-                [
-                  {
-                    label: "Calories",
-                    value: manualCalories,
-                    set: setManualCalories,
-                    color: MACRO_COLORS.calories,
-                    icon: <Flame size={16} color={MACRO_COLORS.calories} />,
-                    placeholder: "kcal",
-                  },
-                  {
-                    label: "Protein",
-                    value: manualProtein,
-                    set: setManualProtein,
-                    color: MACRO_COLORS.protein,
-                    icon: <Zap size={16} color={MACRO_COLORS.protein} />,
-                    placeholder: "g",
-                  },
-                ],
-                [
-                  {
-                    label: "Carbs",
-                    value: manualCarbs,
-                    set: setManualCarbs,
-                    color: MACRO_COLORS.carbs,
-                    icon: <Wheat size={16} color={MACRO_COLORS.carbs} />,
-                    placeholder: "g",
-                  },
-                  {
-                    label: "Fat",
-                    value: manualFat,
-                    set: setManualFat,
-                    color: MACRO_COLORS.fat,
-                    icon: <Droplets size={16} color={MACRO_COLORS.fat} />,
-                    placeholder: "g",
-                  },
-                ],
-              ].map((row, ri) => (
-                <View
-                  key={ri}
-                  style={{ flexDirection: "row", gap: spacing.sm }}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingHorizontal: spacing.md,
+                paddingVertical: spacing.sm,
+                gap: spacing.sm,
+              }}
+            >
+              {/* Amount input */}
+              <View
+                style={{
+                  flex: 1,
+                  borderWidth: 1,
+                  borderColor: colors.cardBorder,
+                  borderRadius: radius.md,
+                  backgroundColor: colors.background,
+                  paddingHorizontal: spacing.sm,
+                  minHeight: 46,
+                  justifyContent: "center",
+                }}
+              >
+                <TextInput
+                  value={manualServingSize}
+                  onChangeText={setManualServingSize}
+                  placeholder="Amount"
+                  placeholderTextColor={colors.muted}
+                  keyboardType="decimal-pad"
+                  style={[typography.bodyMedium, { color: colors.foreground }]}
+                  accessibilityLabel="Serving amount"
+                />
+              </View>
+
+              {/* Unit pills */}
+              {(["g", "ml", "unit"] as ServingUnit[]).map((u) => (
+                <Pressable
+                  key={u}
+                  onPress={() => setManualUnit(u)}
+                  style={{
+                    minWidth: 44,
+                    minHeight: 44,
+                    borderRadius: radius.md,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: manualUnit === u ? colors.primary : colors.surface,
+                    borderWidth: 1,
+                    borderColor: manualUnit === u ? colors.primary : colors.cardBorder,
+                  }}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: manualUnit === u }}
                 >
-                  {row.map((field) => (
-                    <View key={field.label} style={{ flex: 1 }}>
-                      <View
-                        style={{
-                          borderWidth: 1,
-                          borderLeftWidth: 3,
-                          borderColor: colors.cardBorder,
-                          borderLeftColor: field.color,
-                          borderRadius: radius.md,
-                          backgroundColor: colors.card,
-                          paddingHorizontal: spacing.sm,
-                          paddingVertical: spacing.xs,
-                          gap: 2,
-                        }}
-                      >
-                        <View
-                          style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            gap: 4,
-                          }}
-                        >
-                          {field.icon}
-                          <Text
-                            style={[
-                              typography.caption,
-                              { color: colors.mutedForeground },
-                            ]}
-                          >
-                            {field.label}
-                          </Text>
-                        </View>
-                        <TextInput
-                          value={field.value}
-                          onChangeText={field.set}
-                          keyboardType="decimal-pad"
-                          editable={!isEditingManualItem}
-                          style={[
-                            typography.bodyMedium,
-                            {
-                              color: colors.foreground,
-                              opacity: isEditingManualItem ? 0.55 : 1,
-                            },
-                          ]}
-                          placeholder={field.placeholder}
-                          placeholderTextColor={colors.muted}
-                          accessibilityLabel={field.label}
-                        />
-                      </View>
-                    </View>
-                  ))}
-                </View>
+                  <Text
+                    style={[
+                      typography.smallMedium,
+                      { color: manualUnit === u ? "#fff" : colors.mutedForeground },
+                    ]}
+                  >
+                    {u}
+                  </Text>
+                </Pressable>
               ))}
             </View>
           </View>
 
-          {/* Section: Extra (collapsible) */}
+          {/* ── Card: Macronutrients ── */}
           <View
             style={{
+              backgroundColor: colors.card,
+              borderRadius: radius.lg,
               borderWidth: 1,
               borderColor: colors.cardBorder,
-              borderRadius: radius.lg,
               overflow: "hidden",
+            }}
+          >
+            <View
+              style={{
+                paddingHorizontal: spacing.md,
+                paddingVertical: spacing.xs,
+                backgroundColor: colors.surface,
+                borderBottomWidth: 1,
+                borderBottomColor: colors.cardBorder,
+              }}
+            >
+              <Text style={[typography.label, { color: colors.mutedForeground }]}>
+                Macronutrients
+              </Text>
+            </View>
+
+            {isEditingManualItem ? (
+              <View
+                style={{
+                  paddingHorizontal: spacing.md,
+                  paddingVertical: spacing.xs,
+                  backgroundColor: `${colors.primary}0D`,
+                  borderBottomWidth: 1,
+                  borderBottomColor: colors.cardBorder,
+                }}
+              >
+                <Text style={[typography.caption, { color: colors.primary }]}>
+                  Values update automatically from serving weight
+                </Text>
+              </View>
+            ) : null}
+
+            {[
+              {
+                label: "Calories",
+                value: manualCalories,
+                set: setManualCalories,
+                color: MACRO_COLORS.calories,
+                icon: <Flame size={18} color={MACRO_COLORS.calories} />,
+                unit: "kcal",
+              },
+              {
+                label: "Protein",
+                value: manualProtein,
+                set: setManualProtein,
+                color: MACRO_COLORS.protein,
+                icon: <Zap size={18} color={MACRO_COLORS.protein} />,
+                unit: "g",
+              },
+              {
+                label: "Carbs",
+                value: manualCarbs,
+                set: setManualCarbs,
+                color: MACRO_COLORS.carbs,
+                icon: <Wheat size={18} color={MACRO_COLORS.carbs} />,
+                unit: "g",
+              },
+              {
+                label: "Fat",
+                value: manualFat,
+                set: setManualFat,
+                color: MACRO_COLORS.fat,
+                icon: <Droplets size={18} color={MACRO_COLORS.fat} />,
+                unit: "g",
+              },
+            ].map((field, i) => (
+              <View
+                key={field.label}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingHorizontal: spacing.md,
+                  paddingVertical: 14,
+                  borderBottomWidth: i < 3 ? 1 : 0,
+                  borderBottomColor: colors.cardBorder,
+                  borderLeftWidth: 3,
+                  borderLeftColor: field.color,
+                  gap: spacing.sm,
+                }}
+              >
+                {field.icon}
+                <Text
+                  style={[typography.smallMedium, { color: colors.foreground, flex: 1 }]}
+                >
+                  {field.label}
+                </Text>
+                <TextInput
+                  value={field.value}
+                  onChangeText={field.set}
+                  keyboardType="decimal-pad"
+                  editable={!isEditingManualItem}
+                  style={[
+                    typography.bodyMedium,
+                    {
+                      color: isEditingManualItem ? colors.mutedForeground : colors.foreground,
+                      textAlign: "right",
+                      minWidth: 72,
+                      borderBottomWidth: isEditingManualItem ? 0 : 1,
+                      borderBottomColor: field.color,
+                    },
+                  ]}
+                  accessibilityLabel={field.label}
+                />
+                <Text
+                  style={[
+                    typography.caption,
+                    { color: colors.mutedForeground, width: 28 },
+                  ]}
+                >
+                  {field.unit}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          {/* ── Card: Extra (collapsible) ── */}
+          <View
+            style={{
               backgroundColor: colors.card,
+              borderRadius: radius.lg,
+              borderWidth: 1,
+              borderColor: colors.cardBorder,
+              overflow: "hidden",
             }}
           >
             <Pressable
@@ -1064,100 +1081,103 @@ export default function AddFoodScreen() {
                 paddingHorizontal: spacing.md,
                 paddingVertical: spacing.sm,
                 gap: spacing.sm,
+                backgroundColor: colors.surface,
               }}
               accessibilityRole="button"
-              accessibilityLabel="Toggle extra fields"
             >
               <Text
-                style={[
-                  typography.smallMedium,
-                  { color: colors.foreground, flex: 1 },
-                ]}
+                style={[typography.label, { color: colors.mutedForeground, flex: 1 }]}
               >
-                Extra
+                Extra (Fiber, Sugar, Notes)
               </Text>
               {extraExpanded ? (
-                <ChevronUp size={18} color={colors.mutedForeground} />
+                <ChevronUp size={16} color={colors.mutedForeground} />
               ) : (
-                <ChevronDown size={18} color={colors.mutedForeground} />
+                <ChevronDown size={16} color={colors.mutedForeground} />
               )}
             </Pressable>
 
             {extraExpanded ? (
-              <View
-                style={{
-                  paddingHorizontal: spacing.md,
-                  paddingBottom: spacing.md,
-                  gap: spacing.sm,
-                  borderTopWidth: 1,
-                  borderTopColor: colors.cardBorder,
-                }}
-              >
+              <View style={{ gap: 0 }}>
                 {/* Fiber */}
                 <View
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: spacing.sm,
-                    borderWidth: 1,
+                    paddingHorizontal: spacing.md,
+                    paddingVertical: 14,
+                    borderTopWidth: 1,
+                    borderTopColor: colors.cardBorder,
                     borderLeftWidth: 3,
-                    borderColor: colors.cardBorder,
                     borderLeftColor: MACRO_COLORS.fiber,
-                    borderRadius: radius.md,
-                    backgroundColor: colors.background,
-                    paddingHorizontal: spacing.sm,
-                    minHeight: 48,
+                    gap: spacing.sm,
                   }}
                 >
-                  <Leaf size={16} color={MACRO_COLORS.fiber} />
+                  <Leaf size={18} color={MACRO_COLORS.fiber} />
+                  <Text style={[typography.smallMedium, { color: colors.foreground, flex: 1 }]}>
+                    Fiber
+                  </Text>
                   <TextInput
                     value={manualFiber}
                     onChangeText={setManualFiber}
-                    placeholder="Fiber (g)"
-                    placeholderTextColor={colors.muted}
                     keyboardType="decimal-pad"
                     editable={!isEditingManualItem}
-                    style={[typography.body, { flex: 1, color: colors.foreground }]}
+                    style={[
+                      typography.bodyMedium,
+                      {
+                        color: isEditingManualItem ? colors.mutedForeground : colors.foreground,
+                        textAlign: "right",
+                        minWidth: 72,
+                      },
+                    ]}
+                    accessibilityLabel="Fiber"
                   />
+                  <Text style={[typography.caption, { color: colors.mutedForeground, width: 28 }]}>g</Text>
                 </View>
+
                 {/* Sugar */}
                 <View
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: spacing.sm,
-                    borderWidth: 1,
+                    paddingHorizontal: spacing.md,
+                    paddingVertical: 14,
+                    borderTopWidth: 1,
+                    borderTopColor: colors.cardBorder,
                     borderLeftWidth: 3,
-                    borderColor: colors.cardBorder,
                     borderLeftColor: MACRO_COLORS.sugar,
-                    borderRadius: radius.md,
-                    backgroundColor: colors.background,
-                    paddingHorizontal: spacing.sm,
-                    minHeight: 48,
+                    gap: spacing.sm,
                   }}
                 >
-                  <Candy size={16} color={MACRO_COLORS.sugar} />
+                  <Candy size={18} color={MACRO_COLORS.sugar} />
+                  <Text style={[typography.smallMedium, { color: colors.foreground, flex: 1 }]}>
+                    Sugar
+                  </Text>
                   <TextInput
                     value={manualSugar}
                     onChangeText={setManualSugar}
-                    placeholder="Sugar (g)"
-                    placeholderTextColor={colors.muted}
                     keyboardType="decimal-pad"
                     editable={!isEditingManualItem}
-                    style={[typography.body, { flex: 1, color: colors.foreground }]}
+                    style={[
+                      typography.bodyMedium,
+                      {
+                        color: isEditingManualItem ? colors.mutedForeground : colors.foreground,
+                        textAlign: "right",
+                        minWidth: 72,
+                      },
+                    ]}
+                    accessibilityLabel="Sugar"
                   />
+                  <Text style={[typography.caption, { color: colors.mutedForeground, width: 28 }]}>g</Text>
                 </View>
+
                 {/* Notes */}
                 <View
                   style={{
-                    borderWidth: 1,
-                    borderColor: colors.cardBorder,
-                    borderRadius: radius.md,
-                    backgroundColor: colors.background,
-                    paddingHorizontal: spacing.sm,
-                    minHeight: 88,
-                    justifyContent: "flex-start",
-                    paddingTop: spacing.sm,
+                    paddingHorizontal: spacing.md,
+                    paddingVertical: spacing.sm,
+                    borderTopWidth: 1,
+                    borderTopColor: colors.cardBorder,
                   }}
                 >
                   <TextInput
@@ -1170,7 +1190,7 @@ export default function AddFoodScreen() {
                       typography.body,
                       {
                         color: colors.foreground,
-                        minHeight: 68,
+                        minHeight: 72,
                         textAlignVertical: "top",
                       },
                     ]}
@@ -1180,30 +1200,25 @@ export default function AddFoodScreen() {
             ) : null}
           </View>
 
-          {/* Save buttons */}
+          {/* ── Save buttons ── */}
           <View style={{ gap: spacing.xs }}>
             <Pressable
               onPress={() => saveManual(true)}
-              disabled={savingId === "manual-item"}
+              disabled={savingManual}
               style={{
-                minHeight: 48,
+                minHeight: 50,
                 borderRadius: radius.md,
                 alignItems: "center",
                 justifyContent: "center",
                 backgroundColor: colors.primary,
-                opacity: savingId === "manual-item" ? 0.6 : 1,
+                opacity: savingManual ? 0.6 : 1,
               }}
               accessibilityRole="button"
             >
-              {savingId === "manual-item" ? (
+              {savingManual ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Text
-                  style={[
-                    typography.bodyMedium,
-                    { color: colors.primaryForeground },
-                  ]}
-                >
+                <Text style={[typography.bodyMedium, { color: colors.primaryForeground }]}>
                   Save and use in daily log
                 </Text>
               )}
@@ -1211,162 +1226,42 @@ export default function AddFoodScreen() {
 
             <Pressable
               onPress={() => saveManual(false)}
-              disabled={savingId === "manual-item"}
+              disabled={savingManual}
               style={{
-                minHeight: 48,
+                minHeight: 50,
                 borderRadius: radius.md,
                 alignItems: "center",
                 justifyContent: "center",
                 borderWidth: 1,
                 borderColor: colors.cardBorder,
                 backgroundColor: colors.card,
-                opacity: savingId === "manual-item" ? 0.6 : 1,
+                opacity: savingManual ? 0.6 : 1,
               }}
               accessibilityRole="button"
             >
-              <Text
-                style={[typography.smallMedium, { color: colors.foreground }]}
-              >
+              <Text style={[typography.smallMedium, { color: colors.foreground }]}>
                 Save only to library
               </Text>
             </Pressable>
           </View>
         </ScrollView>
 
-        {/* AI photo tips modal */}
-        <Modal
+        {/* AI tips modal */}
+        <AITipsModal
           visible={aiTipsVisible}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setAiTipsVisible(false)}
-        >
-          <View style={{ flex: 1, justifyContent: "flex-end" }}>
-            <Pressable
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: "rgba(0,0,0,0.4)",
-              }}
-              onPress={() => setAiTipsVisible(false)}
-            />
-            <View
-              style={{
-                backgroundColor: colors.background,
-                borderTopLeftRadius: 24,
-                borderTopRightRadius: 24,
-                padding: spacing.xl,
-                paddingBottom: insets.bottom + spacing.xl,
-                gap: spacing.lg,
-              }}
-            >
-              <View style={{ alignItems: "center", marginTop: -spacing.md }}>
-                <View
-                  style={{
-                    width: 40,
-                    height: 4,
-                    borderRadius: 2,
-                    backgroundColor: colors.muted,
-                  }}
-                />
-              </View>
-              <Text style={[typography.h3, { color: colors.foreground }]}>
-                Photo tips for best results
-              </Text>
-              {[
-                { icon: <Camera size={20} color={colors.primary} />, tip: "Lay food flat or at eye level" },
-                { icon: <Sun size={20} color={colors.primary} />, tip: "Good lighting, no blur" },
-                { icon: <UtensilsCrossed size={20} color={colors.primary} />, tip: "One plate at a time" },
-              ].map((row, i) => (
-                <View
-                  key={i}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: spacing.md,
-                  }}
-                >
-                  {row.icon}
-                  <Text
-                    style={[
-                      typography.body,
-                      { color: colors.foreground, flex: 1 },
-                    ]}
-                  >
-                    {row.tip}
-                  </Text>
-                </View>
-              ))}
-              <View style={{ gap: spacing.sm, marginTop: spacing.xs }}>
-                <Pressable
-                  onPress={() => runAIFill("camera")}
-                  style={{
-                    minHeight: 48,
-                    borderRadius: radius.md,
-                    backgroundColor: colors.primary,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                  accessibilityRole="button"
-                >
-                  <Text
-                    style={[
-                      typography.bodyMedium,
-                      { color: colors.primaryForeground },
-                    ]}
-                  >
-                    Take photo
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => runAIFill("library")}
-                  style={{
-                    minHeight: 48,
-                    borderRadius: radius.md,
-                    borderWidth: 1,
-                    borderColor: colors.cardBorder,
-                    backgroundColor: colors.card,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                  accessibilityRole="button"
-                >
-                  <Text
-                    style={[typography.bodyMedium, { color: colors.foreground }]}
-                  >
-                    Choose from gallery
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => setAiTipsVisible(false)}
-                  style={{
-                    alignItems: "center",
-                    paddingVertical: spacing.sm,
-                  }}
-                  accessibilityRole="button"
-                >
-                  <Text
-                    style={[
-                      typography.body,
-                      { color: colors.mutedForeground },
-                    ]}
-                  >
-                    Cancel
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
-          </View>
-        </Modal>
+          onClose={() => setAiTipsVisible(false)}
+          onCamera={() => runAIFill("camera")}
+          onGallery={() => runAIFill("library")}
+          insetBottom={insets.bottom}
+        />
       </View>
     );
   }
 
-  // ─── Library / pick mode UI ───────────────────────────────────────────────
+  // ── Library / pick mode ──────────────────────────────────────────────────
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
+      {/* Header */}
       <View
         style={{
           paddingTop: insets.top + spacing.sm,
@@ -1382,22 +1277,13 @@ export default function AddFoodScreen() {
         <Pressable
           onPress={() => router.back()}
           hitSlop={8}
-          style={{
-            width: 36,
-            height: 36,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
+          style={{ width: 36, height: 36, alignItems: "center", justifyContent: "center" }}
         >
           <ChevronLeft size={24} color={colors.foreground} strokeWidth={2} />
         </Pressable>
         <View style={{ flex: 1 }}>
-          <Text style={[typography.h3, { color: colors.foreground }]}>
-            Search food
-          </Text>
-          <Text
-            style={[typography.caption, { color: colors.mutedForeground }]}
-          >
+          <Text style={[typography.h3, { color: colors.foreground }]}>Search food</Text>
+          <Text style={[typography.caption, { color: colors.mutedForeground }]}>
             Library first — external search when needed
           </Text>
         </View>
@@ -1415,14 +1301,7 @@ export default function AddFoodScreen() {
           />
         )}
         ListHeaderComponent={
-          <View
-            style={{
-              paddingHorizontal: spacing.md,
-              paddingTop: spacing.md,
-              gap: spacing.sm,
-              paddingBottom: spacing.sm,
-            }}
-          >
+          <View style={{ paddingHorizontal: spacing.md, paddingTop: spacing.md, gap: spacing.sm, paddingBottom: spacing.sm }}>
             {/* Search input */}
             <View
               style={{
@@ -1437,20 +1316,13 @@ export default function AddFoodScreen() {
                 gap: spacing.xs,
               }}
             >
-              <Search
-                size={18}
-                color={colors.mutedForeground}
-                strokeWidth={2}
-              />
+              <Search size={18} color={colors.mutedForeground} strokeWidth={2} />
               <TextInput
                 value={query}
                 onChangeText={setQuery}
                 placeholder="Search food"
                 placeholderTextColor={colors.muted}
-                style={[
-                  typography.body,
-                  { flex: 1, color: colors.foreground },
-                ]}
+                style={[typography.body, { flex: 1, color: colors.foreground }]}
               />
             </View>
 
@@ -1465,53 +1337,27 @@ export default function AddFoodScreen() {
                 gap: spacing.xs,
               }}
             >
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: spacing.xs,
-                }}
-              >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
                 <Database size={14} color={colors.primary} strokeWidth={2} />
-                <Text
-                  style={[
-                    typography.caption,
-                    { color: colors.mutedForeground },
-                  ]}
-                >
+                <Text style={[typography.caption, { color: colors.mutedForeground }]}>
                   Local library results are always shown first.
                 </Text>
               </View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: spacing.xs,
-                }}
-              >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
                 <Cloud size={14} color={colors.primary} strokeWidth={2} />
-                <Text
-                  style={[
-                    typography.caption,
-                    { color: colors.mutedForeground },
-                  ]}
-                >
+                <Text style={[typography.caption, { color: colors.mutedForeground }]}>
                   Edamam calls are cached and tracked daily to save your free quota.
                 </Text>
               </View>
               {usage ? (
-                <Text
-                  style={[typography.caption, { color: colors.mutedForeground }]}
-                >
+                <Text style={[typography.caption, { color: colors.mutedForeground }]}>
                   Edamam today: {usage.count} used
-                  {usage.remaining !== null
-                    ? ` · ${usage.remaining} remaining`
-                    : ""}
+                  {usage.remaining !== null ? ` · ${usage.remaining} remaining` : ""}
                 </Text>
               ) : null}
             </View>
 
-            {/* Remote search button */}
+            {/* Remote search */}
             <Pressable
               onPress={runRemoteSearch}
               disabled={!canRemoteSearch || searchingRemote}
@@ -1521,17 +1367,13 @@ export default function AddFoodScreen() {
                 alignItems: "center",
                 justifyContent: "center",
                 backgroundColor: colors.primary,
-                opacity:
-                  !canRemoteSearch || searchingRemote ? 0.6 : 1,
+                opacity: !canRemoteSearch || searchingRemote ? 0.6 : 1,
               }}
-              accessibilityRole="button"
             >
               {searchingRemote ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Text
-                  style={[typography.smallMedium, { color: "#fff" }]}
-                >
+                <Text style={[typography.smallMedium, { color: "#fff" }]}>
                   Search in Edamam / USDA
                 </Text>
               )}
@@ -1539,53 +1381,22 @@ export default function AddFoodScreen() {
           </View>
         }
         ListEmptyComponent={
-          <View
-            style={{
-              paddingHorizontal: spacing.md,
-              paddingVertical: spacing.xl,
-              alignItems: "center",
-              gap: spacing.xs,
-            }}
-          >
-            {searchingLocal ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : null}
-            <Text
-              style={[
-                typography.body,
-                { color: colors.mutedForeground, textAlign: "center" },
-              ]}
-            >
-              No food in your library for this term. Use external search to
-              fetch and save once.
+          <View style={{ paddingHorizontal: spacing.md, paddingVertical: spacing.xl, alignItems: "center", gap: spacing.xs }}>
+            {searchingLocal ? <ActivityIndicator size="small" color={colors.primary} /> : null}
+            <Text style={[typography.body, { color: colors.mutedForeground, textAlign: "center" }]}>
+              No food in your library for this term. Use external search to fetch and save once.
             </Text>
           </View>
         }
-        contentContainerStyle={{
-          gap: spacing.sm,
-          paddingHorizontal: spacing.md,
-          paddingBottom: insets.bottom + 80,
-        }}
+        contentContainerStyle={{ gap: spacing.sm, paddingHorizontal: spacing.md, paddingBottom: insets.bottom + 80 }}
       />
 
       {/* Sticky "Add manually" button */}
-      <View
-        style={{
-          position: "absolute",
-          bottom: insets.bottom + 16,
-          left: spacing.md,
-          right: spacing.md,
-        }}
-      >
+      <View style={{ position: "absolute", bottom: insets.bottom + 16, left: spacing.md, right: spacing.md }}>
         <Pressable
-          onPress={() =>
-            router.push({
-              pathname: "/nutrition/add-food",
-              params: { mode: "manual" },
-            })
-          }
+          onPress={() => router.push({ pathname: "/nutrition/add-food", params: { mode: "manual" } })}
           style={{
-            minHeight: 48,
+            minHeight: 50,
             borderRadius: radius.md,
             alignItems: "center",
             justifyContent: "center",
@@ -1598,16 +1409,9 @@ export default function AddFoodScreen() {
             shadowRadius: 8,
             elevation: 4,
           }}
-          accessibilityRole="button"
-          accessibilityLabel="Add food manually"
         >
           <Plus size={18} color={colors.primaryForeground} />
-          <Text
-            style={[
-              typography.bodyMedium,
-              { color: colors.primaryForeground },
-            ]}
-          >
+          <Text style={[typography.bodyMedium, { color: colors.primaryForeground }]}>
             Add manually
           </Text>
         </Pressable>
@@ -1617,16 +1421,15 @@ export default function AddFoodScreen() {
 }
 
 // TEST:
-// 1. mode=manual: form sections render (Identification, Serving, Macronutrients, Extra)
-// 2. Extra section: collapsed by default; ChevronDown toggle reveals Fiber/Sugar/Notes
-// 3. Photo field: tapping opens library picker; thumbnail shown with X to clear
-// 4. Fill with AI → tips modal → camera or gallery → detected items fill fields
-// 5. AI single result → auto-fills + dismissible "Filled by AI" banner
-// 6. AI multiple results → Alert for user to pick one
-// 7. Serving unit pill selector: g / ml / unit (active state)
-// 8. isEditingManualItem: macros auto-update on serving size change; inputs are read-only
-// 9. "Save and use in daily log" → saves to library + selects + navigates back
-// 10. mode=library / pick: FoodSearchCard list with mini-bars, source badge
-// 11. Sticky "Add manually" button at bottom; navigates to mode=manual
-// 12. Remote search button (Edamam/USDA) populates list; usage counter updates
-// 13. No emoji anywhere in UI; all icons from lucide-react-native
+// 1. Navigate to add-food?mode=manual → manual form renders with all 4 card sections
+// 2. Photo card: tap photo box → library picker; tap X → clears photo
+// 3. AI fill: "Scan with AI" → photo tips modal → camera/gallery → fields auto-fill + banner appears
+// 4. Identification card: name field required (*), brand optional
+// 5. Serving card: amount input + g/ml/unit pills (active state highlights)
+// 6. Macronutrients card: each row has colored icon, label, right-aligned input, unit
+// 7. isEditingManualItem: macro inputs show muted (read-only), values update on serving change
+// 8. Extra card: collapsed by default; chevron toggles fiber, sugar, notes
+// 9. "Save and use in daily log" → Firestore write → back → item appears in log list
+// 10. "Save only to library" → Firestore write → back (no item added to log)
+// 11. mode=library/pick: FoodSearchCard list with mini-bars + sticky Add manually button
+// 12. No emoji anywhere in UI

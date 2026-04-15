@@ -1,6 +1,9 @@
+import * as FileSystem from "expo-file-system/legacy";
 import { getLocales } from "expo-localization";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
+import { getResolvedApiKey } from "@/lib/api-key-store";
 import { storage } from "@/lib/firebase";
 
 interface NutritionAudioFormat {
@@ -44,6 +47,14 @@ type ExpoSpeechRecognitionModuleType = {
 let speechRecognitionModulePromise:
   | Promise<ExpoSpeechRecognitionModuleType | null>
   | null = null;
+
+export function isNativeSpeechRecognitionAvailable(): boolean {
+  const runtime = globalThis as unknown as {
+    expo?: { modules?: Record<string, unknown> };
+  };
+
+  return Boolean(runtime.expo?.modules?.ExpoSpeechRecognition);
+}
 
 async function loadSpeechRecognitionModule(): Promise<ExpoSpeechRecognitionModuleType | null> {
   if (!speechRecognitionModulePromise) {
@@ -99,6 +110,38 @@ function detectAudioFormat(uri: string): NutritionAudioFormat {
   }
 
   return { extension: "m4a", mimeType: "audio/mp4" };
+}
+
+function cleanTranscriptText(value: string): string {
+  return value
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/^\s*(transcript|transcricao|texto)\s*:\s*/i, "")
+    .replace(/^"|"$/g, "")
+    .trim();
+}
+
+async function transcribeWithGemini(
+  apiKey: string,
+  base64Audio: string,
+  mimeType: string,
+): Promise<string> {
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+  const response = await model.generateContent([
+    {
+      text:
+        "Transcreva este audio para texto em portugues brasileiro. Retorne apenas o texto transcrito, sem explicacoes.",
+    },
+    {
+      inlineData: {
+        mimeType,
+        data: base64Audio,
+      },
+    },
+  ]);
+
+  return cleanTranscriptText(response.response.text());
 }
 
 async function uploadAudioTemp(
@@ -271,7 +314,7 @@ export async function cancelNutritionAudioRecording(): Promise<void> {
 }
 
 export async function stopNutritionAudioRecordingAndTranscribe(
-  uid: string,
+  uid?: string,
 ): Promise<NutritionAudioTranscriptionResult> {
   if (!activeRecognitionSession) {
     throw new Error("No active recording to stop");
@@ -314,12 +357,14 @@ export async function stopNutritionAudioRecordingAndTranscribe(
       const format = detectAudioFormat(localUri);
       mimeType = format.mimeType;
 
-      try {
-        const upload = await uploadAudioTemp(uid, localUri, format);
-        storagePath = upload.storagePath;
-        downloadUrl = upload.downloadUrl;
-      } catch {
-        // Upload is optional for local transcription.
+      if (uid) {
+        try {
+          const upload = await uploadAudioTemp(uid, localUri, format);
+          storagePath = upload.storagePath;
+          downloadUrl = upload.downloadUrl;
+        } catch {
+          // Upload is optional for local transcription.
+        }
       }
     }
 
@@ -334,5 +379,39 @@ export async function stopNutritionAudioRecordingAndTranscribe(
   } finally {
     recordingStartedAt = 0;
   }
+}
+
+export async function transcribeNutritionAudioFromFile(
+  localUri: string,
+): Promise<string> {
+  if (!localUri) {
+    throw new Error("Audio file URI is missing");
+  }
+
+  const format = detectAudioFormat(localUri);
+  const base64Audio = await FileSystem.readAsStringAsync(localUri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+
+  if (!base64Audio.trim()) {
+    throw new Error("Could not read audio file content");
+  }
+
+  const geminiResolved = await getResolvedApiKey("gemini");
+  if (!geminiResolved.key) {
+    throw new Error("Gemini API key is not configured for audio transcription");
+  }
+
+  const transcript = await transcribeWithGemini(
+    geminiResolved.key,
+    base64Audio,
+    format.mimeType,
+  );
+
+  if (!transcript) {
+    throw new Error("No speech detected in audio");
+  }
+
+  return transcript;
 }
 

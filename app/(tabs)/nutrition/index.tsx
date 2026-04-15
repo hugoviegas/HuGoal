@@ -41,7 +41,7 @@ import {
   analyzeMealImageToChatItems,
   uploadNutritionImageTemp,
 } from "@/lib/ai/nutritionImageAI";
-import { stopNutritionAudioRecordingAndTranscribe } from "@/lib/ai/speechToText";
+import type { AudioRecordedPayload } from "@/components/nutrition/ChatInputBar";
 import { listPantryItems } from "@/lib/firestore/pantry";
 import {
   loadTodayNutritionChatMessages,
@@ -501,7 +501,7 @@ export default function NutritionScreen() {
   }, [runChatAnalysisFromMessage]);
 
   const handleAudioRecorded = useCallback(
-    async (localUri: string) => {
+    async ({ uri: localUri, transcript: rawTranscript }: AudioRecordedPayload) => {
       if (!user?.uid || !isViewingToday) {
         return;
       }
@@ -510,13 +510,7 @@ export default function NutritionScreen() {
         setSendingChat(true);
         await syncChatDateBoundary();
 
-        let transcript = "";
-        try {
-          const result = await stopNutritionAudioRecordingAndTranscribe(user.uid);
-          transcript = result.text.trim();
-        } catch {
-          // Fallback to manual prompt when transcription pipeline is unavailable.
-        }
+        const transcript = rawTranscript?.trim() ?? "";
 
         const messageText = transcript || "Audio enviado. Ajuste o texto manualmente se necessario.";
 
