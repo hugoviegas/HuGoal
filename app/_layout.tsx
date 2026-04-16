@@ -1,7 +1,7 @@
 import "@/global.css";
 import "@/lib/i18n";
-import { useEffect, useRef } from "react";
-import { Appearance, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Appearance, View, Text, ScrollView } from "react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -21,11 +21,19 @@ export default function RootLayout() {
   const colors = useThemeStore((s) => s.colors);
   const { setColorScheme } = useColorScheme();
   const lastAppliedMode = useRef<string | null>(null);
+  const [initError, setInitError] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsubscribe = initialize();
-    bootstrapApp(); // background: reads SecureStore API keys
-    return unsubscribe;
+    try {
+      const unsubscribe = initialize();
+      bootstrapApp(); // background: reads SecureStore API keys
+      return unsubscribe;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      console.error("[RootLayout Init Error]", errorMessage);
+      setInitError(errorMessage);
+    }
   }, [initialize]);
 
   useEffect(() => {
@@ -44,6 +52,35 @@ export default function RootLayout() {
     });
     return () => subscription.remove();
   }, [syncWithSystem]);
+
+  // Show error screen if initialization failed
+  if (initError) {
+    return (
+      <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#1a1a1a" }}>
+        <SafeAreaProvider>
+          <View className="flex-1 bg-neutral-900 justify-center items-center px-4">
+            <ScrollView
+              contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+            >
+              <View className="items-center gap-4">
+                <Text className="text-white text-2xl font-bold text-center">
+                  Initialization Error
+                </Text>
+                <Text className="text-red-500 text-center text-base leading-6">
+                  {initError}
+                </Text>
+                <Text className="text-neutral-400 text-center text-sm mt-4">
+                  Please ensure all EXPO_PUBLIC_FIREBASE_* environment variables
+                  are properly configured for EAS builds. Restart the app once
+                  variables are set.
+                </Text>
+              </View>
+            </ScrollView>
+          </View>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    );
+  }
 
   return (
     <GestureHandlerRootView

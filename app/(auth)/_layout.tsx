@@ -59,7 +59,7 @@ export default function AuthLayout() {
 
   if (isAuthenticated && user && !profile && !profileError) {
     if (profileTimedOut) {
-      return <Redirect href="/(auth)/login" />;
+      return <Redirect href="/(auth)/auth" />;
     }
     return (
       <View
@@ -76,7 +76,7 @@ export default function AuthLayout() {
   }
 
   if (!isAuthenticated && (isOnboardingRoute || isVerifyEmailRoute)) {
-    return <Redirect href="/(auth)/login" />;
+    return <Redirect href="/(auth)/auth" />;
   }
 
   if (isAuthenticated && user && !user.emailVerified && !isVerifyEmailRoute) {

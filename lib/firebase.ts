@@ -19,6 +19,24 @@ const firebaseConfig = {
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
+// Validate Firebase config at initialization time
+const requiredConfigKeys = [
+  "apiKey",
+  "authDomain",
+  "projectId",
+  "storageBucket",
+  "messagingSenderId",
+  "appId",
+] as const;
+
+for (const key of requiredConfigKeys) {
+  if (!firebaseConfig[key as keyof typeof firebaseConfig]) {
+    const errorMsg = `[Firebase Init Error] Missing required environment variable: EXPO_PUBLIC_FIREBASE_${key.toUpperCase()}. This is required for EAS builds. Please ensure all EXPO_PUBLIC_FIREBASE_* secrets are registered in EAS dashboard and referenced in eas.json env blocks.`;
+    console.error(errorMsg);
+    throw new Error(errorMsg);
+  }
+}
+
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 let auth: Auth;
