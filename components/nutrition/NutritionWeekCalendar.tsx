@@ -230,15 +230,6 @@ export function NutritionWeekCalendar({
         )}
       />
 
-      <View style={{ marginTop: 2, alignItems: "center" }}>
-        <Text style={[typography.caption, { color: colors.mutedForeground }]}>
-          {weekOffset === 0
-            ? "Previous week"
-            : weekOffset === 1
-              ? "Current week"
-              : "Next week"}
-        </Text>
-      </View>
     </View>
   );
 }

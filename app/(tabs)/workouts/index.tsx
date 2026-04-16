@@ -6,7 +6,6 @@ import React, {
   useState,
 } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Animated,
   FlatList,
@@ -34,7 +33,6 @@ import {
   Lock,
   MapPin,
   Play,
-  Settings2,
   SlidersHorizontal,
   Sparkles,
   Target,
@@ -69,10 +67,13 @@ import {
 } from "@/lib/workouts/adapt-workout";
 import type { OfficialExerciseRecord } from "@/lib/workouts/generated/official-exercises";
 import { Button } from "@/components/ui/Button";
+import { Spinner } from "@/components/ui/Spinner";
+import { PageHeader } from "@/components/shared/PageHeader";
 import { useAuthStore } from "@/stores/auth.store";
 import { useThemeStore } from "@/stores/theme.store";
 import { useToastStore } from "@/stores/toast.store";
 import { useWorkoutStore } from "@/stores/workout.store";
+import { typography } from "@/constants/typography";
 import { cn } from "@/lib/utils";
 
 function nextDifficulty(
@@ -309,8 +310,8 @@ export default function WorkoutsScreen() {
     useState(false);
   const [todayOverride, setTodayOverride] =
     useState<WorkoutDailyOverrideRecord | null>(null);
-  const [selectedDateKey, setSelectedDateKey] = useState<string>(
-    () => formatLocalDateKey(new Date()),
+  const [selectedDateKey, setSelectedDateKey] = useState<string>(() =>
+    formatLocalDateKey(new Date()),
   );
   const [weekPlanDayMap, setWeekPlanDayMap] = useState<
     Map<string, WorkoutWeekDayAssignment>
@@ -347,7 +348,7 @@ export default function WorkoutsScreen() {
     extrapolate: "clamp",
   });
 
-  const weekPagerWidth = Math.max(280, windowWidth - 52);
+  const weekPagerWidth = Math.max(280, windowWidth - 32);
   const weekScrollRef = useRef<FlatList<(typeof weekPages)[number]> | null>(
     null,
   );
@@ -536,7 +537,11 @@ export default function WorkoutsScreen() {
         };
       });
     });
-  }, [initialWeekMonday, completedDates, profile?.workout_settings?.training_days]);
+  }, [
+    initialWeekMonday,
+    completedDates,
+    profile?.workout_settings?.training_days,
+  ]);
 
   const heroImageUri = useMemo(() => {
     if (selectedDayWorkout?.cover_image_url)
@@ -1131,224 +1136,166 @@ export default function WorkoutsScreen() {
   }, [inspectId, displaySections, workouts]);
 
   return (
-    <View className="flex-1 bg-light-bg dark:bg-dark-bg">
-      <View
-        style={{
-          paddingTop: insets.top + 8,
-          paddingBottom: 14,
-          paddingHorizontal: 16,
-          borderBottomWidth: 1,
-          backgroundColor: isDark ? "#13161e" : "#ffffff",
-          borderBottomColor: isDark ? "#1f2937" : "#f1f5f9",
-        }}
-      >
-        {/* ── Top row: streak + settings ── */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 14,
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <View
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 11,
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: isDark
-                  ? "rgba(14,165,176,0.15)"
-                  : "rgba(14,165,176,0.1)",
-              }}
-            >
-              <Flame size={17} color={colors.primary} />
-            </View>
-            <View>
-              <Text
-                style={{
-                  fontSize: 17,
-                  fontWeight: "700",
-                  lineHeight: 20,
-                  color: isDark ? "#f3f4f6" : "#111827",
-                }}
-              >
-                {profile?.streak_current ?? 0}d
-              </Text>
-              <Text
-                style={{
-                  fontSize: 11,
-                  color: isDark ? "#6b7280" : "#9ca3af",
-                  lineHeight: 14,
-                }}
-              >
-                streak
-              </Text>
-            </View>
-          </View>
-
-          <Pressable
-            onPress={() => router.push("/(tabs)/workouts/settings")}
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 11,
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: isDark
-                ? "rgba(255,255,255,0.06)"
-                : "rgba(0,0,0,0.04)",
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <PageHeader
+        title="Workouts"
+        streakCount={profile?.streak_current ?? 0}
+        onSettingsPress={() => router.push("/(tabs)/workouts/settings")}
+        onTodayPress={
+          !isViewingToday
+            ? () => {
+                setSelectedDateKey(todayDateKey);
+                weekScrollRef.current?.scrollToIndex({
+                  index: 1,
+                  animated: true,
+                });
+              }
+            : undefined
+        }
+        calendarSlot={
+          <FlatList
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            decelerationRate="fast"
+            data={weekPages}
+            initialScrollIndex={1}
+            getItemLayout={(_, index) => ({
+              length: weekPagerWidth,
+              offset: weekPagerWidth * index,
+              index,
+            })}
+            ref={weekScrollRef}
+            keyExtractor={(_, idx) => `week-${idx}`}
+            onMomentumScrollEnd={(event) => {
+              const page = Math.round(
+                event.nativeEvent.contentOffset.x / weekPagerWidth,
+              );
+              setWeekOffset(Math.max(0, Math.min(weekPages.length - 1, page)));
             }}
-          >
-            <Settings2 size={17} color={isDark ? "#9ca3af" : "#64748b"} />
-          </Pressable>
-        </View>
-
-        {/* ── Week pager ── */}
-        <FlatList
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          decelerationRate="fast"
-          data={weekPages}
-          initialScrollIndex={1}
-          getItemLayout={(_, index) => ({
-            length: weekPagerWidth,
-            offset: weekPagerWidth * index,
-            index,
-          })}
-          ref={weekScrollRef}
-          keyExtractor={(_, idx) => `week-${idx}`}
-          onMomentumScrollEnd={(event) => {
-            const page = Math.round(
-              event.nativeEvent.contentOffset.x / weekPagerWidth,
-            );
-            setWeekOffset(Math.max(0, Math.min(weekPages.length - 1, page)));
-          }}
-          onScrollToIndexFailed={(info) => {
-            weekScrollRef.current?.scrollToOffset({
-              offset: info.index * weekPagerWidth,
-              animated: false,
-            });
-          }}
-          renderItem={({ item: days, index: pageIndex }) => (
-            <View
-              key={`week-${pageIndex}`}
-              style={{ width: weekPagerWidth, paddingHorizontal: 2 }}
-            >
+            onScrollToIndexFailed={(info) => {
+              weekScrollRef.current?.scrollToOffset({
+                offset: info.index * weekPagerWidth,
+                animated: false,
+              });
+            }}
+            renderItem={({ item: days, index: pageIndex }) => (
               <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                }}
+                key={`week-${pageIndex}`}
+                style={{ width: weekPagerWidth, paddingHorizontal: 2 }}
               >
-                {days.map((item) => {
-                  const filled = item.isDone;
-                  const today = item.isToday;
-                  const isSelected = item.dateKey === selectedDateKey;
-                  const isActive = today || isSelected;
-                  return (
-                    <Pressable
-                      key={item.key}
-                      onPress={() => setSelectedDateKey(item.dateKey)}
-                      accessibilityRole="button"
-                      accessibilityLabel={`${item.dayLabel} ${item.dayNumber}${today ? ", today" : ""}${filled ? ", completed" : ""}${item.isScheduled ? ", workout scheduled" : ", rest day"}`}
-                      style={{ alignItems: "center", minWidth: 40, paddingVertical: 4 }}
-                    >
-                      {/* Day-of-week label */}
-                      <Text
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  {days.map((item) => {
+                    const filled = item.isDone;
+                    const today = item.isToday;
+                    const isSelected = item.dateKey === selectedDateKey;
+                    const isActive = today || isSelected;
+                    return (
+                      <Pressable
+                        key={item.key}
+                        onPress={() => setSelectedDateKey(item.dateKey)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${item.dayLabel} ${item.dayNumber}${today ? ", today" : ""}${filled ? ", completed" : ""}${item.isScheduled ? ", workout scheduled" : ", rest day"}`}
                         style={{
-                          fontSize: 11,
-                          fontWeight: "500",
-                          marginBottom: 5,
-                          color: isActive
-                            ? colors.primary
-                            : isDark
-                              ? "#4b5563"
-                              : "#9ca3af",
+                          alignItems: "center",
+                          minWidth: 40,
+                          paddingVertical: 4,
                         }}
                       >
-                        {item.dayLabel}
-                      </Text>
-
-                      {/* Day-number circle */}
-                      <View
-                        style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: 16,
-                          alignItems: "center",
-                          justifyContent: "center",
-                          backgroundColor: filled
-                            ? today
+                        <Text
+                          style={{
+                            ...typography.caption,
+                            marginBottom: 5,
+                            color: isActive
                               ? colors.primary
                               : isDark
-                                ? "rgba(14,165,176,0.22)"
-                                : "rgba(14,165,176,0.14)"
-                            : "transparent",
-                          borderWidth: !filled && isActive ? 1.5 : 0,
-                          borderColor: today
-                            ? colors.primary
-                            : "rgba(14,165,176,0.45)",
-                        }}
-                      >
-                        {filled && today ? (
-                          <Check size={14} color="#fff" strokeWidth={3} />
-                        ) : (
-                          <Text
-                            style={{
-                              fontSize: 13,
-                              fontWeight: isActive || filled ? "700" : "400",
-                              color: filled
-                                ? today
-                                  ? "#fff"
-                                  : colors.primary
-                                : isActive
-                                  ? colors.primary
-                                  : isDark
-                                    ? "#d1d5db"
-                                    : "#374151",
-                            }}
-                          >
-                            {item.dayNumber}
-                          </Text>
-                        )}
-                      </View>
+                                ? "#4b5563"
+                                : "#9ca3af",
+                          }}
+                        >
+                          {item.dayLabel}
+                        </Text>
 
-                      {/* Scheduled-workout dot indicator */}
-                      <View
-                        style={{
-                          height: 5,
-                          marginTop: 3,
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        {item.isScheduled && !filled ? (
-                          <View
-                            style={{
-                              width: 4,
-                              height: 4,
-                              borderRadius: 2,
-                              backgroundColor: isActive
+                        <View
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 16,
+                            alignItems: "center",
+                            justifyContent: "center",
+                            backgroundColor: filled
+                              ? today
                                 ? colors.primary
                                 : isDark
-                                  ? "#4b5563"
-                                  : "#cbd5e1",
-                            }}
-                          />
-                        ) : null}
-                      </View>
-                    </Pressable>
-                  );
-                })}
+                                  ? "rgba(14,165,176,0.22)"
+                                  : "rgba(14,165,176,0.14)"
+                              : "transparent",
+                            borderWidth: !filled && isActive ? 1.5 : 0,
+                            borderColor: today
+                              ? colors.primary
+                              : "rgba(14,165,176,0.45)",
+                          }}
+                        >
+                          {filled && today ? (
+                            <Check size={14} color="#fff" strokeWidth={3} />
+                          ) : (
+                            <Text
+                              style={{
+                                ...typography.smallMedium,
+                                fontWeight: isActive || filled ? "700" : "400",
+                                color: filled
+                                  ? today
+                                    ? "#fff"
+                                    : colors.primary
+                                  : isActive
+                                    ? colors.primary
+                                    : isDark
+                                      ? "#d1d5db"
+                                      : "#374151",
+                              }}
+                            >
+                              {item.dayNumber}
+                            </Text>
+                          )}
+                        </View>
+
+                        <View
+                          style={{
+                            height: 5,
+                            marginTop: 3,
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          {item.isScheduled && !filled ? (
+                            <View
+                              style={{
+                                width: 4,
+                                height: 4,
+                                borderRadius: 2,
+                                backgroundColor: isActive
+                                  ? colors.primary
+                                  : isDark
+                                    ? "#4b5563"
+                                    : "#cbd5e1",
+                              }}
+                            />
+                          ) : null}
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+                </View>
               </View>
-            </View>
-          )}
-        />
-      </View>
+            )}
+          />
+        }
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -1360,10 +1307,8 @@ export default function WorkoutsScreen() {
       >
         {loading ? (
           <View className="rounded-3xl py-14 items-center justify-center">
-            <ActivityIndicator color={colors.primary} size="large" />
-            <Text className="text-sm text-gray-500 dark:text-gray-400 mt-3">
-              Loading workout
-            </Text>
+            {/* SHARED LOADING — use <Spinner size="lg" /> for full-screen loading states */}
+            <Spinner size="lg" />
           </View>
         ) : error ? (
           <View className="rounded-3xl border border-red-500/30 bg-red-500/10 p-4 mb-5">
@@ -1445,7 +1390,9 @@ export default function WorkoutsScreen() {
             )}
           >
             <Text className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-              {isViewingToday ? "No workout planned yet" : "No workout assigned"}
+              {isViewingToday
+                ? "No workout planned yet"
+                : "No workout assigned"}
             </Text>
             <Text className="text-sm text-gray-600 dark:text-gray-400 mt-2">
               {isViewingToday
@@ -1538,9 +1485,7 @@ export default function WorkoutsScreen() {
                         : "rgba(0,0,0,0.55)",
                     }}
                   >
-                    {isViewingToday ? (
-                      <Flame size={11} color="#fff" />
-                    ) : null}
+                    {isViewingToday ? <Flame size={11} color="#fff" /> : null}
                     <Text
                       style={{ fontSize: 11, fontWeight: "700", color: "#fff" }}
                     >
@@ -1641,7 +1586,10 @@ export default function WorkoutsScreen() {
                         color: isDark ? "#d1d5db" : "#374151",
                       }}
                     >
-                      {displaySections.reduce((acc, s) => acc + s.exercises.length, 0)}{" "}
+                      {displaySections.reduce(
+                        (acc, s) => acc + s.exercises.length,
+                        0,
+                      )}{" "}
                       exercises
                     </Text>
                   </View>
@@ -2129,11 +2077,22 @@ export default function WorkoutsScreen() {
             {/* 1st child in column-reverse = BOTTOM = always visible: action buttons */}
             <View
               style={{
-                paddingTop: 12,
+                paddingTop: 8,
                 paddingHorizontal: 16,
                 paddingBottom: insets.bottom + 80,
               }}
             >
+              {/* SHARED BOTTOM BAR STYLE — sync across: home, workouts, nutrition, community */}
+              <View
+                style={{
+                  width: 40,
+                  height: 4,
+                  borderRadius: 2,
+                  backgroundColor: colors.muted,
+                  alignSelf: "center",
+                  marginBottom: 8,
+                }}
+              />
               <View style={{ flexDirection: "row", gap: 12 }}>
                 <Button
                   variant="outline"
@@ -2419,10 +2378,7 @@ export default function WorkoutsScreen() {
       ) : null}
 
       {/* ── Streak broken alert (Feature 3) — once per session ── */}
-      <Modal
-        visible={!!streakBrokenInfo}
-        onClose={dismissStreakAlert}
-      >
+      <Modal visible={!!streakBrokenInfo} onClose={dismissStreakAlert}>
         <View
           style={{
             backgroundColor: isDark ? "#1c1f27" : "#ffffff",
@@ -2445,10 +2401,7 @@ export default function WorkoutsScreen() {
               marginBottom: 16,
             }}
           >
-            <TrendingDown
-              size={26}
-              color={isDark ? "#f87171" : "#ef4444"}
-            />
+            <TrendingDown size={26} color={isDark ? "#f87171" : "#ef4444"} />
           </View>
           <Text
             style={{
@@ -2481,8 +2434,8 @@ export default function WorkoutsScreen() {
               marginBottom: 20,
             }}
           >
-            Every day is a fresh start. Get back on track and build a new
-            streak today.
+            Every day is a fresh start. Get back on track and build a new streak
+            today.
           </Text>
           <Pressable
             onPress={dismissStreakAlert}
@@ -2497,9 +2450,7 @@ export default function WorkoutsScreen() {
               alignItems: "center",
             }}
           >
-            <Text
-              style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}
-            >
+            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>
               {"Let's go"}
             </Text>
           </Pressable>

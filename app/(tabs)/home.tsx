@@ -4,13 +4,14 @@ import {
   Text,
   ScrollView,
   Pressable,
-  ActivityIndicator,
+  TextInput,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { Flame, Dumbbell, Zap, ChevronRight } from "lucide-react-native";
+import { Flame, Dumbbell, Zap, ChevronRight, Send } from "lucide-react-native";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { Spinner } from "@/components/ui/Spinner";
 import { useAuthStore } from "@/stores/auth.store";
 import { useThemeStore } from "@/stores/theme.store";
 import { spacing } from "@/constants/spacing";
@@ -53,21 +54,20 @@ export default function HomeScreen() {
           justifyContent: "center",
         }}
       >
-        <ActivityIndicator size="large" color={colors.primary} />
+        {/* SHARED LOADING — use <Spinner size="lg" /> for full-screen loading states */}
+        <Spinner size="lg" />
       </View>
     );
   }
 
   return (
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
     <ScrollView
-      style={{
-        flex: 1,
-        backgroundColor: colors.background,
-      }}
+      style={{ flex: 1 }}
       contentContainerStyle={{
         paddingTop: insets.top + spacing.md,
         paddingHorizontal: spacing.md,
-        paddingBottom: insets.bottom + spacing.xl,
+        paddingBottom: spacing.md,
       }}
       showsVerticalScrollIndicator={false}
     >
@@ -326,5 +326,50 @@ export default function HomeScreen() {
         </Text>
       </View>
     </ScrollView>
+
+      {/* Coach chat bottom bar scaffold */}
+      {/* SHARED BOTTOM BAR STYLE — sync across: home, workouts, nutrition, community */}
+      <View
+        style={{
+          paddingBottom: insets.bottom + 8,
+          paddingTop: 8,
+          paddingHorizontal: 16,
+          borderTopWidth: 1,
+          borderTopColor: colors.cardBorder,
+          backgroundColor: colors.card,
+        }}
+      >
+        {/* TODO: Coach chat logic */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <TextInput
+            placeholder="Ask your coach..."
+            placeholderTextColor={colors.mutedForeground}
+            editable={false}
+            style={{
+              flex: 1,
+              height: 44,
+              borderRadius: 12,
+              paddingHorizontal: 14,
+              backgroundColor: colors.surface,
+              color: colors.foreground,
+            }}
+          />
+          <View
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 12,
+              backgroundColor: colors.card,
+              borderWidth: 1,
+              borderColor: colors.cardBorder,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Send size={18} color={colors.mutedForeground} />
+          </View>
+        </View>
+      </View>
+    </View>
   );
 }

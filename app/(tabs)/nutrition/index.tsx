@@ -21,7 +21,7 @@ import { useIsFocused } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { format } from "date-fns";
-import { CalendarDays, Flame } from "lucide-react-native";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 import {
   NutritionChat,
@@ -798,83 +798,20 @@ export default function NutritionScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <View
-        style={{
-          paddingTop: insets.top + 8,
-          paddingBottom: 14,
-          paddingHorizontal: 16,
-          borderBottomWidth: 1,
-          backgroundColor: colors.card,
-          borderBottomColor: colors.cardBorder,
-        }}
-      >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 14,
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <View
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 11,
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: isDark
-                  ? "rgba(14,165,176,0.15)"
-                  : "rgba(14,165,176,0.10)",
-              }}
-            >
-              <Flame size={17} color={colors.primary} />
-            </View>
-            <View>
-              <Text style={[typography.h3, { color: colors.foreground }]}>
-                {streakDays.length}d
-              </Text>
-              <Text
-                style={[typography.caption, { color: colors.mutedForeground }]}
-              >
-                nutrition streak
-              </Text>
-            </View>
-          </View>
-
-          <Pressable
-            onPress={() => setSelectedDate(todayDateKey)}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 6,
-              height: 36,
-              borderRadius: 11,
-              paddingHorizontal: 10,
-              backgroundColor: isDark
-                ? "rgba(255,255,255,0.06)"
-                : "rgba(0,0,0,0.04)",
-            }}
-            accessibilityRole="button"
-            accessibilityLabel="Return to today"
-          >
-            <CalendarDays size={16} color={isDark ? "#9ca3af" : "#64748b"} />
-            <Text
-              style={[typography.smallMedium, { color: colors.foreground }]}
-            >
-              Today
-            </Text>
-          </Pressable>
-        </View>
-
-        <NutritionWeekCalendar
-          selectedDate={selectedDate}
-          onSelectDate={setSelectedDate}
-          loggedDateKeys={loggedDateKeys}
-          streakDateKeys={streakDays}
-        />
-      </View>
+      <PageHeader
+        title="Nutrition"
+        streakCount={streakDays.length}
+        onSettingsPress={() => router.push("/(tabs)/nutrition/settings")}
+        onTodayPress={!isViewingToday ? () => setSelectedDate(todayDateKey) : undefined}
+        calendarSlot={
+          <NutritionWeekCalendar
+            selectedDate={selectedDate}
+            onSelectDate={setSelectedDate}
+            loggedDateKeys={loggedDateKeys}
+            streakDateKeys={streakDays}
+          />
+        }
+      />
 
       <ScrollView
         style={{ flex: 1 }}

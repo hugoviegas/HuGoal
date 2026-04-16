@@ -2,7 +2,6 @@ import {
   View,
   Text,
   Pressable,
-  ActivityIndicator,
   FlatList,
   RefreshControl,
 } from "react-native";
@@ -17,6 +16,7 @@ import {
   FileText,
 } from "lucide-react-native";
 import { Avatar } from "@/components/ui/Avatar";
+import { Spinner } from "@/components/ui/Spinner";
 import { FollowButton } from "@/components/community/FollowButton";
 import { FeedPost } from "@/components/community/FeedPost";
 import { PostActionMenu } from "@/components/community/PostActionMenu";
@@ -123,7 +123,8 @@ export default function PublicProfileScreen() {
           justifyContent: "center",
         }}
       >
-        <ActivityIndicator color={colors.primary} size="large" />
+        {/* SHARED LOADING — use <Spinner size="lg" /> for full-screen loading states */}
+        <Spinner size="lg" />
       </View>
     );
   }

@@ -20,6 +20,7 @@ export default function NutritionStackLayout() {
       <Stack.Screen name="history" />
       <Stack.Screen name="library" />
       <Stack.Screen name="pantry" />
+      <Stack.Screen name="settings" />
     </Stack>
   );
 }

@@ -47,6 +47,7 @@ import {
 import { useAuthStore } from "@/stores/auth.store";
 import { useThemeStore } from "@/stores/theme.store";
 import { useToastStore } from "@/stores/toast.store";
+import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 
@@ -622,7 +623,8 @@ export default function WorkoutLibraryScreen() {
     if (loading) {
       return (
         <View className="flex-1 items-center justify-center py-20">
-          <ActivityIndicator color={colors.primary} size="large" />
+          {/* SHARED LOADING — use <Spinner size="lg" /> for full-screen loading states */}
+          <Spinner size="lg" />
           <Text className="text-sm text-gray-500 dark:text-gray-400 mt-3">
             Loading workouts…
           </Text>

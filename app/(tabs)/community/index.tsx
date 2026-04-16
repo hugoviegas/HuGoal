@@ -1,15 +1,10 @@
-import {
-  View,
-  Text,
-  FlatList,
-  Pressable,
-  RefreshControl,
-  ActivityIndicator,
-} from "react-native";
+import { View, Text, FlatList, Pressable, RefreshControl } from "react-native";
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Compass, Plus } from "lucide-react-native";
+import { Plus } from "lucide-react-native";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { Spinner } from "@/components/ui/Spinner";
 import { FeedPost } from "@/components/community/FeedPost";
 import { FeedEmptyState } from "@/components/community/FeedEmptyState";
 import { PostActionMenu } from "@/components/community/PostActionMenu";
@@ -81,80 +76,51 @@ export default function CommunityFeedScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* Header */}
+      <PageHeader
+        title="Community"
+        streakCount={0}
+        onSettingsPress={() => {
+          /* TODO: community settings */
+        }}
+        // TODO: wire group streak from community store
+        // TODO: group check-in calendarSlot
+      />
+
+      {/* Tab row */}
       <View
         style={{
-          paddingTop: insets.top + 8,
-          paddingHorizontal: 16,
-          paddingBottom: 0,
-          backgroundColor: colors.background,
+          flexDirection: "row",
+          backgroundColor: colors.card,
           borderBottomWidth: 1,
           borderBottomColor: colors.cardBorder,
         }}
       >
-        {/* Top row: title + discover */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 12,
-          }}
-        >
-          <Text
+        {(["community", "grupos"] as Tab[]).map((tab) => (
+          <Pressable
+            key={tab}
+            onPress={() => setActiveTab(tab)}
             style={{
-              color: colors.foreground,
-              fontSize: 22,
-              fontWeight: "800",
+              flex: 1,
+              alignItems: "center",
+              paddingVertical: 10,
+              borderBottomWidth: 2,
+              borderBottomColor:
+                activeTab === tab ? colors.primary : "transparent",
             }}
           >
-            HuGoal
-          </Text>
-          <Pressable
-            onPress={() => router.push("/(tabs)/community/discover")}
-            style={({ pressed }) => ({
-              width: 40,
-              height: 40,
-              borderRadius: 12,
-              backgroundColor: pressed ? colors.surface : colors.card,
-              borderWidth: 1,
-              borderColor: colors.cardBorder,
-              alignItems: "center",
-              justifyContent: "center",
-            })}
-          >
-            <Compass size={20} color={colors.foreground} />
-          </Pressable>
-        </View>
-
-        {/* Tab row */}
-        <View style={{ flexDirection: "row", gap: 0 }}>
-          {(["community", "grupos"] as Tab[]).map((tab) => (
-            <Pressable
-              key={tab}
-              onPress={() => setActiveTab(tab)}
+            <Text
               style={{
-                flex: 1,
-                alignItems: "center",
-                paddingVertical: 10,
-                borderBottomWidth: 2,
-                borderBottomColor:
-                  activeTab === tab ? colors.primary : "transparent",
+                color:
+                  activeTab === tab ? colors.primary : colors.mutedForeground,
+                fontSize: 15,
+                fontWeight: "700",
+                textTransform: "capitalize",
               }}
             >
-              <Text
-                style={{
-                  color:
-                    activeTab === tab ? colors.primary : colors.mutedForeground,
-                  fontSize: 15,
-                  fontWeight: "700",
-                  textTransform: "capitalize",
-                }}
-              >
-                {tab === "community" ? "Community" : "Grupos"}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+              {tab === "community" ? "Community" : "Grupos"}
+            </Text>
+          </Pressable>
+        ))}
       </View>
 
       {/* Community tab */}
@@ -168,7 +134,8 @@ export default function CommunityFeedScreen() {
                 justifyContent: "center",
               }}
             >
-              <ActivityIndicator color={colors.primary} size="large" />
+              {/* SHARED LOADING — use <Spinner size="lg" /> for full-screen loading states */}
+              <Spinner size="lg" />
             </View>
           ) : (
             <FlatList
@@ -178,9 +145,8 @@ export default function CommunityFeedScreen() {
                 paddingTop: 0,
                 paddingHorizontal: 16,
                 gap: 12,
-                paddingBottom: insets.bottom + 112,
+                paddingBottom: insets.bottom + 88,
               }}
-              ListHeaderComponent={<NewPostCard />}
               refreshControl={
                 <RefreshControl
                   refreshing={refreshing}
@@ -205,6 +171,20 @@ export default function CommunityFeedScreen() {
               showsVerticalScrollIndicator={false}
             />
           )}
+
+          {/* SHARED BOTTOM BAR STYLE — sync across: home, workouts, nutrition, community */}
+          <View
+            style={{
+              paddingBottom: insets.bottom + 8,
+              paddingTop: 8,
+              paddingHorizontal: 16,
+              borderTopWidth: 1,
+              borderTopColor: colors.cardBorder,
+              backgroundColor: colors.card,
+            }}
+          >
+            <NewPostCard />
+          </View>
 
           {menuPost && (
             <PostActionMenu

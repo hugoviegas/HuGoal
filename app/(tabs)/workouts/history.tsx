@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Pressable,
   ScrollView,
   Text,
@@ -19,6 +18,7 @@ import {
 import { useThemeStore } from "@/stores/theme.store";
 import { useAuthStore } from "@/stores/auth.store";
 import { Button } from "@/components/ui/Button";
+import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
 import {
   listCompletedWorkoutSessions,
@@ -132,8 +132,8 @@ export default function WorkoutHistoryScreen() {
   if (loading) {
     return (
       <View className={cn("flex-1 items-center justify-center", isDark ? "bg-dark-bg" : "bg-light-bg")}>
-        <ActivityIndicator color={colors.primary} size="large" />
-        <Text className="text-sm text-gray-500 dark:text-gray-400 mt-3">Loading history…</Text>
+        {/* SHARED LOADING — use <Spinner size="lg" /> for full-screen loading states */}
+        <Spinner size="lg" />
       </View>
     );
   }

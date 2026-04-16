@@ -1,4 +1,5 @@
-import { ActivityIndicator, View } from "react-native";
+import { View } from "react-native";
+import { Spinner } from "@/components/ui/Spinner";
 import { Redirect, Stack } from "expo-router";
 import { useAuthStore } from "@/stores/auth.store";
 import { useThemeStore } from "@/stores/theme.store";
@@ -17,7 +18,8 @@ export default function UserLayout() {
           backgroundColor: colors.background,
         }}
       >
-        <ActivityIndicator size="large" color={colors.primary} />
+        {/* SHARED LOADING — use <Spinner size="lg" /> for full-screen loading states */}
+        <Spinner size="lg" />
       </View>
     );
   }
