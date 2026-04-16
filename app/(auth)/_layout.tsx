@@ -86,14 +86,14 @@ export default function AuthLayout() {
   // Verified users should not stay on the verify email screen.
   if (isAuthenticated && user?.emailVerified && isVerifyEmailRoute) {
     if (profile?.onboarding_complete) {
-      return <Redirect href="/(tabs)/dashboard" />;
+      return <Redirect href="/(tabs)/home" />;
     }
     return <Redirect href="/(auth)/onboarding/gender" />;
   }
 
   // Already fully onboarded → go to tabs
   if (isAuthenticated && profile?.onboarding_complete) {
-    return <Redirect href="/(tabs)/dashboard" />;
+    return <Redirect href="/(tabs)/home" />;
   }
 
   // Authenticated but onboarding not complete → continue onboarding flow.

@@ -176,11 +176,15 @@ export default function NutritionScreen() {
   const setTodayLogs = useNutritionStore((s) => s.setTodayLogs);
   const setDailyGoal = useNutritionStore((s) => s.setDailyGoal);
   const setWater = useNutritionStore((s) => s.setWater);
+  const lastFetchedAt = useNutritionStore((s) => s.lastFetchedAt);
   const setLoading = useNutritionStore((s) => s.setLoading);
+  const setLastFetchedAt = useNutritionStore((s) => s.setLastFetchedAt);
   const setSelectedDate = useNutritionStore((s) => s.setSelectedDate);
   const setStreakDays = useNutritionStore((s) => s.setStreakDays);
   const setChatMessages = useNutritionStore((s) => s.setChatMessages);
   const addChatMessage = useNutritionStore((s) => s.addChatMessage);
+
+  const NUTRITION_CACHE_TTL_MS = 5 * 60 * 1000;
 
   const [allLogs, setAllLogs] = useState<NutritionLog[]>([]);
   const [loggedDateKeys, setLoggedDateKeys] = useState<string[]>([]);
@@ -298,6 +302,7 @@ export default function NutritionScreen() {
       if (profile) {
         setDailyGoal(calculateDailyGoal(profile));
       }
+      setLastFetchedAt(Date.now());
     } catch (loadErr) {
       const message =
         loadErr instanceof Error
@@ -311,6 +316,7 @@ export default function NutritionScreen() {
   }, [
     profile,
     setDailyGoal,
+    setLastFetchedAt,
     setLoading,
     setStreakDays,
     setTodayLogs,
@@ -330,9 +336,14 @@ export default function NutritionScreen() {
 
   useEffect(() => {
     if (!isFocused) return;
-    void loadNutritionBase();
-    void loadTodayChat();
-  }, [isFocused, loadNutritionBase, loadTodayChat]);
+    const isFresh =
+      lastFetchedAt !== null &&
+      Date.now() - lastFetchedAt < NUTRITION_CACHE_TTL_MS;
+    if (!isFresh) {
+      void loadNutritionBase();
+      void loadTodayChat();
+    }
+  }, [isFocused, lastFetchedAt, NUTRITION_CACHE_TTL_MS, loadNutritionBase, loadTodayChat]);
 
   useEffect(() => {
     return () => {
@@ -770,7 +781,7 @@ export default function NutritionScreen() {
   ]);
 
 
-  if (isLoading) {
+  if (isLoading && todayLogs.length === 0) {
     return (
       <View
         style={{

@@ -36,6 +36,7 @@ export default function TabsLayout() {
         headerShown: false,
         lazy: true,
         freezeOnBlur: true,
+        animation: "fade",
         sceneStyle: { backgroundColor: colors.background },
       }}
     >

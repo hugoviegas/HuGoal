@@ -33,6 +33,7 @@ interface NutritionState {
   streakDays: string[];
   chatMessages: ChatMessage[];
   isLoading: boolean;
+  lastFetchedAt: number | null;
   selectedFoodSelection: {
     item: NutritionItem;
     editIndex: number | null;
@@ -59,6 +60,7 @@ interface NutritionState {
   addChatMessage: (message: ChatMessage) => void;
   clearChatMessages: () => void;
   setLoading: (loading: boolean) => void;
+  setLastFetchedAt: (ts: number) => void;
   setSelectedFoodSelection: (
     item: NutritionItem | null,
     editIndex?: number | null,
@@ -97,6 +99,7 @@ export const useNutritionStore = create<NutritionState>((set, get) => ({
   streakDays: [],
   chatMessages: [],
   isLoading: false,
+  lastFetchedAt: null,
   selectedFoodSelection: null,
   todayTotals: { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 },
 
@@ -125,6 +128,7 @@ export const useNutritionStore = create<NutritionState>((set, get) => ({
   clearChatMessages: () => set({ chatMessages: [] }),
 
   setLoading: (loading) => set({ isLoading: loading }),
+  setLastFetchedAt: (ts) => set({ lastFetchedAt: ts }),
 
   setSelectedFoodSelection: (item, editIndex = null) => {
     if (!item) {
@@ -154,6 +158,7 @@ export const useNutritionStore = create<NutritionState>((set, get) => ({
       streakDays: [],
       chatMessages: [],
       isLoading: false,
+      lastFetchedAt: null,
       selectedFoodSelection: null,
       todayTotals: { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 },
     }),

@@ -156,7 +156,7 @@ export default function OnboardingProfileInfoScreen() {
       await fetchProfile(user.uid);
 
       showToast("Profile setup complete!", "success");
-      router.replace("/(tabs)/dashboard");
+      router.replace("/(tabs)/home");
     } catch (error: unknown) {
       const message =
         error instanceof Error
