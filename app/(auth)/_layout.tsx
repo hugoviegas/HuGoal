@@ -1,7 +1,10 @@
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { Redirect, Stack, useSegments } from "expo-router";
 import { useAuthStore } from "@/stores/auth.store";
 import { useThemeStore } from "@/stores/theme.store";
+
+const PROFILE_WAIT_MS = 5000;
 
 export default function AuthLayout() {
   const {
@@ -16,6 +19,28 @@ export default function AuthLayout() {
   const segments = useSegments();
   const isOnboardingRoute = segments.includes("onboarding");
   const isVerifyEmailRoute = segments.includes("verify-email");
+
+  const [profileTimedOut, setProfileTimedOut] = useState(false);
+  const profileTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const shouldWait =
+      isAuthenticated && !profile && !profileError && !isLoading && !isInitializing;
+
+    if (shouldWait) {
+      profileTimeoutRef.current = setTimeout(
+        () => setProfileTimedOut(true),
+        PROFILE_WAIT_MS
+      );
+    }
+
+    return () => {
+      if (profileTimeoutRef.current) {
+        clearTimeout(profileTimeoutRef.current);
+        profileTimeoutRef.current = null;
+      }
+    };
+  }, [isAuthenticated, profile, profileError, isLoading, isInitializing]);
 
   if (isInitializing || isLoading) {
     return (
@@ -32,9 +57,10 @@ export default function AuthLayout() {
     );
   }
 
-  // Native auth/profile hydration can resolve user first and profile shortly
-  // after; keep a neutral loading screen to avoid flashing the login page.
   if (isAuthenticated && user && !profile && !profileError) {
+    if (profileTimedOut) {
+      return <Redirect href="/(auth)/login" />;
+    }
     return (
       <View
         style={{

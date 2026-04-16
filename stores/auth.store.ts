@@ -21,6 +21,7 @@ interface AuthState {
   setOnboardingCompleted: (value: boolean) => Promise<void>;
   setWorkoutSettings: (settings: WorkoutSettings) => Promise<void>;
   logout: () => Promise<void>;
+  forceReady: () => void;
   initialize: () => () => void;
 }
 
@@ -42,6 +43,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ profile });
     } catch (e: any) {
       set({ profileError: e?.message ?? "Failed to load profile" });
+    } finally {
+      set({ isLoading: false });
     }
   },
 
@@ -79,6 +82,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }));
   },
 
+  forceReady: () => {
+    set({ isLoading: false, isInitializing: false });
+    phaseDebug("auth", "forceReady");
+  },
+
   logout: async () => {
     const uid = get().user?.uid;
     const authInstance = firebaseAuth ?? getAuth(app);
@@ -102,10 +110,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isInitializing: true, isLoading: true });
     phaseDebug("auth", "initialize:start");
 
+    const safetyTimer = setTimeout(() => {
+      if (active && get().isLoading) {
+        phaseDebug("auth", "initialize:safetyTimeout");
+        get().forceReady();
+      }
+    }, 8000);
+
     let authInstance;
     try {
       authInstance = firebaseAuth ?? getAuth(app);
     } catch (e: any) {
+      clearTimeout(safetyTimer);
       set({
         isLoading: false,
         isInitializing: false,
@@ -160,6 +176,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     return () => {
       active = false;
+      clearTimeout(safetyTimer);
       unsubscribe();
     };
   },

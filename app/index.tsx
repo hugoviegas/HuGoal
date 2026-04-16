@@ -1,18 +1,30 @@
+import { useEffect, useRef } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { Redirect } from "expo-router";
 import { useAuthStore } from "@/stores/auth.store";
 import { useThemeStore } from "@/stores/theme.store";
 
-/**
- * Root entry point — reads auth state and redirects to the correct group.
- * Shows a spinner while auth is still initializing.
- */
+const INIT_TIMEOUT_MS = 10000;
+
 export default function Index() {
   const colors = useThemeStore((s) => s.colors);
-  const { isAuthenticated, isInitializing, isLoading } = useAuthStore();
+  const { isAuthenticated, isInitializing, isLoading, forceReady } =
+    useAuthStore();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // On native, Firebase auth restoration is async. Never redirect to login
-  // until the auth store finishes hydration.
+  useEffect(() => {
+    timeoutRef.current = setTimeout(() => {
+      forceReady();
+    }, INIT_TIMEOUT_MS);
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, []);
+
   if (isInitializing || isLoading) {
     return (
       <View
@@ -32,7 +44,5 @@ export default function Index() {
     return <Redirect href="/(auth)/login" />;
   }
 
-  // Remaining flow constraints (verify-email/onboarding) are handled
-  // by route-group guards.
   return <Redirect href="/(tabs)/dashboard" />;
 }
