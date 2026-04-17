@@ -795,17 +795,18 @@ export default function WorkoutSettingsScreen() {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{
-          paddingTop: insets.top + 12,
+      {/* ── Fixed Header ── */}
+      <View
+        style={{
+          paddingTop: insets.top,
           paddingHorizontal: 16,
-          paddingBottom: insets.bottom + 32,
-          gap: 14,
+          paddingBottom: 12,
+          backgroundColor: colors.background,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.cardBorder,
+          zIndex: 10,
         }}
-        showsVerticalScrollIndicator={false}
       >
-        {/* ── Header ── */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <Pressable
             accessibilityRole="button"
@@ -843,7 +844,18 @@ export default function WorkoutSettingsScreen() {
             </Text>
           </View>
         </View>
+      </View>
 
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingBottom: insets.bottom + 32,
+          gap: 14,
+          paddingTop: 14,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* ── Section 1: Location profiles ── */}
         <SectionCard
           icon={<MapPin size={16} color={colors.primary} />}

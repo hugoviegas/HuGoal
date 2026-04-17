@@ -102,6 +102,7 @@ export function WorkoutChatInputBar({
 
   return (
     <View>
+      {/* Slash command menu — renders above the input pill */}
       {filteredCommands.length > 0 ? (
         <View
           style={{
@@ -110,7 +111,7 @@ export function WorkoutChatInputBar({
             borderRadius: 14,
             borderWidth: 1,
             borderColor: colors.cardBorder,
-            backgroundColor: colors.surface,
+            backgroundColor: colors.card,
             overflow: "hidden",
           }}
         >
@@ -165,14 +166,21 @@ export function WorkoutChatInputBar({
         </View>
       ) : null}
 
+      {/* Input pill — same layout as ChatInputBar */}
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: 8,
-          paddingHorizontal: spacing.sm,
-          paddingTop: spacing.xs,
-          paddingBottom: spacing.sm,
+          marginHorizontal: spacing.sm,
+          marginTop: spacing.xs,
+          marginBottom: spacing.xs,
+          paddingHorizontal: spacing.xs,
+          paddingVertical: 6,
+          backgroundColor: colors.card,
+          borderWidth: 1,
+          borderColor: colors.cardBorder,
+          borderRadius: 26,
+          gap: spacing.xs,
         }}
       >
         <Pressable
@@ -180,15 +188,14 @@ export function WorkoutChatInputBar({
           accessibilityRole="button"
           accessibilityLabel="Attach file"
           style={{
-            width: 40,
-            height: 40,
-            borderRadius: 13,
+            width: 36,
+            height: 36,
+            borderRadius: 18,
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: colors.surface,
           }}
         >
-          <Paperclip size={18} color={colors.mutedForeground} />
+          <Paperclip size={20} color={colors.mutedForeground} />
         </Pressable>
 
         <TextInput
@@ -205,12 +212,13 @@ export function WorkoutChatInputBar({
             flex: 1,
             maxHeight: 92,
             minHeight: 40,
-            borderRadius: 14,
-            paddingHorizontal: 14,
-            paddingVertical: 10,
+            borderRadius: 20,
+            backgroundColor: "transparent",
+            paddingHorizontal: 8,
+            paddingVertical: 8,
+            fontSize: 15,
             color: colors.foreground,
-            backgroundColor: colors.surface,
-            ...typography.small,
+            textAlignVertical: "center",
           }}
           returnKeyType="send"
           blurOnSubmit={false}
@@ -226,14 +234,15 @@ export function WorkoutChatInputBar({
             style={{
               width: 40,
               height: 40,
-              borderRadius: 13,
+              borderRadius: 20,
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: canSend ? colors.primary : colors.surface,
+              backgroundColor: canSend ? colors.primary : "transparent",
+              overflow: "visible",
             }}
           >
             <ArrowUp
-              size={18}
+              size={20}
               color={canSend ? colors.primaryForeground : colors.mutedForeground}
             />
           </Pressable>

@@ -70,6 +70,9 @@ export function buildAIExerciseSubset(
   maxPerMuscle = 8,
 ): AIExerciseEntry[] {
   const eqSet = new Set(equipment.map((e) => e.toLowerCase()));
+  // If the user has no equipment configured, skip equipment filtering entirely
+  // so the AI receives a full catalog for the target muscles.
+  const filterByEquipment = eqSet.size > 0;
   const seen = new Set<string>();
   const result: AIExerciseEntry[] = [];
 
@@ -77,26 +80,38 @@ export function buildAIExerciseSubset(
     if (seen.has(id)) return;
     const entry = index.byId[id];
     if (!entry) return;
-    // Allow bodyweight exercises always; otherwise filter by equipment
-    if (entry.equipment !== "bodyweight" && !eqSet.has(entry.equipment)) return;
+    if (filterByEquipment) {
+      // Always allow bodyweight; otherwise require equipment match
+      if (entry.equipment !== "bodyweight" && !eqSet.has(entry.equipment)) return;
+    }
     seen.add(id);
     result.push(entry);
   };
 
-  // Prioritize by requested muscles
+  // Prioritize by requested muscles, across all muscles if none specified
   const targetMuscles = muscles.length > 0 ? muscles : Object.keys(index.byMuscle);
   for (const muscle of targetMuscles) {
     const ids = (index.byMuscle[muscle] ?? []).slice(0, maxPerMuscle);
     for (const id of ids) addEntry(id);
   }
 
-  // Fill remaining slots with equipment-matching exercises not yet included
+  // Fill remaining slots with equipment-matching (or any) exercises
   if (result.length < 100) {
-    for (const eq of equipment) {
-      const ids = index.byEquipment[eq.toLowerCase()] ?? [];
-      for (const id of ids) {
+    if (filterByEquipment) {
+      for (const eq of equipment) {
+        const ids = index.byEquipment[eq.toLowerCase()] ?? [];
+        for (const id of ids) {
+          if (result.length >= 100) break;
+          addEntry(id);
+        }
+      }
+    } else {
+      for (const ids of Object.values(index.byEquipment)) {
+        for (const id of ids) {
+          if (result.length >= 100) break;
+          addEntry(id);
+        }
         if (result.length >= 100) break;
-        addEntry(id);
       }
     }
   }

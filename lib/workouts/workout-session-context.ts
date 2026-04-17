@@ -1,5 +1,6 @@
 import type { WorkoutDailyOverrideRecord, WorkoutTemplateRecord } from "@/lib/firestore/workouts";
-import type { UserProfile, WorkoutLocationProfile } from "@/types";
+import type { EquipmentItemId, UserProfile, WorkoutLocationProfile } from "@/types";
+import type { EquipmentType } from "@/types";
 
 export interface WorkoutSessionContextBlock {
   exercise_id?: string;
@@ -53,6 +54,46 @@ function blockPrescription(block: {
   return block.reps || "-";
 }
 
+// Maps the expanded EquipmentItemId values to the normalized EquipmentType
+// used by the exercise catalog index.
+function equipmentItemToType(id: EquipmentItemId): EquipmentType | null {
+  switch (id) {
+    case "barbell":
+    case "ez_bar":
+    case "plates":
+      return "barbell";
+    case "dumbbell":
+    case "dumbbell_adjustable":
+      return "dumbbell";
+    case "kettlebell":
+      return "kettlebell";
+    case "resistance_band":
+    case "glute_band":
+      return "band";
+    case "machine_cable":
+      return "cable";
+    case "machine_chest_press":
+    case "machine_lat_pulldown":
+    case "machine_leg_extension":
+    case "machine_leg_lift":
+    case "machine_butterfly":
+    case "machine_pulley":
+    case "smith_machine":
+    case "rack":
+      return "machine";
+    case "bodyweight":
+    case "pullup_bar":
+    case "dip_bars":
+    case "pushup_bars":
+    case "low_bar":
+    case "ab_wheel":
+    case "leg_lift_station":
+      return "bodyweight";
+    default:
+      return null;
+  }
+}
+
 function resolveActiveLocation(
   profile: UserProfile,
 ): WorkoutLocationProfile | undefined {
@@ -69,6 +110,37 @@ function resolveActiveLocation(
   return settings.locations?.[0];
 }
 
+function resolveEquipment(profile: UserProfile): string[] {
+  const settings = profile.workout_settings;
+  if (!settings) return [];
+
+  // Prefer new location_profiles format (equipment_ids → EquipmentType)
+  if (settings.active_location_profile_id && settings.location_profiles) {
+    const profile = settings.location_profiles.find(
+      (lp) => lp.id === settings.active_location_profile_id,
+    );
+    if (profile?.equipment_ids && profile.equipment_ids.length > 0) {
+      const types = new Set<string>();
+      for (const id of profile.equipment_ids) {
+        const mapped = equipmentItemToType(id);
+        if (mapped && mapped !== "none") types.add(mapped);
+      }
+      // bodyweight is always available
+      types.add("bodyweight");
+      return Array.from(types);
+    }
+  }
+
+  // Fall back to legacy equipment_by_location field
+  const activeLocation = resolveActiveLocation({ workout_settings: settings } as UserProfile);
+  if (activeLocation && settings.equipment_by_location?.[activeLocation]) {
+    const eq = settings.equipment_by_location[activeLocation] as string[];
+    return eq.length > 0 ? [...new Set([...eq, "bodyweight"])] : [];
+  }
+
+  return [];
+}
+
 export function buildWorkoutSessionContext(
   template: WorkoutTemplateRecord,
   profile: UserProfile,
@@ -76,10 +148,7 @@ export function buildWorkoutSessionContext(
 ): WorkoutSessionContext {
   const settings = profile.workout_settings;
   const activeLocation = resolveActiveLocation(profile);
-  const equipment: string[] =
-    activeLocation && settings?.equipment_by_location?.[activeLocation]
-      ? (settings.equipment_by_location[activeLocation] as string[])
-      : [];
+  const equipment = resolveEquipment(profile);
 
   let sections: WorkoutSessionContextSection[];
 
