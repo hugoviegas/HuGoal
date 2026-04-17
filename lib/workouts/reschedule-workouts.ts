@@ -11,7 +11,6 @@ import {
   formatLocalDateKey,
   startOfWeekMonday,
 } from "@/lib/workouts/weekly-schedule";
-import { filterTemplatesForLocation } from "@/lib/workouts/adapt-workout";
 import {
   OFFICIAL_EXERCISES,
   type OfficialExerciseRecord,
@@ -21,6 +20,7 @@ import type {
   EquipmentType,
   WorkoutLocationProfile,
 } from "@/types";
+import type { WorkoutTemplateRecord } from "@/lib/firestore/workouts";
 
 interface RescheduleWorkoutOptions {
   locationType?: WorkoutLocationProfile;
@@ -81,6 +81,43 @@ const EQUIPMENT_ITEM_TO_LEGACY: Partial<
   pole: "bodyweight",
   wall: "bodyweight",
 };
+
+function normalize(value: string): string {
+  return String(value).trim().toLowerCase().replace(/\s+/g, "_");
+}
+
+function filterTemplatesForLocation(
+  templates: WorkoutTemplateRecord[],
+  location: WorkoutLocationProfile,
+  locationEquipment: EquipmentType[],
+  catalogById: Record<string, OfficialExerciseRecord>,
+): WorkoutTemplateRecord[] {
+  const allowedEquipment = new Set(locationEquipment);
+
+  return templates.filter((template) => {
+    if (template.is_active === false) return false;
+
+    const templateLocation = normalize(template.location ?? "");
+    const chosenLocation = normalize(location);
+    const locationMatch =
+      templateLocation.length === 0 || templateLocation === chosenLocation;
+    if (!locationMatch) return false;
+
+    if (allowedEquipment.size === 0) return true;
+
+    for (const exercise of template.exercises) {
+      const official = catalogById[exercise.id];
+      if (!official) continue;
+      const exerciseEquipment = official.equipment ?? ["none"];
+      const hasCompatible = exerciseEquipment.some((item) =>
+        allowedEquipment.has(item as EquipmentType),
+      );
+      if (!hasCompatible) return false;
+    }
+
+    return true;
+  });
+}
 
 function mapEquipmentItemsToLegacyTypes(
   ids: EquipmentItemId[] = [],

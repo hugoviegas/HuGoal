@@ -148,7 +148,13 @@ export function useNutritionChatPanel({
       keyboardWillShow.remove();
       keyboardWillHide.remove();
     };
-  }, [EXPANDED_H, insetsBottom, composerBottomPadding, keyboardOffset, panelHeight]);
+  }, [
+    EXPANDED_H,
+    insetsBottom,
+    composerBottomPadding,
+    keyboardOffset,
+    panelHeight,
+  ]);
 
   const backdropOpacity = panelHeight.interpolate({
     inputRange: [COLLAPSED_H, EXPANDED_H],
@@ -380,6 +386,9 @@ export function NutritionChat({
   const userInitial =
     useAuthStore((s) => s.user?.displayName?.trim()?.[0])?.toUpperCase() ?? "U";
   const listRef = useRef<FlatList<ChatMessage> | null>(null);
+
+  // SHARED BOTTOM BAR STYLE — sync across: home, workouts, nutrition, community
+  // If panel container styles change here, update all 4 pages.
 
   useEffect(() => {
     if (!messages.length && !isLoading) return;

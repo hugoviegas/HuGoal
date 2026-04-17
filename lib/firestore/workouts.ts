@@ -136,7 +136,10 @@ export interface WorkoutDailyOverrideRecord {
     | "change_workout_type"
     | "adjust_time"
     | "change_difficulty"
-    | "use_another_location";
+    | "use_another_location"
+    | "chat_patch_workout"
+    | "chat_create_workout"
+    | "chat_substitute_exercise";
   workout_type?: string;
   target_minutes?: number;
   difficulty_mode?: "easier" | "harder";

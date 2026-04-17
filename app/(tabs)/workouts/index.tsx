@@ -6,19 +6,16 @@ import React, {
   useState,
 } from "react";
 import {
-  Alert,
   Animated,
   FlatList,
   Image,
-  PanResponder,
-  Platform,
   Pressable,
   ScrollView,
   Text,
   useWindowDimensions,
   View,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   BedDouble,
@@ -26,14 +23,10 @@ import {
   ChevronDown,
   ChevronRight,
   Clock3,
-  Compass,
   Dumbbell,
   Flame,
   Globe,
-  Lock,
   MapPin,
-  Play,
-  SlidersHorizontal,
   Sparkles,
   Target,
   Timer,
@@ -49,44 +42,35 @@ import {
   listWorkoutTemplates,
   getPausedWorkoutSession,
   getCompletedSessionDates,
-  upsertWorkoutDailyOverride,
+  updateWorkoutTemplate,
   type WorkoutDailyOverrideRecord,
-  type WorkoutDifficulty,
   type WorkoutTemplateRecord,
 } from "@/lib/firestore/workouts";
+import { applyDailyOverride } from "@/lib/workouts/workout-daily-override";
+import {
+  buildWorkoutSessionContext,
+} from "@/lib/workouts/workout-session-context";
+import { analyzeWorkoutChatMessage } from "@/lib/ai/workoutChatAI";
+import {
+  loadTodayWorkoutChatMessages,
+  saveTodayWorkoutChatMessages,
+} from "@/lib/firestore/workoutChat";
+import { listMemories } from "@/lib/firestore/userMemories";
 import { getExerciseCatalog } from "@/lib/workouts/exercise-catalog";
 import { formatLocalDateKey } from "@/lib/workouts/weekly-schedule";
 import { ensureDailyWorkoutResolution } from "@/lib/workouts/daily-workout-resolver";
-import {
-  buildDifficultyAdjustedExercises,
-  buildTimeAdjustedExercises,
-  filterTemplatesForLocation,
-  selectBestTemplateForWorkoutType,
-  type DifficultyAdjustMode,
-  type WorkoutTypeOption,
-} from "@/lib/workouts/adapt-workout";
 import type { OfficialExerciseRecord } from "@/lib/workouts/generated/official-exercises";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { WorkoutChat } from "@/components/workouts/WorkoutChat";
+import { useWorkoutChatPanel } from "@/hooks/useWorkoutChatPanel";
 import { useAuthStore } from "@/stores/auth.store";
 import { useThemeStore } from "@/stores/theme.store";
 import { useToastStore } from "@/stores/toast.store";
 import { useWorkoutStore } from "@/stores/workout.store";
 import { typography } from "@/constants/typography";
-import { cn } from "@/lib/utils";
-
-function nextDifficulty(
-  difficulty: WorkoutDifficulty,
-  mode: DifficultyAdjustMode,
-): WorkoutDifficulty {
-  if (mode === "harder") {
-    if (difficulty === "beginner") return "intermediate";
-    return "advanced";
-  }
-  if (difficulty === "advanced") return "intermediate";
-  return "beginner";
-}
+import { cn, generateId } from "@/lib/utils";
 
 type SessionSectionKey = "warmup" | "workout" | "cooldown";
 
@@ -279,8 +263,13 @@ export default function WorkoutsScreen() {
   const { isDark, colors } = useThemeStore();
   const showToast = useToastStore((state) => state.show);
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const { isActive: sessionActive, templateId: sessionTemplateId } =
-    useWorkoutStore();
+  const {
+    isActive: sessionActive,
+    templateId: sessionTemplateId,
+    chatMessages,
+    setChatMessages,
+    addChatMessage,
+  } = useWorkoutStore();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -295,7 +284,6 @@ export default function WorkoutsScreen() {
     workout: true,
     cooldown: false,
   });
-  const [panelExpanded, setPanelExpanded] = useState(false);
   const [, setWeekOffset] = useState(1);
   const [initialWeekMonday] = useState(() => startOfWeekMonday(new Date()));
   const [completedDates, setCompletedDates] = useState<Set<string>>(new Set());
@@ -316,36 +304,26 @@ export default function WorkoutsScreen() {
   const [weekPlanDayMap, setWeekPlanDayMap] = useState<
     Map<string, WorkoutWeekDayAssignment>
   >(new Map());
+  const [sendingChat, setSendingChat] = useState(false);
 
   const { brokenInfo: streakBrokenInfo, dismiss: dismissStreakAlert } =
     useStreakValidator();
 
   const todayDateKey = formatLocalDateKey(new Date());
 
-  // Panel slide-up animation
-  const COLLAPSED_H = insets.bottom + 144; // pt-3(12) + btn-lg(52) + tabBar(80)
-  const EXPAND_CONTENT_H = Math.min(420, Math.max(300, windowHeight * 0.48));
-  const EXPANDED_H = COLLAPSED_H + EXPAND_CONTENT_H;
-
-  const panelHeight = useRef(new Animated.Value(COLLAPSED_H)).current;
-  const panelExpandedRef = useRef(false);
-  const panelBaseHRef = useRef(COLLAPSED_H);
-  const webPanelTouchStartY = useRef<number | null>(null);
-
-  const backdropOpacity = panelHeight.interpolate({
-    inputRange: [COLLAPSED_H, EXPANDED_H],
-    outputRange: [0, 0.5],
-    extrapolate: "clamp",
-  });
-
-  const adaptContentOpacity = panelHeight.interpolate({
-    inputRange: [
-      COLLAPSED_H,
-      COLLAPSED_H + EXPAND_CONTENT_H * 0.25,
-      COLLAPSED_H + EXPAND_CONTENT_H * 0.65,
-    ],
-    outputRange: [0, 0, 1],
-    extrapolate: "clamp",
+  const {
+    panelHeight,
+    keyboardOffset,
+    composerBottomPadding,
+    panelExpanded,
+    backdropOpacity,
+    panelContentOpacity,
+    panelPanHandlers,
+    openPanel,
+    closePanel,
+  } = useWorkoutChatPanel({
+    insetsBottom: insets.bottom,
+    windowHeight,
   });
 
   const weekPagerWidth = Math.max(280, windowWidth - 32);
@@ -450,6 +428,15 @@ export default function WorkoutsScreen() {
     }
     return buildSessionSections(selectedDayWorkout.exercises);
   }, [selectedDayWorkout]);
+
+  const workoutSessionContext = useMemo(
+    () =>
+      todayWorkout && profile
+        ? buildWorkoutSessionContext(todayWorkout, profile, todayOverride)
+        : null,
+    [todayWorkout, profile, todayOverride],
+  );
+
   const [pausedTemplateId, setPausedTemplateId] = useState<string | null>(null);
 
   const sessionTargetId =
@@ -652,238 +639,6 @@ export default function WorkoutsScreen() {
     }
   }, [initialWeekMonday, profile?.workout_settings, showToast, user?.uid]);
 
-  const applyTemplateOverride = useCallback(
-    async (
-      template: WorkoutTemplateRecord,
-      extra: Partial<WorkoutDailyOverrideRecord>,
-    ) => {
-      if (!user?.uid) return;
-      const date = formatLocalDateKey(new Date());
-      const payload = await upsertWorkoutDailyOverride(user.uid, date, {
-        template_id: template.id,
-        source_template_id: todayWorkout?.id,
-        source_type: extra.source_type,
-        workout_type: extra.workout_type,
-        target_minutes: extra.target_minutes,
-        difficulty_mode: extra.difficulty_mode,
-        location: extra.location,
-        // All overrides through this function are user-initiated — protect from auto-reschedule.
-        manually_set: extra.source_type !== "auto_no_active_day",
-      });
-
-      setTodayAssignedTemplateId(template.id);
-      setTodayOverride(payload);
-      setPanelExpanded(false);
-      panelExpandedRef.current = false;
-      Animated.spring(panelHeight, {
-        toValue: COLLAPSED_H,
-        useNativeDriver: false,
-        bounciness: 4,
-        speed: 12,
-      }).start();
-      showToast("Today workout updated", "success");
-    },
-    [COLLAPSED_H, panelHeight, showToast, todayWorkout?.id, user?.uid],
-  );
-
-  const handleChangeWorkoutType = useCallback(() => {
-    if (!todayWorkout) return;
-
-    const options: { label: string; value: WorkoutTypeOption }[] = [
-      { label: "Upper Body", value: "upper_body" },
-      { label: "Lower Body", value: "lower_body" },
-      { label: "Core", value: "core" },
-      { label: "Full Body", value: "full_body" },
-      { label: "Cardio", value: "cardio" },
-    ];
-
-    Alert.alert(
-      "Change workout type",
-      "Which muscle group do you want to train today?",
-      [
-        ...options.map((item) => ({
-          text: item.label,
-          onPress: async () => {
-            const selected = selectBestTemplateForWorkoutType(
-              workouts,
-              item.value,
-              todayWorkout.id,
-            );
-            if (!selected) {
-              showToast("No matching workout type found", "info");
-              return;
-            }
-            await applyTemplateOverride(selected, {
-              source_type: "change_workout_type",
-              workout_type: item.value,
-            });
-          },
-        })),
-        { text: "Cancel", style: "cancel" },
-      ],
-    );
-  }, [applyTemplateOverride, showToast, todayWorkout, workouts]);
-
-  const handleAdjustWorkoutTime = useCallback(() => {
-    if (!user?.uid || !todayWorkout) return;
-
-    const minuteOptions = [20, 30, 45, 60, 75, 90];
-
-    Alert.alert("Adjust workout time", "Select target duration for today", [
-      ...minuteOptions.map((minutes) => ({
-        text: `${minutes} min`,
-        onPress: async () => {
-          const adjustedExercises = buildTimeAdjustedExercises(
-            todayWorkout.exercises,
-            Math.max(10, todayWorkout.estimated_duration_minutes),
-            minutes,
-          );
-
-          const created = await createWorkoutTemplate(user.uid, {
-            name: `${todayWorkout.name} • ${minutes}m`,
-            description: todayWorkout.description,
-            cover_image_url: todayWorkout.cover_image_url,
-            difficulty: todayWorkout.difficulty,
-            is_ai_generated: false,
-            source_prompt: "adapt_workout_adjust_time",
-            exercises: adjustedExercises,
-            sections: undefined,
-            target_muscles: todayWorkout.target_muscles,
-            is_active: false,
-            is_public: false,
-            is_draft: false,
-            location: todayWorkout.location,
-            schedule_day_of_week: undefined,
-            estimated_duration_minutes: minutes,
-            tags: [...(todayWorkout.tags ?? []), "adapted", "adapt_time"],
-          });
-
-          setWorkouts((prev) => [created, ...prev]);
-          await applyTemplateOverride(created, {
-            source_type: "adjust_time",
-            target_minutes: minutes,
-          });
-        },
-      })),
-      { text: "Cancel", style: "cancel" },
-    ]);
-  }, [applyTemplateOverride, todayWorkout, user?.uid]);
-
-  const handleChangeDifficulty = useCallback(() => {
-    if (!user?.uid || !todayWorkout) return;
-
-    const options: { label: string; value: DifficultyAdjustMode }[] = [
-      { label: "Easier", value: "easier" },
-      { label: "Harder", value: "harder" },
-    ];
-
-    Alert.alert("Change difficulty", "Apply for today session only", [
-      ...options.map((item) => ({
-        text: item.label,
-        onPress: async () => {
-          const adjustedExercises = buildDifficultyAdjustedExercises(
-            todayWorkout.exercises,
-            item.value,
-          );
-          const adjustedDifficulty = nextDifficulty(
-            todayWorkout.difficulty,
-            item.value,
-          );
-          const adjustedMinutes = Math.max(
-            10,
-            Math.round(
-              todayWorkout.estimated_duration_minutes *
-                (item.value === "harder" ? 1.12 : 0.88),
-            ),
-          );
-
-          const created = await createWorkoutTemplate(user.uid, {
-            name: `${todayWorkout.name} • ${item.label}`,
-            description: todayWorkout.description,
-            cover_image_url: todayWorkout.cover_image_url,
-            difficulty: adjustedDifficulty,
-            is_ai_generated: false,
-            source_prompt: "adapt_workout_difficulty",
-            exercises: adjustedExercises,
-            sections: undefined,
-            target_muscles: todayWorkout.target_muscles,
-            is_active: false,
-            is_public: false,
-            is_draft: false,
-            location: todayWorkout.location,
-            schedule_day_of_week: undefined,
-            estimated_duration_minutes: adjustedMinutes,
-            tags: [...(todayWorkout.tags ?? []), "adapted", "adapt_difficulty"],
-          });
-
-          setWorkouts((prev) => [created, ...prev]);
-          await applyTemplateOverride(created, {
-            source_type: "change_difficulty",
-            difficulty_mode: item.value,
-          });
-        },
-      })),
-      { text: "Cancel", style: "cancel" },
-    ]);
-  }, [applyTemplateOverride, todayWorkout, user?.uid]);
-
-  const handleUseAnotherLocation = useCallback(() => {
-    if (!todayWorkout) return;
-
-    const locations = profile?.workout_settings?.locations ?? [];
-    if (locations.length === 0) {
-      showToast("No saved locations found in workout settings", "info");
-      return;
-    }
-
-    Alert.alert("Use another location", "Choose location for today", [
-      ...locations.map((location) => ({
-        text: location.charAt(0).toUpperCase() + location.slice(1),
-        onPress: async () => {
-          const allowedEquipment =
-            profile?.workout_settings?.equipment_by_location?.[location] ?? [];
-          const filtered = filterTemplatesForLocation(
-            workouts,
-            location,
-            allowedEquipment,
-            catalogById,
-          );
-
-          const options = filtered
-            .filter((item) => item.id !== todayWorkout.id)
-            .slice(0, 8);
-
-          if (options.length === 0) {
-            showToast("No compatible workout for this location", "info");
-            return;
-          }
-
-          Alert.alert(`Templates for ${location}`, "Select workout for today", [
-            ...options.map((template) => ({
-              text: template.name,
-              onPress: async () => {
-                await applyTemplateOverride(template, {
-                  source_type: "use_another_location",
-                  location,
-                });
-              },
-            })),
-            { text: "Cancel", style: "cancel" },
-          ]);
-        },
-      })),
-      { text: "Cancel", style: "cancel" },
-    ]);
-  }, [
-    applyTemplateOverride,
-    catalogById,
-    profile?.workout_settings?.equipment_by_location,
-    profile?.workout_settings?.locations,
-    showToast,
-    todayWorkout,
-    workouts,
-  ]);
-
   const handleResetTodayAdaptations = useCallback(async () => {
     if (!user?.uid) return;
     const date = formatLocalDateKey(new Date());
@@ -891,6 +646,144 @@ export default function WorkoutsScreen() {
     showToast("Today adaptation reset", "success");
     await loadData();
   }, [loadData, showToast, user?.uid]);
+
+  const handleSendWorkoutMessage = useCallback(
+    async (text: string) => {
+      if (!user?.uid || !workoutSessionContext) return;
+
+      if (text.trim().toLowerCase().startsWith("/reset-today")) {
+        const userMsg = {
+          id: generateId(),
+          type: "user_text" as const,
+          createdAt: new Date().toISOString(),
+          text,
+        };
+        addChatMessage(userMsg);
+        await handleResetTodayAdaptations();
+        addChatMessage({
+          id: generateId(),
+          type: "ai_response" as const,
+          createdAt: new Date().toISOString(),
+          text: "Today's adaptations have been reset.",
+        });
+        return;
+      }
+
+      const userMsg = {
+        id: generateId(),
+        type: "user_text" as const,
+        createdAt: new Date().toISOString(),
+        text,
+      };
+      addChatMessage(userMsg);
+      setSendingChat(true);
+
+      try {
+        const memories = await listMemories(user.uid, "workout").catch(() => []);
+        const memoryContext = memories.slice(0, 5).map((m) => ({
+          category: m.category,
+          content: m.content,
+        }));
+
+        const response = await analyzeWorkoutChatMessage({
+          preferredProvider: profile?.preferred_ai_provider ?? "gemini",
+          userMessage: text,
+          sessionContext: workoutSessionContext,
+          previousMessages: chatMessages,
+          userMemories: memoryContext,
+        });
+
+        if (response.action === "patch_workout" && response.patch && todayWorkout) {
+          await updateWorkoutTemplate(todayWorkout.id, response.patch);
+          await applyDailyOverride(user.uid, formatLocalDateKey(new Date()), {
+            template_id: todayWorkout.id,
+            source_template_id: todayWorkout.id,
+            source_type: "chat_patch_workout",
+            manually_set: true,
+          });
+          setTodayAssignedTemplateId(todayWorkout.id);
+          await loadData();
+          showToast("Workout updated", "success");
+        } else if (response.action === "create_workout" && response.newTemplate) {
+          const created = await createWorkoutTemplate(user.uid, {
+            name: response.newTemplate.name ?? "New Workout",
+            difficulty: response.newTemplate.difficulty ?? "intermediate",
+            is_ai_generated: true,
+            exercises: response.newTemplate.exercises ?? [],
+            sections: response.newTemplate.sections,
+            target_muscles: response.newTemplate.target_muscles,
+            estimated_duration_minutes:
+              response.newTemplate.estimated_duration_minutes ?? 45,
+            tags: response.newTemplate.tags ?? [],
+            is_active: true,
+            is_public: false,
+            is_draft: false,
+          });
+          setWorkouts((prev) => [created, ...prev]);
+          showToast("New workout created", "success");
+        } else if (response.action === "substitute_exercise" && response.patch && todayWorkout) {
+          await updateWorkoutTemplate(todayWorkout.id, response.patch);
+          await applyDailyOverride(user.uid, formatLocalDateKey(new Date()), {
+            template_id: todayWorkout.id,
+            source_template_id: todayWorkout.id,
+            source_type: "chat_substitute_exercise",
+            manually_set: true,
+          });
+          await loadData();
+          showToast("Exercise substituted", "success");
+        }
+
+        const aiMsg = {
+          id: generateId(),
+          type: "ai_response" as const,
+          createdAt: new Date().toISOString(),
+          text: response.text,
+          payload:
+            response.patch || response.newTemplate
+              ? { patch: response.patch, newTemplate: response.newTemplate }
+              : undefined,
+        };
+        addChatMessage(aiMsg);
+      } catch (err) {
+        const errMsg =
+          err instanceof Error ? err.message : "Something went wrong";
+        showToast(errMsg, "error");
+        addChatMessage({
+          id: generateId(),
+          type: "ai_response" as const,
+          createdAt: new Date().toISOString(),
+          text: "Sorry, I couldn't process that. Please try again.",
+        });
+      } finally {
+        setSendingChat(false);
+      }
+    },
+    [
+      addChatMessage,
+      chatMessages,
+      handleResetTodayAdaptations,
+      loadData,
+      profile?.preferred_ai_provider,
+      showToast,
+      todayWorkout,
+      user?.uid,
+      workoutSessionContext,
+    ],
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!user?.uid) return;
+      loadTodayWorkoutChatMessages(user.uid)
+        .then(setChatMessages)
+        .catch(() => null);
+    }, [user?.uid, setChatMessages]),
+  );
+
+  useEffect(() => {
+    if (!user?.uid || chatMessages.length === 0) return;
+    void saveTodayWorkoutChatMessages(user.uid, chatMessages);
+  }, [chatMessages, user?.uid]);
 
   useEffect(() => {
     void loadData();
@@ -918,109 +811,6 @@ export default function WorkoutsScreen() {
     router,
     user?.uid,
   ]);
-
-  const openPanel = useCallback(() => {
-    panelExpandedRef.current = true;
-    setPanelExpanded(true);
-    Animated.spring(panelHeight, {
-      toValue: EXPANDED_H,
-      useNativeDriver: false,
-      bounciness: 4,
-      speed: 12,
-    }).start();
-  }, [panelHeight, EXPANDED_H]);
-
-  const closePanel = useCallback(() => {
-    panelExpandedRef.current = false;
-    setPanelExpanded(false);
-    Animated.spring(panelHeight, {
-      toValue: COLLAPSED_H,
-      useNativeDriver: false,
-      bounciness: 4,
-      speed: 12,
-    }).start();
-  }, [panelHeight, COLLAPSED_H]);
-
-  const panelPanResponder = useMemo(() => {
-    const CH = COLLAPSED_H;
-    const EH = EXPANDED_H;
-    return PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dy) > 4,
-      onPanResponderGrant: () => {
-        panelBaseHRef.current = panelExpandedRef.current ? EH : CH;
-      },
-      onPanResponderMove: (_, g) => {
-        const newH = Math.max(CH, Math.min(EH, panelBaseHRef.current - g.dy));
-        panelHeight.setValue(newH);
-      },
-      onPanResponderRelease: (_, g) => {
-        const THRESHOLD = (EH - CH) * 0.3;
-        let willExpand: boolean;
-        if (panelExpandedRef.current) {
-          willExpand = g.dy < THRESHOLD;
-          if (g.vy > 0.5) willExpand = false;
-        } else {
-          willExpand = -g.dy > THRESHOLD;
-          if (g.vy < -0.5) willExpand = true;
-        }
-        panelExpandedRef.current = willExpand;
-        setPanelExpanded(willExpand);
-        Animated.spring(panelHeight, {
-          toValue: willExpand ? EH : CH,
-          useNativeDriver: false,
-          bounciness: 4,
-          speed: 12,
-        }).start();
-      },
-    });
-  }, [COLLAPSED_H, EXPANDED_H, panelHeight]);
-
-  const handleWebPanelTouchStart = (event: any) => {
-    if (Platform.OS !== "web") return;
-    const touch = event?.nativeEvent?.touches?.[0];
-    webPanelTouchStartY.current =
-      typeof touch?.clientY === "number" ? touch.clientY : null;
-    panelBaseHRef.current = panelExpandedRef.current ? EXPANDED_H : COLLAPSED_H;
-  };
-
-  const handleWebPanelTouchMove = (event: any) => {
-    if (Platform.OS !== "web") return;
-    const touch = event?.nativeEvent?.touches?.[0];
-    if (!touch || webPanelTouchStartY.current == null) return;
-    const deltaY = touch.clientY - webPanelTouchStartY.current;
-    const newH = Math.max(
-      COLLAPSED_H,
-      Math.min(EXPANDED_H, panelBaseHRef.current - deltaY),
-    );
-    panelHeight.setValue(newH);
-  };
-
-  const handleWebPanelTouchEnd = (event: any) => {
-    if (Platform.OS !== "web") return;
-    const touch = event?.nativeEvent?.changedTouches?.[0];
-    if (!touch || webPanelTouchStartY.current == null) {
-      webPanelTouchStartY.current = null;
-      return;
-    }
-    const deltaY = touch.clientY - webPanelTouchStartY.current;
-    webPanelTouchStartY.current = null;
-    const THRESHOLD = (EXPANDED_H - COLLAPSED_H) * 0.3;
-    let willExpand: boolean;
-    if (panelExpandedRef.current) {
-      willExpand = deltaY < THRESHOLD;
-    } else {
-      willExpand = -deltaY > THRESHOLD;
-    }
-    panelExpandedRef.current = willExpand;
-    setPanelExpanded(willExpand);
-    Animated.spring(panelHeight, {
-      toValue: willExpand ? EXPANDED_H : COLLAPSED_H,
-      useNativeDriver: false,
-      bounciness: 4,
-      speed: 12,
-    }).start();
-  };
 
   const toggleSection = (key: SessionSectionKey) => {
     setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -1232,10 +1022,11 @@ export default function WorkoutsScreen() {
                               ? today
                                 ? colors.primary
                                 : isDark
-                                  ? "rgba(14,165,176,0.22)"
+                                  ? "rgba(34,196,213,0.22)"
                                   : "rgba(14,165,176,0.14)"
                               : "transparent",
-                            borderWidth: !filled && isActive ? 1.5 : 0,
+                            borderWidth:
+                              isSelected || (!filled && isActive) ? 1.5 : 0,
                             borderColor: today
                               ? colors.primary
                               : "rgba(14,165,176,0.45)",
@@ -1266,13 +1057,15 @@ export default function WorkoutsScreen() {
 
                         <View
                           style={{
-                            height: 5,
+                            height: 12,
                             marginTop: 3,
                             alignItems: "center",
                             justifyContent: "center",
+                            flexDirection: "row",
+                            gap: 3,
                           }}
                         >
-                          {item.isScheduled && !filled ? (
+                          {item.isDone ? (
                             <View
                               style={{
                                 width: 4,
@@ -2032,337 +1825,61 @@ export default function WorkoutsScreen() {
         </View>
       </ScrollView>
 
+      <Animated.View
+        pointerEvents={panelExpanded ? "box-none" : "none"}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "#000",
+          opacity: backdropOpacity,
+        }}
+      >
+        <Pressable style={{ flex: 1 }} onPress={closePanel} />
+      </Animated.View>
+
       {todayWorkout ? (
-        <>
-          {/* Backdrop – fades in as panel expands */}
-          <Animated.View
-            pointerEvents={panelExpanded ? "box-none" : "none"}
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: "#000",
-              opacity: backdropOpacity,
+        <Animated.View
+          style={{
+            position: "absolute",
+            bottom: keyboardOffset,
+            left: 0,
+            right: 0,
+            height: panelHeight,
+            overflow: "hidden",
+            backgroundColor: colors.surface,
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: -2 },
+            shadowOpacity: isDark ? 0.35 : 0.08,
+            shadowRadius: 10,
+            elevation: 10,
+          }}
+          {...panelPanHandlers}
+        >
+          <WorkoutChat
+            messages={chatMessages}
+            isLoading={sendingChat}
+            onSendText={handleSendWorkoutMessage}
+            sessionContext={workoutSessionContext}
+            expanded={panelExpanded}
+            onTogglePanel={() => {
+              if (panelExpanded) {
+                closePanel();
+              } else {
+                openPanel();
+              }
             }}
-          >
-            <Pressable style={{ flex: 1 }} onPress={closePanel} />
-          </Animated.View>
-
-          {/* Expanding bottom panel */}
-          <Animated.View
-            style={{
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: panelHeight,
-              overflow: "hidden",
-              backgroundColor: colors.surface,
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20,
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: -2 },
-              shadowOpacity: isDark ? 0.35 : 0.08,
-              shadowRadius: 10,
-              elevation: 10,
-              flexDirection: "column-reverse",
-            }}
-            {...(Platform.OS === "web" ? {} : panelPanResponder.panHandlers)}
-            onTouchStart={handleWebPanelTouchStart}
-            onTouchMove={handleWebPanelTouchMove}
-            onTouchEnd={handleWebPanelTouchEnd}
-          >
-            {/* 1st child in column-reverse = BOTTOM = always visible: action buttons */}
-            <View
-              style={{
-                paddingTop: 8,
-                paddingHorizontal: 16,
-                paddingBottom: insets.bottom + 80,
-              }}
-            >
-              {/* SHARED BOTTOM BAR STYLE — sync across: home, workouts, nutrition, community */}
-              <View
-                style={{
-                  width: 40,
-                  height: 4,
-                  borderRadius: 2,
-                  backgroundColor: colors.muted,
-                  alignSelf: "center",
-                  marginBottom: 8,
-                }}
-              />
-              <View style={{ flexDirection: "row", gap: 12 }}>
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  size="lg"
-                  onPress={() => (panelExpanded ? closePanel() : openPanel())}
-                >
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 8,
-                    }}
-                  >
-                    <SlidersHorizontal
-                      size={16}
-                      color={isDark ? "#e5e7eb" : "#111827"}
-                    />
-                    <Text
-                      style={{
-                        color: isDark ? "#e5e7eb" : "#111827",
-                        fontWeight: "600",
-                        fontSize: 16,
-                      }}
-                    >
-                      Adapt workout
-                    </Text>
-                  </View>
-                </Button>
-
-                <Button
-                  className="flex-1"
-                  size="lg"
-                  disabled={!isViewingToday}
-                  accessibilityLabel={
-                    isViewingToday
-                      ? `${startActionLabel} workout`
-                      : "Start is only available for today's workout"
-                  }
-                  onPress={() => {
-                    if (!isViewingToday || !sessionTargetId) return;
-                    router.push(`/workouts/${sessionTargetId}/run`);
-                  }}
-                >
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 8,
-                    }}
-                  >
-                    {isViewingToday ? (
-                      <Play size={16} color="#ffffff" />
-                    ) : (
-                      <Lock size={16} color="rgba(255,255,255,0.6)" />
-                    )}
-                    <Text
-                      style={{
-                        color: isViewingToday
-                          ? "#ffffff"
-                          : "rgba(255,255,255,0.6)",
-                        fontWeight: "600",
-                        fontSize: 16,
-                      }}
-                    >
-                      {isViewingToday ? startActionLabel : "Today only"}
-                    </Text>
-                  </View>
-                </Button>
-              </View>
-            </View>
-
-            {/* 2nd child in column-reverse = MIDDLE = adapt options (revealed on expand) */}
-            <Animated.View
-              style={{
-                paddingHorizontal: 16,
-                paddingBottom: 16,
-                opacity: adaptContentOpacity,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 20,
-                  fontWeight: "600",
-                  color: isDark ? "#f3f4f6" : "#111827",
-                  marginTop: 4,
-                }}
-              >
-                Adapt today session
-              </Text>
-              <Text
-                style={{
-                  fontSize: 14,
-                  color: isDark ? "#9ca3af" : "#4b5563",
-                  marginTop: 4,
-                  marginBottom: 12,
-                }}
-              >
-                Tune this workout before starting.
-              </Text>
-
-              <View style={{ gap: 8 }}>
-                <Pressable
-                  onPress={handleChangeWorkoutType}
-                  style={{
-                    borderRadius: 16,
-                    paddingVertical: 12,
-                    paddingHorizontal: 12,
-                    backgroundColor: colors.card,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 8,
-                    }}
-                  >
-                    <Dumbbell size={16} color={colors.muted} />
-                    <Text
-                      style={{
-                        fontSize: 15,
-                        color: isDark ? "#f3f4f6" : "#111827",
-                      }}
-                    >
-                      Change workout type
-                    </Text>
-                  </View>
-                  <ChevronRight size={16} color={colors.muted} />
-                </Pressable>
-
-                <Pressable
-                  onPress={handleAdjustWorkoutTime}
-                  style={{
-                    borderRadius: 16,
-                    paddingVertical: 12,
-                    paddingHorizontal: 12,
-                    backgroundColor: colors.card,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 8,
-                    }}
-                  >
-                    <Timer size={16} color={colors.muted} />
-                    <Text
-                      style={{
-                        fontSize: 15,
-                        color: isDark ? "#f3f4f6" : "#111827",
-                      }}
-                    >
-                      Adjust workout time
-                    </Text>
-                  </View>
-                  <ChevronRight size={16} color={colors.muted} />
-                </Pressable>
-
-                <Pressable
-                  onPress={handleChangeDifficulty}
-                  style={{
-                    borderRadius: 16,
-                    paddingVertical: 12,
-                    paddingHorizontal: 12,
-                    backgroundColor: colors.card,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 8,
-                    }}
-                  >
-                    <Target size={16} color={colors.muted} />
-                    <Text
-                      style={{
-                        fontSize: 15,
-                        color: isDark ? "#f3f4f6" : "#111827",
-                      }}
-                    >
-                      Change difficulty
-                    </Text>
-                  </View>
-                  <ChevronRight size={16} color={colors.muted} />
-                </Pressable>
-
-                <Pressable
-                  onPress={handleUseAnotherLocation}
-                  style={{
-                    borderRadius: 16,
-                    paddingVertical: 12,
-                    paddingHorizontal: 12,
-                    backgroundColor: colors.card,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 8,
-                    }}
-                  >
-                    <Compass size={16} color={colors.muted} />
-                    <Text
-                      style={{
-                        fontSize: 15,
-                        color: isDark ? "#f3f4f6" : "#111827",
-                      }}
-                    >
-                      Use another location
-                    </Text>
-                  </View>
-                  <ChevronRight size={16} color={colors.muted} />
-                </Pressable>
-              </View>
-
-              <View style={{ marginTop: 12 }}>
-                <Button
-                  variant="secondary"
-                  onPress={() => {
-                    closePanel();
-                    router.push("/workouts/create");
-                  }}
-                >
-                  Create new session
-                </Button>
-                {todayOverride ? (
-                  <Button
-                    variant="outline"
-                    className="mt-2"
-                    onPress={() => void handleResetTodayAdaptations()}
-                  >
-                    Reset today adaptation
-                  </Button>
-                ) : null}
-              </View>
-            </Animated.View>
-
-            {/* 3rd child in column-reverse = TOP = drag handle (visible when expanded) */}
-            <View
-              style={{ alignItems: "center", paddingTop: 10, paddingBottom: 6 }}
-            >
-              <View
-                style={{
-                  width: 40,
-                  height: 4,
-                  borderRadius: 2,
-                  backgroundColor: isDark ? "#4b5563" : "#d1d5db",
-                }}
-              />
-            </View>
-          </Animated.View>
-        </>
+            panelContentOpacity={panelContentOpacity}
+            composerBottomOffset={composerBottomPadding}
+            isViewingToday={isViewingToday}
+            sessionTargetId={sessionTargetId ?? null}
+            startActionLabel={startActionLabel}
+          />
+        </Animated.View>
       ) : null}
 
       {inspectId && inspectExercise ? (

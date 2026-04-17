@@ -1,0 +1,143 @@
+import type { WorkoutDailyOverrideRecord, WorkoutTemplateRecord } from "@/lib/firestore/workouts";
+import type { UserProfile, WorkoutLocationProfile } from "@/types";
+
+export interface WorkoutSessionContextBlock {
+  exercise_id: string;
+  name: string;
+  sets: number;
+  reps: string;
+  execution_mode: string;
+  primary_muscles: string[];
+  prescription: string;
+}
+
+export interface WorkoutSessionContextSection {
+  name: string;
+  type: string;
+  blocks: WorkoutSessionContextBlock[];
+}
+
+export interface WorkoutSessionContext {
+  template_id: string;
+  template_name: string;
+  difficulty: string;
+  estimated_duration_minutes: number;
+  location: string | undefined;
+  target_muscles: string[];
+  sections: WorkoutSessionContextSection[];
+  user_equipment: string[];
+  user_locations: string[];
+  user_training_days: number[];
+  user_fitness_goal: string;
+  today_override: { source_type: string; manually_set: boolean } | null;
+}
+
+function blockPrescription(block: {
+  reps?: string;
+  execution_mode?: string;
+  exercise_seconds?: number;
+  duration_seconds?: number;
+  prep_seconds?: number;
+}): string {
+  const mode =
+    block.execution_mode ??
+    ((block.exercise_seconds ?? block.duration_seconds ?? 0) > 0 ? "time" : "reps");
+  if (mode === "time") {
+    const work = block.exercise_seconds ?? block.duration_seconds ?? 30;
+    const prep = block.prep_seconds ?? 0;
+    return prep > 0 ? `${work}s + prep ${prep}s` : `${work}s`;
+  }
+  return block.reps || "-";
+}
+
+function resolveActiveLocation(
+  profile: UserProfile,
+): WorkoutLocationProfile | undefined {
+  const settings = profile.workout_settings;
+  if (!settings) return undefined;
+
+  if (settings.active_location_profile_id && settings.location_profiles) {
+    const matched = settings.location_profiles.find(
+      (lp) => lp.id === settings.active_location_profile_id,
+    );
+    if (matched) return matched.type;
+  }
+
+  return settings.locations?.[0];
+}
+
+export function buildWorkoutSessionContext(
+  template: WorkoutTemplateRecord,
+  profile: UserProfile,
+  todayOverride: WorkoutDailyOverrideRecord | null,
+): WorkoutSessionContext {
+  const settings = profile.workout_settings;
+  const activeLocation = resolveActiveLocation(profile);
+  const equipment: string[] =
+    activeLocation && settings?.equipment_by_location?.[activeLocation]
+      ? (settings.equipment_by_location[activeLocation] as string[])
+      : [];
+
+  let sections: WorkoutSessionContextSection[];
+
+  if (template.sections && template.sections.length > 0) {
+    sections = template.sections
+      .slice()
+      .sort((a, b) => a.order - b.order)
+      .map((section) => ({
+        name: section.name,
+        type: section.type,
+        blocks: section.blocks
+          .filter((b) => b.type === "exercise" && b.exercise_id)
+          .sort((a, b) => a.order - b.order)
+          .map((b) => ({
+            exercise_id: b.exercise_id!,
+            name: b.name ?? b.exercise_id!,
+            sets: 1,
+            reps: b.reps ?? "",
+            execution_mode: b.execution_mode ?? "reps",
+            primary_muscles: b.primary_muscles ?? [],
+            prescription: blockPrescription(b),
+          })),
+      }));
+  } else {
+    sections = [
+      {
+        name: "Workout",
+        type: "round",
+        blocks: template.exercises.map((ex) => ({
+          exercise_id: ex.id,
+          name: ex.name,
+          sets: ex.sets,
+          reps: ex.reps,
+          execution_mode: "reps",
+          primary_muscles: ex.muscleGroups ?? [],
+          prescription: ex.reps || "-",
+        })),
+      },
+    ];
+  }
+
+  const override =
+    todayOverride
+      ? {
+          source_type: todayOverride.source_type ?? "unknown",
+          manually_set: todayOverride.manually_set ?? false,
+        }
+      : null;
+
+  return {
+    template_id: template.id,
+    template_name: template.name,
+    difficulty: template.difficulty,
+    estimated_duration_minutes: template.estimated_duration_minutes,
+    location: template.location,
+    target_muscles: template.target_muscles ?? [],
+    sections,
+    user_equipment: equipment,
+    user_locations: (settings?.locations ?? []) as string[],
+    user_training_days: settings?.training_days ?? [],
+    user_fitness_goal: profile.goal ?? "maintain",
+    today_override: override,
+  };
+}
