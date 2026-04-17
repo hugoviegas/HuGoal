@@ -7,10 +7,26 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { Audio } from "expo-av";
+import {
+  RecordingPresets,
+  requestRecordingPermissionsAsync,
+  setAudioModeAsync,
+  useAudioPlayer,
+  useAudioPlayerStatus,
+  useAudioRecorder,
+} from "expo-audio";
 import * as FileSystem from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
-import { ArrowUp, Mic, MicOff, Paperclip, Play, Send, Square, X } from "lucide-react-native";
+import {
+  ArrowUp,
+  Mic,
+  MicOff,
+  Paperclip,
+  Play,
+  Send,
+  Square,
+  X,
+} from "lucide-react-native";
 
 import { spacing } from "@/constants/spacing";
 import { typography } from "@/constants/typography";
@@ -55,7 +71,6 @@ export function ChatInputBar({
   const [isRecording, setIsRecording] = useState(false);
   const [isPreview, setIsPreview] = useState(false);
   const [isPicking, setIsPicking] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [durationSec, setDurationSec] = useState(0);
   const [inputBarHeight, setInputBarHeight] = useState(64);
   const [isSlideCancelCue, setIsSlideCancelCue] = useState(false);
@@ -64,11 +79,14 @@ export function ChatInputBar({
     useState(false);
 
   const recordedUriRef = useRef<string | null>(null);
-  const recordingRef = useRef<Audio.Recording | null>(null);
-  const soundRef = useRef<Audio.Sound | null>(null);
-  const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null,
+  );
   const hasCancelledRef = useRef(false);
   const releasedByPanRef = useRef(false);
+  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const previewPlayer = useAudioPlayer(null);
+  const previewPlayerStatus = useAudioPlayerStatus(previewPlayer);
 
   const modeAnim = useRef(new Animated.Value(0)).current;
   const recordButtonPulseAnim = useRef(new Animated.Value(0)).current;
@@ -77,6 +95,8 @@ export function ChatInputBar({
   const indicatorTranslateXAnim = useRef(new Animated.Value(0)).current;
 
   const isSendMode = text.trim().length > 0;
+  const isPlaying =
+    previewPlayerStatus.playing && !previewPlayerStatus.didJustFinish;
 
   useEffect(() => {
     if (isRecording || isPreview) {
@@ -147,12 +167,6 @@ export function ChatInputBar({
       if (durationIntervalRef.current) {
         clearInterval(durationIntervalRef.current);
       }
-      if (soundRef.current) {
-        void soundRef.current.unloadAsync();
-      }
-      if (recordingRef.current) {
-        void recordingRef.current.stopAndUnloadAsync();
-      }
     };
   }, []);
 
@@ -196,24 +210,6 @@ export function ChatInputBar({
     }
   }, []);
 
-  const stopAndStoreRecording = useCallback(async (): Promise<string | null> => {
-    const recording = recordingRef.current;
-    if (!recording) {
-      return null;
-    }
-
-    await recording.stopAndUnloadAsync();
-    const uri = recording.getURI();
-    recordingRef.current = null;
-
-    if (!uri) {
-      return null;
-    }
-
-    recordedUriRef.current = uri;
-    return uri;
-  }, []);
-
   const cancelRecording = useCallback(async () => {
     try {
       await cancelNutritionAudioRecording();
@@ -221,43 +217,38 @@ export function ChatInputBar({
       // Best-effort cancellation
     }
 
-    const recording = recordingRef.current;
-    if (recording) {
-      try {
-        await recording.stopAndUnloadAsync();
-      } catch {
-        // Ignore
-      }
+    try {
+      await audioRecorder.stop();
+    } catch {
+      // Ignore
     }
 
-    recordingRef.current = null;
     await deleteRecordedFile();
     recordedUriRef.current = null;
     setPreviewTranscript("");
     setIsPreview(false);
     resetRecordingUi();
-  }, [deleteRecordedFile, resetRecordingUi]);
+  }, [audioRecorder, deleteRecordedFile, resetRecordingUi]);
 
   const handleStartRecording = useCallback(async () => {
     if (disabled || isSendMode || isRecording || isPreview) {
       return;
     }
 
-    const micPermission = await Audio.requestPermissionsAsync();
+    const micPermission = await requestRecordingPermissionsAsync();
     if (!micPermission.granted) {
       showToast("Permissao de microfone necessaria", "error");
       return;
     }
 
     try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
       });
 
-      const recording = new Audio.Recording();
-      await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
-      await recording.startAsync();
+      await audioRecorder.prepareToRecordAsync();
+      audioRecorder.record();
       if (isNativeSpeechRecognitionAvailable()) {
         try {
           await startNutritionAudioRecording();
@@ -270,7 +261,6 @@ export function ChatInputBar({
         setNativeSpeechSessionStarted(false);
       }
 
-      recordingRef.current = recording;
       recordedUriRef.current = null;
       setPreviewTranscript("");
       setDurationSec(0);
@@ -282,7 +272,16 @@ export function ChatInputBar({
       resetRecordingUi();
       showToast("Nao foi possivel iniciar a gravacao", "error");
     }
-  }, [disabled, isPreview, isRecording, isSendMode, resetRecordingUi, showToast, startDurationTimer]);
+  }, [
+    audioRecorder,
+    disabled,
+    isPreview,
+    isRecording,
+    isSendMode,
+    resetRecordingUi,
+    showToast,
+    startDurationTimer,
+  ]);
 
   const handleStopRecording = useCallback(async () => {
     if (!isRecording) {
@@ -296,13 +295,21 @@ export function ChatInputBar({
     }
 
     try {
-      const uri = await stopAndStoreRecording();
+      try {
+        await audioRecorder.stop();
+      } catch {
+        // Stop is best-effort here; we'll fall back to the available URI.
+      }
+
+      let uri = audioRecorder.uri ?? null;
       let transcript = "";
 
       if (nativeSpeechSessionStarted) {
         try {
-          const transcription = await stopNutritionAudioRecordingAndTranscribe();
+          const transcription =
+            await stopNutritionAudioRecordingAndTranscribe();
           transcript = transcription.text.trim();
+          uri = uri ?? transcription.localUri ?? null;
         } catch {
           // Fallback to file-based cloud transcription.
         }
@@ -323,6 +330,10 @@ export function ChatInputBar({
         return;
       }
 
+      recordedUriRef.current = uri;
+      previewPlayer.replace(uri);
+      previewPlayer.pause();
+      void previewPlayer.seekTo(0);
       setPreviewTranscript(transcript);
       setIsPreview(true);
     } catch {
@@ -330,12 +341,13 @@ export function ChatInputBar({
       showToast("Nao foi possivel finalizar a gravacao", "error");
     }
   }, [
+    audioRecorder,
     cancelRecording,
     isRecording,
     nativeSpeechSessionStarted,
     resetRecordingUi,
+    previewPlayer,
     showToast,
-    stopAndStoreRecording,
   ]);
 
   const panResponder = useMemo(
@@ -406,7 +418,8 @@ export function ChatInputBar({
     setIsPicking(true);
 
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const permission =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
         showToast("Permissao da galeria necessaria", "error");
         return;
@@ -439,48 +452,28 @@ export function ChatInputBar({
       return;
     }
 
-    if (isPlaying && soundRef.current) {
-      await soundRef.current.stopAsync();
-      setIsPlaying(false);
+    if (isPlaying) {
+      previewPlayer.pause();
       return;
     }
 
-    if (soundRef.current) {
-      await soundRef.current.unloadAsync();
-      soundRef.current = null;
+    if (previewPlayerStatus.didJustFinish) {
+      void previewPlayer.seekTo(0);
     }
 
-    const playback = await Audio.Sound.createAsync(
-      { uri },
-      { shouldPlay: true },
-      (status) => {
-        if (!status.isLoaded) {
-          return;
-        }
-
-        if (status.didJustFinish) {
-          setIsPlaying(false);
-        }
-      },
-    );
-
-    soundRef.current = playback.sound;
-    setIsPlaying(true);
-  }, [isPlaying]);
+    previewPlayer.replace(uri);
+    previewPlayer.play();
+  }, [isPlaying, previewPlayer, previewPlayerStatus.didJustFinish]);
 
   const handleDiscardPreview = useCallback(async () => {
-    if (soundRef.current) {
-      await soundRef.current.unloadAsync();
-      soundRef.current = null;
-    }
-
-    setIsPlaying(false);
+    previewPlayer.pause();
+    void previewPlayer.seekTo(0);
     setIsPreview(false);
     setPreviewTranscript("");
     await deleteRecordedFile();
     recordedUriRef.current = null;
     setDurationSec(0);
-  }, [deleteRecordedFile]);
+  }, [deleteRecordedFile, previewPlayer]);
 
   const handleSendPreview = useCallback(() => {
     const uri = recordedUriRef.current;
@@ -488,13 +481,14 @@ export function ChatInputBar({
       return;
     }
 
+    previewPlayer.pause();
+    void previewPlayer.seekTo(0);
     onAudioRecorded({ uri, transcript: previewTranscript });
     setIsPreview(false);
-    setIsPlaying(false);
     setPreviewTranscript("");
     recordedUriRef.current = null;
     setDurationSec(0);
-  }, [onAudioRecorded, previewTranscript]);
+  }, [onAudioRecorded, previewPlayer, previewTranscript]);
 
   const sendOpacity = modeAnim;
   const sendScale = modeAnim.interpolate({
@@ -568,20 +562,34 @@ export function ChatInputBar({
                 transform: [{ scale: dotScale }],
               }}
             />
-            <Text style={[typography.smallMedium, { color: colors.foreground }]}>
+            <Text
+              style={[typography.smallMedium, { color: colors.foreground }]}
+            >
               A gravar... {formatDuration(durationSec)}
             </Text>
             <Text
               style={[
                 typography.caption,
-                { color: isSlideCancelCue ? colors.destructive : colors.mutedForeground },
+                {
+                  color: isSlideCancelCue
+                    ? colors.destructive
+                    : colors.mutedForeground,
+                },
               ]}
             >
-              {isSlideCancelCue ? "Soltar para cancelar" : "← Desliza para cancelar"}
+              {isSlideCancelCue
+                ? "Soltar para cancelar"
+                : "← Desliza para cancelar"}
             </Text>
           </Animated.View>
         ) : isPreview ? (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing.sm,
+            }}
+          >
             <Pressable
               onPress={() => void handlePreviewPlayToggle()}
               disabled={disabled}
@@ -604,7 +612,9 @@ export function ChatInputBar({
               )}
             </Pressable>
 
-            <Text style={[typography.small, { color: colors.foreground, flex: 1 }]}>
+            <Text
+              style={[typography.small, { color: colors.foreground, flex: 1 }]}
+            >
               Audio gravado — {formatDuration(durationSec)}
             </Text>
 
@@ -638,7 +648,14 @@ export function ChatInputBar({
               }}
             >
               <Send size={14} color={colors.primaryForeground} />
-              <Text style={[typography.caption, { color: colors.primaryForeground }]}>Enviar</Text>
+              <Text
+                style={[
+                  typography.caption,
+                  { color: colors.primaryForeground },
+                ]}
+              >
+                Enviar
+              </Text>
             </Pressable>
           </View>
         ) : null}
@@ -733,7 +750,12 @@ export function ChatInputBar({
                 onPressOut={() => {
                   void handleStopRecording();
                 }}
-                style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
+                style={{
+                  width: 40,
+                  height: 40,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
                 disabled={disabled}
               >
                 <MicOff size={20} color={colors.primaryForeground} />
@@ -755,7 +777,12 @@ export function ChatInputBar({
                 }
               }}
               disabled={disabled || isPreview}
-              style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
+              style={{
+                width: 40,
+                height: 40,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
             >
               <Animated.View
                 style={{

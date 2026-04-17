@@ -7,7 +7,7 @@ import {
   View,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { Lock, Play, Sparkles } from "lucide-react-native";
+import { Bot, Lock, Play, Sparkles } from "lucide-react-native";
 import { format } from "date-fns";
 
 import { spacing } from "@/constants/spacing";
@@ -143,7 +143,7 @@ export function WorkoutChat({
         style={{
           alignItems: "center",
           paddingTop: 8,
-          paddingBottom: expanded ? 6 : 4,
+          paddingBottom: expanded ? 6 : 0,
         }}
         accessibilityRole="button"
         accessibilityLabel={expanded ? "Collapse workout chat" : "Expand workout chat"}
@@ -157,6 +157,28 @@ export function WorkoutChat({
           }}
         />
       </Pressable>
+
+      {!expanded ? (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: spacing.sm,
+            paddingBottom: 2,
+            gap: 6,
+          }}
+        >
+          <Bot size={13} color={colors.primary} />
+          <Text
+            style={{ ...typography.caption, color: colors.mutedForeground }}
+            numberOfLines={1}
+          >
+            {sessionContext?.template_name
+              ? `Coach · ${sessionContext.template_name}`
+              : "Workout Coach"}
+          </Text>
+        </View>
+      ) : null}
 
       {expanded ? (
         <Animated.View style={{ flex: 1, opacity: panelContentOpacity }}>
@@ -172,9 +194,19 @@ export function WorkoutChat({
             }}
           >
             <Sparkles size={16} color={colors.primary} />
-            <Text style={[typography.smallMedium, { color: colors.foreground, flex: 1 }]}>
-              Workout Coach Chat
-            </Text>
+            <View style={{ flex: 1 }}>
+              <Text style={[typography.smallMedium, { color: colors.foreground }]}>
+                Workout Coach
+              </Text>
+              {sessionContext?.template_name ? (
+                <Text
+                  style={[typography.caption, { color: colors.mutedForeground }]}
+                  numberOfLines={1}
+                >
+                  {sessionContext.template_name}
+                </Text>
+              ) : null}
+            </View>
           </View>
 
           <FlatList

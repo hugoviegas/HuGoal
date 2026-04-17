@@ -589,6 +589,39 @@ export interface DailyNutritionGoal {
   fat_g: number;
 }
 
+export type NutritionRdiSex = "male" | "female";
+export type NutritionActivityLevel = "low" | "moderate" | "high" | "very_high";
+export type NutritionRdiGoal = "lose" | "maintain" | "gain";
+
+export interface NutritionMacroSplit {
+  protein_pct: number;
+  carbs_pct: number;
+  fat_pct: number;
+}
+
+export interface NutritionRDIInputs {
+  sex: NutritionRdiSex;
+  age: number;
+  height_cm: number;
+  current_weight_kg: number;
+  goal_weight_kg: number;
+  activity_level: NutritionActivityLevel;
+  goal: NutritionRdiGoal;
+}
+
+export interface NutritionRDIResult {
+  bmr: number;
+  tdee: number;
+  rdi_kcal: number;
+  macro_split: NutritionMacroSplit;
+}
+
+export interface NutritionSettings extends NutritionRDIInputs {
+  rdi_kcal: number;
+  macro_split: NutritionMacroSplit;
+  updated_at: string;
+}
+
 export interface NutritionDaySummary {
   date: string; // YYYY-MM-DD
   totalCalories: number;

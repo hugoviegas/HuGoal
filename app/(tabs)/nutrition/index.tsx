@@ -343,7 +343,13 @@ export default function NutritionScreen() {
       void loadNutritionBase();
       void loadTodayChat();
     }
-  }, [isFocused, lastFetchedAt, NUTRITION_CACHE_TTL_MS, loadNutritionBase, loadTodayChat]);
+  }, [
+    isFocused,
+    lastFetchedAt,
+    NUTRITION_CACHE_TTL_MS,
+    loadNutritionBase,
+    loadTodayChat,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -502,17 +508,23 @@ export default function NutritionScreen() {
     ],
   );
 
-  const handleSendChatMessage = useCallback(async (message: string) => {
-    const trimmed = message.trim();
-    if (!trimmed) {
-      return;
-    }
+  const handleSendChatMessage = useCallback(
+    async (message: string) => {
+      const trimmed = message.trim();
+      if (!trimmed) {
+        return;
+      }
 
-    await runChatAnalysisFromMessage(trimmed, "user_text", true);
-  }, [runChatAnalysisFromMessage]);
+      await runChatAnalysisFromMessage(trimmed, "user_text", true);
+    },
+    [runChatAnalysisFromMessage],
+  );
 
   const handleAudioRecorded = useCallback(
-    async ({ uri: localUri, transcript: rawTranscript }: AudioRecordedPayload) => {
+    async ({
+      uri: localUri,
+      transcript: rawTranscript,
+    }: AudioRecordedPayload) => {
       if (!user?.uid || !isViewingToday) {
         return;
       }
@@ -523,7 +535,9 @@ export default function NutritionScreen() {
 
         const transcript = rawTranscript?.trim() ?? "";
 
-        const messageText = transcript || "Audio enviado. Ajuste o texto manualmente se necessario.";
+        const messageText =
+          transcript ||
+          "Audio enviado. Ajuste o texto manualmente se necessario.";
 
         appendChat({
           type: "user_audio_transcript",
@@ -536,9 +550,16 @@ export default function NutritionScreen() {
         });
 
         if (transcript) {
-          await runChatAnalysisFromMessage(transcript, "user_audio_transcript", false);
+          await runChatAnalysisFromMessage(
+            transcript,
+            "user_audio_transcript",
+            false,
+          );
         } else {
-          showToast("Audio capturado. Sem transcricao automatica neste build.", "info");
+          showToast(
+            "Audio capturado. Sem transcricao automatica neste build.",
+            "info",
+          );
         }
       } catch (error) {
         const message =
@@ -717,7 +738,6 @@ export default function NutritionScreen() {
     submitTranscriptForAnalysis,
   ]);
 
-
   const handlePendingItemChange = useCallback(
     (index: number, patch: Partial<NutritionChatItem>) => {
       setPendingAiItems((current) =>
@@ -780,7 +800,6 @@ export default function NutritionScreen() {
     user?.uid,
   ]);
 
-
   if (isLoading && todayLogs.length === 0) {
     return (
       <View
@@ -802,7 +821,9 @@ export default function NutritionScreen() {
         title="Nutrition"
         streakCount={streakDays.length}
         onSettingsPress={() => router.push("/(tabs)/nutrition/settings")}
-        onTodayPress={!isViewingToday ? () => setSelectedDate(todayDateKey) : undefined}
+        onTodayPress={
+          !isViewingToday ? () => setSelectedDate(todayDateKey) : undefined
+        }
         calendarSlot={
           <NutritionWeekCalendar
             selectedDate={selectedDate}
@@ -847,9 +868,9 @@ export default function NutritionScreen() {
               <Button
                 size="sm"
                 variant="outline"
-                onPress={() => router.push("/nutrition/pantry")}
+                onPress={() => router.push("/nutrition/food-library")}
               >
-                Pantry
+                Food Library
               </Button>
               <Button size="sm" onPress={() => router.push("/nutrition/log")}>
                 Log meal
@@ -961,7 +982,6 @@ export default function NutritionScreen() {
             </Button>
           </View>
         ) : null}
-
       </ScrollView>
 
       <Animated.View

@@ -43,7 +43,9 @@
         {
           "microphonePermission": "Permitir que o HuGoal use o microfone.",
           "speechRecognitionPermission": "Permitir que o HuGoal use reconhecimento de fala.",
-          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox"
+          ]
         }
       ],
       [
@@ -54,7 +56,8 @@
         }
       ],
       "expo-localization",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true

@@ -7,7 +7,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { ArrowUp, Paperclip } from "lucide-react-native";
+import { ArrowUp, Paperclip, Slash } from "lucide-react-native";
 
 import { spacing } from "@/constants/spacing";
 import { typography } from "@/constants/typography";
@@ -43,7 +43,6 @@ export function WorkoutChatInputBar({
   disabledReason,
 }: WorkoutChatInputBarProps) {
   const colors = useThemeStore((s) => s.colors);
-  const isDark = useThemeStore((s) => s.isDark);
   const showToast = useToastStore((s) => s.show);
 
   const [inputValue, setInputValue] = useState("");
@@ -133,21 +132,33 @@ export function WorkoutChatInputBar({
                   borderTopColor: colors.cardBorder,
                 }}
               >
-                <Text
+                <View
                   style={{
-                    ...typography.smallMedium,
-                    color: colors.primary,
-                    minWidth: 160,
+                    width: 28,
+                    height: 28,
+                    borderRadius: 8,
+                    backgroundColor: `${colors.primary}18`,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
                   }}
                 >
-                  {item.command}
-                </Text>
-                <Text
-                  style={{ ...typography.caption, color: colors.mutedForeground, flex: 1 }}
-                  numberOfLines={1}
-                >
-                  {item.description}
-                </Text>
+                  <Slash size={13} color={colors.primary} />
+                </View>
+                <View style={{ flex: 1, gap: 1 }}>
+                  <Text
+                    style={{ ...typography.smallMedium, color: colors.foreground }}
+                    numberOfLines={1}
+                  >
+                    {item.command}
+                  </Text>
+                  <Text
+                    style={{ ...typography.caption, color: colors.mutedForeground }}
+                    numberOfLines={1}
+                  >
+                    {item.description}
+                  </Text>
+                </View>
               </Pressable>
             )}
           />
@@ -174,7 +185,7 @@ export function WorkoutChatInputBar({
             borderRadius: 13,
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: isDark ? "#1f2937" : "#f3f4f6",
+            backgroundColor: colors.surface,
           }}
         >
           <Paperclip size={18} color={colors.mutedForeground} />
@@ -198,7 +209,7 @@ export function WorkoutChatInputBar({
             paddingHorizontal: 14,
             paddingVertical: 10,
             color: colors.foreground,
-            backgroundColor: isDark ? "#1f2937" : "#f3f4f6",
+            backgroundColor: colors.surface,
             ...typography.small,
           }}
           returnKeyType="send"
@@ -218,7 +229,7 @@ export function WorkoutChatInputBar({
               borderRadius: 13,
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: canSend ? colors.primary : (isDark ? "#1f2937" : "#f3f4f6"),
+              backgroundColor: canSend ? colors.primary : colors.surface,
             }}
           >
             <ArrowUp

@@ -2,13 +2,16 @@ import type { WorkoutDailyOverrideRecord, WorkoutTemplateRecord } from "@/lib/fi
 import type { UserProfile, WorkoutLocationProfile } from "@/types";
 
 export interface WorkoutSessionContextBlock {
-  exercise_id: string;
-  name: string;
-  sets: number;
-  reps: string;
-  execution_mode: string;
-  primary_muscles: string[];
-  prescription: string;
+  exercise_id?: string;
+  name?: string;
+  sets?: number;
+  reps?: string;
+  execution_mode?: string;
+  primary_muscles?: string[];
+  prescription?: string;
+  type?: "exercise" | "rest";
+  order?: number;
+  rest_seconds?: number;
 }
 
 export interface WorkoutSessionContextSection {
@@ -88,17 +91,28 @@ export function buildWorkoutSessionContext(
         name: section.name,
         type: section.type,
         blocks: section.blocks
-          .filter((b) => b.type === "exercise" && b.exercise_id)
           .sort((a, b) => a.order - b.order)
-          .map((b) => ({
-            exercise_id: b.exercise_id!,
-            name: b.name ?? b.exercise_id!,
-            sets: 1,
-            reps: b.reps ?? "",
-            execution_mode: b.execution_mode ?? "reps",
-            primary_muscles: b.primary_muscles ?? [],
-            prescription: blockPrescription(b),
-          })),
+          .map((b): WorkoutSessionContextBlock => {
+            if (b.type === "rest") {
+              return {
+                type: "rest",
+                order: b.order,
+                rest_seconds: b.rest_seconds ?? b.duration_seconds ?? 60,
+              };
+            }
+            if (!b.exercise_id) return { type: "rest", order: b.order, rest_seconds: 0 };
+            return {
+              type: "exercise",
+              exercise_id: b.exercise_id,
+              name: b.name ?? b.exercise_id,
+              sets: 1,
+              reps: b.reps ?? "",
+              execution_mode: b.execution_mode ?? "reps",
+              primary_muscles: b.primary_muscles ?? [],
+              prescription: blockPrescription(b),
+              order: b.order,
+            };
+          }),
       }));
   } else {
     sections = [

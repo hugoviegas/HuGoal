@@ -13,6 +13,7 @@ export default function NutritionStackLayout() {
       }}
     >
       <Stack.Screen name="index" />
+      <Stack.Screen name="onboarding" />
       <Stack.Screen name="log" />
       <Stack.Screen name="add-food" />
       <Stack.Screen name="ai-debug" />
@@ -20,6 +21,7 @@ export default function NutritionStackLayout() {
       <Stack.Screen name="history" />
       <Stack.Screen name="library" />
       <Stack.Screen name="pantry" />
+      <Stack.Screen name="food-library" />
       <Stack.Screen name="settings" />
     </Stack>
   );
