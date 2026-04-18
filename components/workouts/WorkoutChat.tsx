@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Animated, FlatList, Pressable, Text, View } from "react-native";
-import {
-  Maximize2,
-  Minimize2,
-  Sparkles,
-  X,
-} from "lucide-react-native";
+import { Maximize2, Minimize2, Sparkles, X } from "lucide-react-native";
 import { format } from "date-fns";
 
 import {

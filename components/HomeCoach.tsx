@@ -322,262 +322,267 @@ export function HomeCoach({
       </Animated.View>
 
       <Animated.View
-      style={{
-        position: "absolute",
-        bottom: keyboardOffset,
-        left: 0,
-        right: 0,
-        height: panelHeight,
-        backgroundColor: colors.surface,
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        borderTopWidth: 1,
-        borderTopColor: colors.cardBorder,
-        overflow: "hidden",
-        // Android elevation so the panel renders above the floating tab bar
-        elevation: 10,
-        // iOS shadow for the top edge
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: isDark ? 0.35 : 0.08,
-        shadowRadius: 10,
-      }}
-    >
-      {/* Drag handle / header row */}
-      <Pressable
-        onPress={isFullscreen ? onExitFullscreen : togglePanel}
         style={{
-          alignItems: "center",
-          paddingTop: 6,
-          paddingBottom: panelExpanded ? 6 : 4,
+          position: "absolute",
+          bottom: keyboardOffset,
+          left: 0,
+          right: 0,
+          height: panelHeight,
+          backgroundColor: colors.surface,
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
+          borderTopWidth: 1,
+          borderTopColor: colors.cardBorder,
+          overflow: "hidden",
+          // Android elevation so the panel renders above the floating tab bar
+          elevation: 10,
+          // iOS shadow for the top edge
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: isDark ? 0.35 : 0.08,
+          shadowRadius: 10,
         }}
-        accessibilityRole="button"
-        accessibilityLabel={
-          isFullscreen
-            ? "Exit fullscreen coach"
-            : panelExpanded
-              ? "Collapse coach"
-              : "Expand coach"
-        }
       >
-        <View
+        {/* Drag handle / header row */}
+        <Pressable
+          onPress={isFullscreen ? onExitFullscreen : togglePanel}
           style={{
-            width: 40,
-            height: 4,
-            borderRadius: 2,
-            backgroundColor: colors.muted,
+            alignItems: "center",
+            paddingTop: 6,
+            paddingBottom: panelExpanded ? 6 : 4,
           }}
-        />
-      </Pressable>
-
-      {/* Expanded header */}
-      {panelExpanded ? (
-        <Animated.View style={{ opacity: panelContentOpacity }}>
+          accessibilityRole="button"
+          accessibilityLabel={
+            isFullscreen
+              ? "Exit fullscreen coach"
+              : panelExpanded
+                ? "Collapse coach"
+                : "Expand coach"
+          }
+        >
           <View
             style={{
-              flexDirection: "row",
-              alignItems: "center",
-              paddingHorizontal: spacing.sm,
-              paddingVertical: spacing.xs,
-              gap: 8,
-              borderBottomWidth: 1,
-              borderBottomColor: colors.cardBorder,
+              width: 40,
+              height: 4,
+              borderRadius: 2,
+              backgroundColor: colors.muted,
             }}
-          >
-            <Sparkles size={16} color={colors.primary} />
-            <View style={{ flex: 1 }}>
-              <Text
-                style={[typography.smallMedium, { color: colors.foreground }]}
-              >
-                Coach
-              </Text>
-              <Text
-                style={[typography.caption, { color: colors.mutedForeground }]}
-              >
-                {remaining}/{HOME_COACH_DAILY_LIMIT} messages today
-              </Text>
-            </View>
-            <Pressable
-              onPress={isFullscreen ? onExitFullscreen : onEnterFullscreen}
-              hitSlop={12}
-              style={{ padding: 4 }}
-              accessibilityLabel={
-                isFullscreen ? "Exit fullscreen" : "Fullscreen"
-              }
-            >
-              {isFullscreen ? (
-                <Minimize2 size={18} color={colors.mutedForeground} />
-              ) : (
-                <Maximize2 size={18} color={colors.mutedForeground} />
-              )}
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                if (isFullscreen) {
-                  onExitFullscreen?.();
-                }
-                closePanel();
+          />
+        </Pressable>
+
+        {/* Expanded header */}
+        {panelExpanded ? (
+          <Animated.View style={{ opacity: panelContentOpacity }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingHorizontal: spacing.sm,
+                paddingVertical: spacing.xs,
+                gap: 8,
+                borderBottomWidth: 1,
+                borderBottomColor: colors.cardBorder,
               }}
-              hitSlop={12}
-              style={{ padding: 4 }}
-              accessibilityLabel="Close coach"
             >
-              <X size={18} color={colors.mutedForeground} />
-            </Pressable>
-          </View>
-        </Animated.View>
-      ) : null}
-
-      {/* Messages list */}
-      {panelExpanded ? (
-        <Animated.View style={{ flex: 1, opacity: panelContentOpacity }}>
-          <FlatList
-            ref={listRef}
-            data={messages}
-            keyExtractor={(item) => item.id}
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{
-              paddingHorizontal: spacing.sm,
-              paddingTop: spacing.sm,
-              paddingBottom: spacing.xs,
-              gap: spacing.xs,
-              flexGrow: 1,
-              justifyContent: messages.length === 0 ? "center" : "flex-start",
-            }}
-            ListEmptyComponent={
-              <Text
-                style={[
-                  typography.small,
-                  { color: colors.mutedForeground, textAlign: "center" },
-                ]}
-              >
-                {hasProvider
-                  ? "Ask me about workouts, nutrition, or your goals."
-                  : "Set up an AI provider key in Settings to enable the coach."}
-              </Text>
-            }
-            ListFooterComponent={
-              isLoading ? (
-                <View key={loadingKey} style={{ marginTop: spacing.xs }}>
-                  <TypingIndicator />
-                </View>
-              ) : null
-            }
-            renderItem={({ item }) => {
-              const isUser = item.role === "user";
-              return (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "flex-end",
-                    alignSelf: isUser ? "flex-end" : "flex-start",
-                    gap: spacing.xs,
-                    maxWidth: "94%",
-                  }}
+              <Sparkles size={16} color={colors.primary} />
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[typography.smallMedium, { color: colors.foreground }]}
                 >
-                  {!isUser ? (
-                    <View
-                      style={{
-                        width: 26,
-                        height: 26,
-                        borderRadius: 13,
-                        backgroundColor: `${colors.primary}22`,
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Sparkles size={13} color={colors.primary} />
-                    </View>
-                  ) : null}
+                  Coach
+                </Text>
+                <Text
+                  style={[
+                    typography.caption,
+                    { color: colors.mutedForeground },
+                  ]}
+                >
+                  {remaining}/{HOME_COACH_DAILY_LIMIT} messages today
+                </Text>
+              </View>
+              <Pressable
+                onPress={isFullscreen ? onExitFullscreen : onEnterFullscreen}
+                hitSlop={12}
+                style={{ padding: 4 }}
+                accessibilityLabel={
+                  isFullscreen ? "Exit fullscreen" : "Fullscreen"
+                }
+              >
+                {isFullscreen ? (
+                  <Minimize2 size={18} color={colors.mutedForeground} />
+                ) : (
+                  <Maximize2 size={18} color={colors.mutedForeground} />
+                )}
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  if (isFullscreen) {
+                    onExitFullscreen?.();
+                  }
+                  closePanel();
+                }}
+                hitSlop={12}
+                style={{ padding: 4 }}
+                accessibilityLabel="Close coach"
+              >
+                <X size={18} color={colors.mutedForeground} />
+              </Pressable>
+            </View>
+          </Animated.View>
+        ) : null}
 
+        {/* Messages list */}
+        {panelExpanded ? (
+          <Animated.View style={{ flex: 1, opacity: panelContentOpacity }}>
+            <FlatList
+              ref={listRef}
+              data={messages}
+              keyExtractor={(item) => item.id}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{
+                paddingHorizontal: spacing.sm,
+                paddingTop: spacing.sm,
+                paddingBottom: spacing.xs,
+                gap: spacing.xs,
+                flexGrow: 1,
+                justifyContent: messages.length === 0 ? "center" : "flex-start",
+              }}
+              ListEmptyComponent={
+                <Text
+                  style={[
+                    typography.small,
+                    { color: colors.mutedForeground, textAlign: "center" },
+                  ]}
+                >
+                  {hasProvider
+                    ? "Ask me about workouts, nutrition, or your goals."
+                    : "Set up an AI provider key in Settings to enable the coach."}
+                </Text>
+              }
+              ListFooterComponent={
+                isLoading ? (
+                  <View key={loadingKey} style={{ marginTop: spacing.xs }}>
+                    <TypingIndicator />
+                  </View>
+                ) : null
+              }
+              renderItem={({ item }) => {
+                const isUser = item.role === "user";
+                return (
                   <View
                     style={{
-                      maxWidth: "84%",
-                      paddingHorizontal: spacing.sm,
-                      paddingVertical: spacing.xs,
-                      borderRadius: radius.lg,
-                      borderWidth: 1,
-                      borderColor: isUser ? colors.primary : colors.cardBorder,
-                      backgroundColor: isUser
-                        ? colors.primary
-                        : colors.background,
+                      flexDirection: "row",
+                      alignItems: "flex-end",
+                      alignSelf: isUser ? "flex-end" : "flex-start",
+                      gap: spacing.xs,
+                      maxWidth: "94%",
                     }}
                   >
-                    <Text
-                      style={{
-                        ...typography.small,
-                        color: isUser
-                          ? colors.primaryForeground
-                          : colors.foreground,
-                      }}
-                    >
-                      {item.text}
-                    </Text>
-                    <Text
-                      style={[
-                        typography.caption,
-                        {
-                          marginTop: 2,
-                          color: isUser
-                            ? `${colors.primaryForeground}b3`
-                            : colors.mutedForeground,
-                        },
-                      ]}
-                    >
-                      {format(new Date(item.createdAt), "HH:mm")}
-                    </Text>
-                  </View>
+                    {!isUser ? (
+                      <View
+                        style={{
+                          width: 26,
+                          height: 26,
+                          borderRadius: 13,
+                          backgroundColor: `${colors.primary}22`,
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Sparkles size={13} color={colors.primary} />
+                      </View>
+                    ) : null}
 
-                  {isUser ? (
                     <View
                       style={{
-                        width: 26,
-                        height: 26,
-                        borderRadius: 13,
-                        backgroundColor: colors.primary,
-                        alignItems: "center",
-                        justifyContent: "center",
+                        maxWidth: "84%",
+                        paddingHorizontal: spacing.sm,
+                        paddingVertical: spacing.xs,
+                        borderRadius: radius.lg,
+                        borderWidth: 1,
+                        borderColor: isUser
+                          ? colors.primary
+                          : colors.cardBorder,
+                        backgroundColor: isUser
+                          ? colors.primary
+                          : colors.background,
                       }}
                     >
+                      <Text
+                        style={{
+                          ...typography.small,
+                          color: isUser
+                            ? colors.primaryForeground
+                            : colors.foreground,
+                        }}
+                      >
+                        {item.text}
+                      </Text>
                       <Text
                         style={[
                           typography.caption,
                           {
-                            color: colors.primaryForeground,
-                            fontWeight: "700",
+                            marginTop: 2,
+                            color: isUser
+                              ? `${colors.primaryForeground}b3`
+                              : colors.mutedForeground,
                           },
                         ]}
                       >
-                        {userInitial}
+                        {format(new Date(item.createdAt), "HH:mm")}
                       </Text>
                     </View>
-                  ) : null}
-                </View>
-              );
+
+                    {isUser ? (
+                      <View
+                        style={{
+                          width: 26,
+                          height: 26,
+                          borderRadius: 13,
+                          backgroundColor: colors.primary,
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Text
+                          style={[
+                            typography.caption,
+                            {
+                              color: colors.primaryForeground,
+                              fontWeight: "700",
+                            },
+                          ]}
+                        >
+                          {userInitial}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+                );
+              }}
+            />
+          </Animated.View>
+        ) : null}
+
+        {/* Composer aligned with Nutrition ChatInputBar */}
+        <Animated.View style={{ paddingBottom: composerBottomPad }}>
+          <ChatInputBar
+            onSendText={(text) => {
+              void handleSendText(text);
+            }}
+            onAudioRecorded={(payload) => {
+              void handleAudioRecorded(payload);
+            }}
+            onImageSelected={handleImageSelected}
+            disabled={isLoading || !hasProvider || remaining <= 0}
+            placeholder="Talk with your coach today"
+            onInputFocus={() => {
+              if (!panelExpandedRef.current) {
+                openPanel();
+              }
             }}
           />
         </Animated.View>
-      ) : null}
-
-      {/* Composer aligned with Nutrition ChatInputBar */}
-      <Animated.View style={{ paddingBottom: composerBottomPad }}>
-        <ChatInputBar
-          onSendText={(text) => {
-            void handleSendText(text);
-          }}
-          onAudioRecorded={(payload) => {
-            void handleAudioRecorded(payload);
-          }}
-          onImageSelected={handleImageSelected}
-          disabled={isLoading || !hasProvider || remaining <= 0}
-          placeholder="Talk with your coach today"
-          onInputFocus={() => {
-            if (!panelExpandedRef.current) {
-              openPanel();
-            }
-          }}
-        />
-      </Animated.View>
       </Animated.View>
     </>
   );

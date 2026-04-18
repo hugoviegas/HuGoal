@@ -1,10 +1,5 @@
 import { useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-} from "react-native";
+import { View, Text, ScrollView, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import {
@@ -113,7 +108,12 @@ function StatCard({
           marginTop: 2,
         }}
       >
-        <Text style={[typography.h3, { color: colors.foreground, fontWeight: "700" }]}>
+        <Text
+          style={[
+            typography.h3,
+            { color: colors.foreground, fontWeight: "700" },
+          ]}
+        >
           {value}
         </Text>
         {unit ? (
@@ -163,13 +163,16 @@ function MacroPill({
 
   return (
     <View style={{ flex: 1, gap: 4 }}>
-      <View
-        style={{ flexDirection: "row", justifyContent: "space-between" }}
-      >
+      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
         <Text style={[typography.caption, { color: colors.mutedForeground }]}>
           {label}
         </Text>
-        <Text style={[typography.caption, { color: colors.foreground, fontWeight: "600" }]}>
+        <Text
+          style={[
+            typography.caption,
+            { color: colors.foreground, fontWeight: "600" },
+          ]}
+        >
           {Math.round(value)}g
         </Text>
       </View>
@@ -215,7 +218,12 @@ export default function HomeScreen() {
   if (isLoading) {
     return (
       <View
-        style={{ flex: 1, backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }}
+        style={{
+          flex: 1,
+          backgroundColor: colors.background,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
       >
         <Spinner size="lg" />
       </View>
@@ -265,17 +273,32 @@ export default function HomeScreen() {
           </Pressable>
 
           <View style={{ flex: 1, gap: 2 }}>
-            <Text style={[typography.caption, { color: colors.mutedForeground, fontWeight: "500" }]}>
+            <Text
+              style={[
+                typography.caption,
+                { color: colors.mutedForeground, fontWeight: "500" },
+              ]}
+            >
               {getGreeting()}
             </Text>
             <Text
-              style={[typography.h2, { color: colors.foreground, fontWeight: "700", letterSpacing: -0.3 }]}
+              style={[
+                typography.h2,
+                {
+                  color: colors.foreground,
+                  fontWeight: "700",
+                  letterSpacing: -0.3,
+                },
+              ]}
               numberOfLines={1}
             >
               {firstName}
             </Text>
             <Text
-              style={[typography.caption, { color: colors.mutedForeground, textTransform: "capitalize" }]}
+              style={[
+                typography.caption,
+                { color: colors.mutedForeground, textTransform: "capitalize" },
+              ]}
             >
               {todayDate}
             </Text>
@@ -335,7 +358,10 @@ export default function HomeScreen() {
               <Text style={[typography.smallMedium, { color: colors.primary }]}>
                 Treino em andamento
               </Text>
-              <Text style={[typography.caption, { color: colors.mutedForeground }]} numberOfLines={1}>
+              <Text
+                style={[typography.caption, { color: colors.mutedForeground }]}
+                numberOfLines={1}
+              >
                 {workoutName}
               </Text>
             </View>
@@ -359,7 +385,13 @@ export default function HomeScreen() {
           accessibilityRole="button"
           accessibilityLabel={`Calories today: ${Math.round(todayTotals.calories)} of ${dailyGoal.calories}`}
         >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing.sm,
+            }}
+          >
             <View
               style={{
                 width: 40,
@@ -373,14 +405,25 @@ export default function HomeScreen() {
               <Flame size={22} color="#F59E0B" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[typography.caption, { color: colors.mutedForeground }]}>
+              <Text
+                style={[typography.caption, { color: colors.mutedForeground }]}
+              >
                 Calorias hoje
               </Text>
-              <View style={{ flexDirection: "row", alignItems: "baseline", gap: 4 }}>
-                <Text style={[typography.h2, { color: colors.foreground, fontWeight: "700" }]}>
+              <View
+                style={{ flexDirection: "row", alignItems: "baseline", gap: 4 }}
+              >
+                <Text
+                  style={[
+                    typography.h2,
+                    { color: colors.foreground, fontWeight: "700" },
+                  ]}
+                >
                   {Math.round(todayTotals.calories)}
                 </Text>
-                <Text style={[typography.small, { color: colors.mutedForeground }]}>
+                <Text
+                  style={[typography.small, { color: colors.mutedForeground }]}
+                >
                   / {dailyGoal.calories} kcal
                 </Text>
               </View>
@@ -470,7 +513,12 @@ export default function HomeScreen() {
 
         {/* ── Quick actions ── */}
         <View style={{ gap: spacing.sm }}>
-          <Text style={[typography.h3, { color: colors.foreground, fontWeight: "700" }]}>
+          <Text
+            style={[
+              typography.h3,
+              { color: colors.foreground, fontWeight: "700" },
+            ]}
+          >
             Ações rápidas
           </Text>
           <Button
