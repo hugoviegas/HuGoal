@@ -1,6 +1,8 @@
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
-import type { AIProvider } from "@/types";
+import { auth } from "./firebase";
+import { getDocument } from "./firestore";
+import type { AIProvider, UserProfile } from "@/types";
 
 const KEY_PREFIX = "betteru_ai_key_";
 const PROVIDERS: AIProvider[] = ["gemini", "claude", "openai"];
@@ -56,18 +58,31 @@ export async function getApiKey(provider: AIProvider): Promise<string | null> {
 }
 
 function previewKeyByProvider(provider: AIProvider): string | null {
-  // Do NOT use EXPO_PUBLIC_* variables here to avoid exposing secret keys
-  // in client builds. Prefer non-public env vars which should be injected
-  // at build time in native builds or provided via a secure server.
   const env =
     provider === "gemini"
-      ? (process.env.GEMINI_API_KEY ?? null)
-      : provider === "claude"
-        ? (process.env.CLAUDE_API_KEY ?? null)
-        : (process.env.OPENAI_API_KEY ?? null);
+      ? (process.env.EXPO_PUBLIC_GEMINI_SHARED_API_KEY ??
+        process.env.GEMINI_API_KEY ??
+        null)
+      : __DEV__
+        ? provider === "claude"
+          ? (process.env.CLAUDE_API_KEY ?? null)
+          : (process.env.OPENAI_API_KEY ?? null)
+        : null;
 
   if (!env || !env.trim()) return null;
   return env.trim();
+}
+
+async function currentUserHasProAccess(): Promise<boolean> {
+  const currentUser = auth?.currentUser;
+  if (!currentUser) return false;
+
+  try {
+    const profile = await getDocument<UserProfile>("profiles", currentUser.uid);
+    return profile?.is_pro === true;
+  } catch {
+    return false;
+  }
 }
 
 export async function getResolvedApiKey(
@@ -80,6 +95,13 @@ export async function getResolvedApiKey(
 
   const previewKey = previewKeyByProvider(provider);
   if (previewKey) {
+    if (provider === "gemini") {
+      const hasProAccess = await currentUserHasProAccess();
+      if (!hasProAccess && !__DEV__) {
+        return { key: null, source: "none" };
+      }
+    }
+
     return { key: previewKey, source: "preview" };
   }
 

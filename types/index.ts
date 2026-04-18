@@ -117,6 +117,7 @@ export interface UserProfile {
   email: string;
   name: string;
   username: string;
+  is_pro?: boolean;
   phone?: string;
   avatar_url?: string;
   bio?: string;

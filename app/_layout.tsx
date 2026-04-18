@@ -1,9 +1,16 @@
 import "@/global.css";
 import "@/lib/i18n";
 import { useEffect, useRef, useState } from "react";
-import { Appearance, View, Text, ScrollView } from "react-native";
+import {
+  Appearance,
+  View,
+  Text,
+  ScrollView,
+  StatusBar,
+  Platform,
+} from "react-native";
 import { Stack } from "expo-router";
-import { StatusBar } from "expo-status-bar";
+// Use React Native StatusBar to explicitly control Android bar style/background
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useColorScheme } from "nativewind";
@@ -30,7 +37,12 @@ export default function RootLayout() {
       if (EU) {
         const prev = EU.getGlobalHandler();
         EU.setGlobalHandler((error: Error, isFatal?: boolean) => {
-          console.error("[GlobalErrorHandler] isFatal:", isFatal, "message:", error?.message ?? String(error));
+          console.error(
+            "[GlobalErrorHandler] isFatal:",
+            isFatal,
+            "message:",
+            error?.message ?? String(error),
+          );
           console.error("[GlobalErrorHandler] stack:", error?.stack);
           prev?.(error, isFatal);
         });
@@ -51,7 +63,12 @@ export default function RootLayout() {
         const { isFirebaseReady, firebaseInitError } =
           await import("@/lib/firebase");
 
-        console.log("[RootLayout] Firebase ready:", isFirebaseReady, "error:", firebaseInitError ?? "none");
+        console.log(
+          "[RootLayout] Firebase ready:",
+          isFirebaseReady,
+          "error:",
+          firebaseInitError ?? "none",
+        );
 
         if (!isFirebaseReady) {
           throw new Error(
@@ -134,7 +151,11 @@ export default function RootLayout() {
       style={{ flex: 1, backgroundColor: colors.background }}
     >
       <SafeAreaProvider>
-        <StatusBar style={isDark ? "light" : "dark"} />
+        <StatusBar
+          backgroundColor={colors.background}
+          barStyle={isDark ? "light-content" : "dark-content"}
+          translucent={false}
+        />
         <View className={isDark ? "dark flex-1" : "flex-1"} style={{ flex: 1 }}>
           <Stack
             screenOptions={{

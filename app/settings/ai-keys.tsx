@@ -154,10 +154,11 @@ export default function AIKeysSettingsScreen() {
   const infoText = useMemo(() => {
     if (!selectedState) return "No key configured";
     if (selectedState.source === "user") return "Using your device-only key";
+    if (profile?.is_pro) return "Using the shared Gemini key unlocked by Pro";
     // Do not announce preview/fallback keys in the UI to avoid exposing
     // that a secret exists. Treat preview as "no user key configured".
     return "No key configured";
-  }, [selectedState]);
+  }, [selectedState, profile?.is_pro]);
 
   useEffect(() => {
     if (!profile?.preferred_ai_provider) return;

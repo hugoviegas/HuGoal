@@ -35,6 +35,7 @@ function buildDefaultProfile(
     email,
     name,
     username: "",
+    is_pro: false,
     allergies: [],
     dietary_restrictions: [],
     preferred_cuisines: [],

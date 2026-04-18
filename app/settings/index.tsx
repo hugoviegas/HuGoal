@@ -4,6 +4,7 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
+  Switch,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -34,6 +35,7 @@ export default function SettingsScreen() {
   const mode = useThemeStore((s) => s.mode);
   const isDark = useThemeStore((s) => s.isDark);
   const setMode = useThemeStore((s) => s.setMode);
+  const profile = useAuthStore((s) => s.profile);
   const logout = useAuthStore((s) => s.logout);
   const showToast = useToastStore((s) => s.show);
   const [checkingForUpdate, setCheckingForUpdate] = useState(false);
@@ -78,12 +80,14 @@ export default function SettingsScreen() {
   const Row = ({
     icon,
     label,
+    description,
     onPress,
     right,
     disabled,
   }: {
     icon: React.ReactNode;
     label: string;
+    description?: string;
     onPress?: () => void;
     right?: React.ReactNode;
     disabled?: boolean;
@@ -112,9 +116,14 @@ export default function SettingsScreen() {
       >
         {icon}
       </View>
-      <Text style={{ flex: 1, fontSize: 16, color: colors.foreground }}>
-        {label}
-      </Text>
+      <View style={{ flex: 1, gap: description ? 2 : 0 }}>
+        <Text style={{ fontSize: 16, color: colors.foreground }}>{label}</Text>
+        {description ? (
+          <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+            {description}
+          </Text>
+        ) : null}
+      </View>
       {right ?? <ChevronRight size={18} color={colors.muted} />}
     </Pressable>
   );
@@ -289,10 +298,42 @@ export default function SettingsScreen() {
             /* Phase 10 */
           }}
         />
+      </View>
+
+      {/* AI Access */}
+      <SectionHeader title="AI Access" />
+      <View
+        style={{
+          backgroundColor: colors.card,
+          borderRadius: 16,
+          marginHorizontal: 16,
+          overflow: "hidden",
+          borderWidth: 1,
+          borderColor: colors.cardBorder,
+        }}
+      >
         <Row
           icon={<KeyRound size={18} color={colors.primary} />}
           label="AI Provider Keys"
+          description="Manage your personal Claude, Gemini, or OpenAI key"
           onPress={() => router.push("/settings/ai-keys")}
+        />
+        <Row
+          icon={<KeyRound size={18} color={colors.accent} />}
+          label="Pro access"
+          description="Uses the shared Gemini key when this profile is marked as Pro in Firebase"
+          right={
+            <Switch
+              value={Boolean(profile?.is_pro)}
+              disabled
+              trackColor={{
+                false: colors.cardBorder,
+                true: colors.primary,
+              }}
+              thumbColor={profile?.is_pro ? colors.background : colors.muted}
+            />
+          }
+          disabled
         />
       </View>
 
