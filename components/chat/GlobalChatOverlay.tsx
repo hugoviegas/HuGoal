@@ -36,6 +36,7 @@ import { spacing } from "@/constants/spacing";
 import { typography } from "@/constants/typography";
 import { sendMessage } from "@/lib/chat/chatService";
 import { createNutritionLog } from "@/lib/firestore/nutrition";
+import { computeMacros } from "@/lib/ai/nutritionChatAI";
 import {
   createWorkoutTemplate,
   getWorkoutTemplate,
@@ -101,8 +102,15 @@ export function GlobalChatOverlay() {
   const history = useChatStore((state) => state.history);
   const setState = useChatStore((state) => state.setState);
   const appendMessage = useChatStore((state) => state.appendMessage);
+  const updateMessageStatus = useChatStore(
+    (state) => state.updateMessageStatus,
+  );
+  const updateReviewItem = useChatStore((state) => state.updateReviewItem);
 
   const [sending, setSending] = useState(false);
+  const [submittingReviewMessageId, setSubmittingReviewMessageId] = useState<
+    string | null
+  >(null);
 
   const panelHeight = useSharedValue(
     resolveTargetHeight(chatState, viewportHeight, insets.top),
@@ -207,18 +215,6 @@ export function GlobalChatOverlay() {
     chatState === "hidden" || !navbarVisible ? "none" : "box-none";
   const ContextIcon = contextMeta.icon;
 
-  const toNutritionItem = (
-    item: import("@/lib/ai/nutritionChatAI").NutritionChatItem,
-  ): NutritionItem => ({
-    food_name: item.name,
-    serving_size_g: item.unit === "g" ? Math.max(1, item.quantity) : 100,
-    calories: item.calories,
-    protein_g: item.protein_g,
-    carbs_g: item.carbs_g,
-    fat_g: item.fat_g,
-    source: "ai_generated",
-  });
-
   const resolveMealType = (): MealType => {
     const hour = new Date().getHours();
     if (hour < 11) return "breakfast";
@@ -235,6 +231,69 @@ export function GlobalChatOverlay() {
       text,
       createdAt: new Date().toISOString(),
     });
+  };
+
+  const handleUpdateNutritionReviewItem = (
+    messageId: string,
+    itemId: string,
+    patch: Partial<import("@/lib/ai/nutritionChatAI").NutritionReviewItem>,
+  ) => {
+    updateReviewItem(activeContext, messageId, itemId, patch);
+  };
+
+  const handleCancelNutritionReview = (messageId: string) => {
+    updateMessageStatus(activeContext, messageId, "cancelled");
+  };
+
+  const handleConfirmNutritionReview = async (messageId: string) => {
+    if (!userId) {
+      throw new Error("Missing user session");
+    }
+
+    const currentMessage = history[activeContext].find(
+      (message) =>
+        message.id === messageId && message.type === "nutrition_review",
+    );
+
+    if (!currentMessage || currentMessage.type !== "nutrition_review") {
+      throw new Error("Nutrition review message not found");
+    }
+
+    setSubmittingReviewMessageId(messageId);
+    try {
+      const items = currentMessage.items.map((item) => {
+        const selectedCandidate =
+          item.candidates[item.selectedCandidateIndex] ?? item.candidates[0];
+        const macros = computeMacros(selectedCandidate.per100g, item.weight_g);
+
+        return {
+          food_name: selectedCandidate.name,
+          serving_size_g: Math.max(1, item.weight_g),
+          calories: macros.calories,
+          protein_g: macros.protein_g,
+          carbs_g: macros.carbs_g,
+          fat_g: macros.fat_g,
+          source: "ai_generated",
+          notes: `${selectedCandidate.name} (${item.weight_g}g)`,
+        } satisfies NutritionItem;
+      });
+
+      await createNutritionLog(userId, {
+        meal_type: resolveMealType(),
+        items,
+        notes: "Saved from nutrition review chat",
+      });
+
+      updateMessageStatus(activeContext, messageId, "confirmed");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to save nutrition review";
+      showToast(message, "error");
+    } finally {
+      setSubmittingReviewMessageId(null);
+    }
   };
 
   const sendTextMessage = async (text: string) => {
@@ -269,28 +328,13 @@ export function GlobalChatOverlay() {
         return;
       }
 
-      if (response.kind === "nutrition") {
-        if (!userId) {
-          throw new Error("Missing user session");
-        }
-
-        try {
-          await createNutritionLog(userId, {
-            meal_type: resolveMealType(),
-            items: response.items.map(toNutritionItem),
-            notes: "Saved from global coach chat",
-          });
-        } catch (error) {
-          throw error instanceof Error
-            ? error
-            : new Error("Failed to save nutrition log");
-        }
-
+      if (response.kind === "nutrition_review") {
         appendMessage(activeContext, {
           id: generateId(),
           role: "assistant",
-          type: "nutrition_card",
-          payload: response.items,
+          type: "nutrition_review",
+          status: "pending",
+          items: response.items,
           createdAt: new Date().toISOString(),
         });
         return;
@@ -572,7 +616,15 @@ export function GlobalChatOverlay() {
                   </View>
                 ) : null
               }
-              renderItem={({ item }) => <MessageRenderer message={item} />}
+              renderItem={({ item }) => (
+                <MessageRenderer
+                  message={item}
+                  onConfirmNutritionReview={handleConfirmNutritionReview}
+                  onCancelNutritionReview={handleCancelNutritionReview}
+                  onUpdateNutritionReviewItem={handleUpdateNutritionReviewItem}
+                  isReviewSubmitting={submittingReviewMessageId === item.id}
+                />
+              )}
             />
 
             <View style={{ paddingBottom: insets.bottom + 8 }}>

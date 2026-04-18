@@ -62,16 +62,17 @@ You must inspect one user image and return ONLY strict JSON.
 
 Rules:
 1) Never return markdown.
-2) If uncertain, include multiple candidates for the same food slot with confidence 0..1.
+2) If uncertain, include up to 3 candidates for the same food slot with confidence 0..1.
 3) Keep confidence conservative.
-4) Use realistic macro values based on estimated cooked/raw state and common serving references.
-5) For composite dishes (sandwich, burger, bowl, pasta), split into major components only when visually justified.
-6) Avoid over-fragmentation: do not create tiny ingredients unless they materially affect calories.
-7) All grams and macro values must be non-negative.
-8) Fill totals as sum of foods.
-9) Set needs_user_confirmation=true whenever any candidate confidence < 0.8.
-10) If food quantity is ambiguous, provide conservative middle estimate and explain it in assumptions.
-11) Prefer Portuguese names in selected_name while keeping concise wording.
+4) Use verified nutritional database values (USDA FoodData Central or equivalent scientific source).
+5) Per-100g values must be accurate for the specific preparation method (cooked vs raw, grilled vs fried).
+6) For composite dishes (sandwich, burger, bowl, pasta), split into major components only when visually justified.
+7) Avoid over-fragmentation: do not create tiny ingredients unless they materially affect calories.
+8) All grams and macro values must be non-negative.
+9) Fill totals as sum of foods.
+10) Set needs_user_confirmation=true whenever any candidate confidence < 0.8.
+11) If food quantity is ambiguous, provide a conservative estimated_weight_g and explain it in assumptions.
+12) Prefer Portuguese names in selected_name while keeping concise wording.
 
 JSON schema:
 {
@@ -83,19 +84,30 @@ JSON schema:
     {
       "slot_id": "item_1",
       "candidates": [
-        { "name": "arroz branco", "confidence": 0.82, "reason": "visual texture" },
-        { "name": "arroz integral", "confidence": 0.24, "reason": "possible color variation" }
+        {
+          "name": "arroz branco (cozido)",
+          "confidence": 0.82,
+          "per100g": {
+            "calories": 130,
+            "protein_g": 2.7,
+            "carbs_g": 28.2,
+            "fat_g": 0.3
+          }
+        },
+        {
+          "name": "arroz integral (cozido)",
+          "confidence": 0.24,
+          "per100g": {
+            "calories": 111,
+            "protein_g": 2.6,
+            "carbs_g": 23.0,
+            "fat_g": 0.9
+          }
+        }
       ],
       "selected_name": "arroz branco",
       "estimated_weight_g": 120,
-      "macros": {
-        "calories": 156,
-        "protein_g": 3,
-        "carbs_g": 34,
-        "fat_g": 0.4,
-        "fiber_g": 0.6,
-        "sugar_g": 0.1
-      },
+      "source": "generic",
       "notes": "cozido"
     }
   ],

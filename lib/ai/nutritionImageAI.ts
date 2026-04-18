@@ -6,7 +6,13 @@ import {
   NUTRITION_LABEL_SYSTEM_PROMPT,
 } from "@/lib/nutrition-vision";
 import { storage } from "@/lib/firebase";
-import type { NutritionChatItem } from "@/lib/ai/nutritionChatAI";
+import {
+  computeMacros,
+  type FoodCandidate,
+  type NutritionChatItem,
+  type NutritionPer100g,
+  type NutritionReviewItem,
+} from "@/lib/ai/nutritionChatAI";
 import type { PantryItem } from "@/lib/firestore/pantry";
 import type { AIProvider } from "@/types";
 
@@ -104,6 +110,203 @@ function findBestPantryMatch(
   return bestScore >= 0.6 ? best : null;
 }
 
+function sanitizeNumber(value: unknown, fallback = 0): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number(value.replace(",", "."));
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  return fallback;
+}
+
+function toPer100g(value: unknown): NutritionPer100g {
+  const raw = (value ?? {}) as Record<string, unknown>;
+
+  return {
+    calories: Math.max(0, Math.round(sanitizeNumber(raw.calories, 0))),
+    protein_g: Math.max(
+      0,
+      Math.round(sanitizeNumber(raw.protein_g, 0) * 10) / 10,
+    ),
+    carbs_g: Math.max(0, Math.round(sanitizeNumber(raw.carbs_g, 0) * 10) / 10),
+    fat_g: Math.max(0, Math.round(sanitizeNumber(raw.fat_g, 0) * 10) / 10),
+  };
+}
+
+function normalizeConfidence(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    if (value > 1) {
+      return Math.max(0, Math.min(1, value / 100));
+    }
+
+    return Math.max(0, Math.min(1, value));
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number(value.replace(",", "."));
+    if (Number.isFinite(parsed)) {
+      return Math.max(0, Math.min(1, parsed > 1 ? parsed / 100 : parsed));
+    }
+  }
+
+  return 0.75;
+}
+
+function parseImageReviewJson(
+  rawText: string,
+  pantryItems: PantryItem[],
+): NutritionReviewItem[] {
+  const cleaned = rawText
+    .replace(/```json?\n?/g, "")
+    .replace(/```/g, "")
+    .trim();
+
+  const tryParse = (input: string): unknown => {
+    try {
+      return JSON.parse(input);
+    } catch {
+      return null;
+    }
+  };
+
+  const directParsed = tryParse(cleaned);
+  const parsed = (() => {
+    if (Array.isArray(directParsed)) {
+      return directParsed;
+    }
+
+    if (directParsed && typeof directParsed === "object") {
+      const fromObject = (directParsed as Record<string, unknown>).foods;
+      if (Array.isArray(fromObject)) {
+        return fromObject;
+      }
+    }
+
+    const start = cleaned.indexOf("[");
+    const end = cleaned.lastIndexOf("]");
+    if (start >= 0 && end > start) {
+      const chunkParsed = tryParse(cleaned.slice(start, end + 1));
+      if (Array.isArray(chunkParsed)) {
+        return chunkParsed;
+      }
+    }
+
+    return null;
+  })();
+
+  if (!Array.isArray(parsed)) {
+    throw new Error("Could not parse nutrition image review response");
+  }
+
+  const items = parsed
+    .map((food, index) => {
+      if (!food || typeof food !== "object") {
+        return null;
+      }
+
+      const raw = food as Record<string, unknown>;
+      const candidateSource = Array.isArray(raw.candidates)
+        ? raw.candidates
+        : [];
+      const fallbackName =
+        typeof raw.selected_name === "string" ? raw.selected_name : "Food item";
+      const fallbackCandidate = [
+        {
+          name: fallbackName,
+          confidence: raw.confidence_overall,
+          per100g: raw.macros,
+        },
+      ];
+
+      const candidates = [...candidateSource, ...fallbackCandidate]
+        .map((candidate): FoodCandidate | null => {
+          if (!candidate || typeof candidate !== "object") {
+            return null;
+          }
+
+          const candidateRaw = candidate as Record<string, unknown>;
+          const name = String(candidateRaw.name ?? "").trim();
+          if (!name) {
+            return null;
+          }
+
+          const pantryMatch = findBestPantryMatch(name, pantryItems);
+          const per100g = pantryMatch
+            ? {
+                calories: pantryMatch.calories_per_100g,
+                protein_g: pantryMatch.protein_per_100g,
+                carbs_g: pantryMatch.carbs_per_100g,
+                fat_g: pantryMatch.fat_per_100g,
+              }
+            : toPer100g(candidateRaw.per100g);
+
+          return {
+            name: pantryMatch?.name ?? name,
+            confidence: normalizeConfidence(candidateRaw.confidence),
+            per100g,
+            source: pantryMatch ? "pantry" : "generic",
+            pantryId: pantryMatch?.id,
+          };
+        })
+        .filter((candidate): candidate is FoodCandidate => candidate !== null)
+        .sort((left, right) => right.confidence - left.confidence);
+
+      if (candidates.length === 0) {
+        return null;
+      }
+
+      const selectedIndex = candidates.findIndex(
+        (candidate) => candidate.source === "pantry",
+      );
+
+      return {
+        id: `nutrition-image-${Date.now()}-${index}`,
+        candidates,
+        selectedCandidateIndex: selectedIndex >= 0 ? selectedIndex : 0,
+        weight_g: Math.max(
+          1,
+          Math.round(sanitizeNumber(raw.estimated_weight_g, 100)),
+        ),
+      } satisfies NutritionReviewItem;
+    })
+    .filter((item): item is NutritionReviewItem => item !== null);
+
+  if (items.length === 0) {
+    throw new Error("Could not identify food items in the image");
+  }
+
+  return items;
+}
+
+function reviewItemToLegacyItem(item: NutritionReviewItem): NutritionChatItem {
+  const selected =
+    item.candidates[item.selectedCandidateIndex] ?? item.candidates[0];
+  const macros = computeMacros(selected.per100g, item.weight_g);
+
+  return {
+    name: selected.name,
+    quantity: item.weight_g,
+    unit: "g",
+    calories: macros.calories,
+    protein_g: macros.protein_g,
+    carbs_g: macros.carbs_g,
+    fat_g: macros.fat_g,
+    confidence:
+      selected.confidence >= 0.9
+        ? "high"
+        : selected.confidence >= 0.7
+          ? "medium"
+          : "low",
+    source: selected.source,
+  };
+}
+
 function toServingMacrosFromPantry(item: PantryItem): {
   calories: number;
   protein_g: number;
@@ -155,7 +358,12 @@ export async function uploadNutritionImageTemp(
   const now = new Date();
   const dateKey = toDateKey(now);
   const mimeType = detectImageMimeType(localUri);
-  const extension = mimeType === "image/png" ? "png" : mimeType === "image/webp" ? "webp" : "jpg";
+  const extension =
+    mimeType === "image/png"
+      ? "png"
+      : mimeType === "image/webp"
+        ? "webp"
+        : "jpg";
   const storagePath = `users/${uid}/nutrition/images/${dateKey}/${Date.now()}.${extension}`;
 
   const response = await fetch(localUri);
@@ -190,67 +398,27 @@ export async function analyzeMealImageToChatItems(
   pantryItems: PantryItem[],
   preferredProvider?: AIProvider,
 ): Promise<NutritionChatItem[]> {
+  const reviewItems = await analyzeMealImageToReviewItems(
+    base64Image,
+    pantryItems,
+    preferredProvider,
+  );
+
+  return reviewItems.map(reviewItemToLegacyItem);
+}
+
+export async function analyzeMealImageToReviewItems(
+  base64Image: string,
+  pantryItems: PantryItem[],
+  preferredProvider?: AIProvider,
+): Promise<NutritionReviewItem[]> {
   const rawText = await analyzeImageWithProviderChain(
     base64Image,
     NUTRITION_IMAGE_SYSTEM_PROMPT,
     preferredProvider,
   );
 
-  const parsed = JSON.parse(
-    rawText.replace(/```json?\n?/g, "").replace(/```/g, "").trim(),
-  ) as {
-    foods?: Array<{
-      selected_name?: string;
-      candidates?: Array<{ name?: string; confidence?: number }>;
-      macros?: { calories?: number; protein_g?: number; carbs_g?: number; fat_g?: number };
-    }>;
-  };
-
-  const items = (parsed.foods ?? [])
-    .map((food): NutritionChatItem | null => {
-      const selectedName = food.selected_name?.trim();
-      const fallbackName = food.candidates?.[0]?.name?.trim();
-      const name = selectedName || fallbackName || "Food item";
-
-      if (!name) {
-        return null;
-      }
-
-      const pantryMatch = findBestPantryMatch(name, pantryItems);
-      if (pantryMatch) {
-        const servingMacros = toServingMacrosFromPantry(pantryMatch);
-        return {
-          name: pantryMatch.name,
-          quantity: 1,
-          unit: pantryMatch.serving_unit || "serving",
-          calories: servingMacros.calories,
-          protein_g: servingMacros.protein_g,
-          carbs_g: servingMacros.carbs_g,
-          fat_g: servingMacros.fat_g,
-          confidence: "high",
-          source: "pantry",
-        };
-      }
-
-      return {
-        name,
-        quantity: 1,
-        unit: "serving",
-        calories: Math.max(0, Math.round(food.macros?.calories || 0)),
-        protein_g: Math.max(0, Math.round((food.macros?.protein_g || 0) * 10) / 10),
-        carbs_g: Math.max(0, Math.round((food.macros?.carbs_g || 0) * 10) / 10),
-        fat_g: Math.max(0, Math.round((food.macros?.fat_g || 0) * 10) / 10),
-        confidence: (food.candidates?.[0]?.confidence ?? 0) >= 0.8 ? "high" : "medium",
-        source: "generic",
-      };
-    })
-    .filter((item): item is NutritionChatItem => item !== null);
-
-  if (items.length === 0) {
-    throw new Error("Could not identify food items in the image");
-  }
-
-  return items;
+  return parseImageReviewJson(rawText, pantryItems);
 }
 
 export async function analyzeNutritionLabelToPantryDraft(
@@ -264,7 +432,10 @@ export async function analyzeNutritionLabelToPantryDraft(
   );
 
   const parsed = JSON.parse(
-    rawText.replace(/```json?\n?/g, "").replace(/```/g, "").trim(),
+    rawText
+      .replace(/```json?\n?/g, "")
+      .replace(/```/g, "")
+      .trim(),
   ) as {
     foods?: Array<{
       selected_name?: string;
@@ -296,13 +467,22 @@ export async function analyzeNutritionLabelToPantryDraft(
   return {
     name,
     brand: null,
-    calories_per_100g: Math.max(0, Math.round((first.macros?.calories || 0) * factorTo100g)),
-    protein_per_100g:
-      Math.max(0, Math.round((first.macros?.protein_g || 0) * factorTo100g * 10) / 10),
-    carbs_per_100g:
-      Math.max(0, Math.round((first.macros?.carbs_g || 0) * factorTo100g * 10) / 10),
-    fat_per_100g:
-      Math.max(0, Math.round((first.macros?.fat_g || 0) * factorTo100g * 10) / 10),
+    calories_per_100g: Math.max(
+      0,
+      Math.round((first.macros?.calories || 0) * factorTo100g),
+    ),
+    protein_per_100g: Math.max(
+      0,
+      Math.round((first.macros?.protein_g || 0) * factorTo100g * 10) / 10,
+    ),
+    carbs_per_100g: Math.max(
+      0,
+      Math.round((first.macros?.carbs_g || 0) * factorTo100g * 10) / 10,
+    ),
+    fat_per_100g: Math.max(
+      0,
+      Math.round((first.macros?.fat_g || 0) * factorTo100g * 10) / 10,
+    ),
     serving_size_g: servingSize,
     serving_unit: "g",
   };

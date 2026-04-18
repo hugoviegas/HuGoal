@@ -1,8 +1,9 @@
 import { sendHomeChatMessage } from "@/lib/ai/homeChatAI";
 import {
-  analyzeNutritionChatText,
-  type NutritionChatItem,
+  analyzeNutritionReviewText,
+  type FoodCandidate,
   type NutritionChatPantryItem,
+  type NutritionReviewItem,
 } from "@/lib/ai/nutritionChatAI";
 import { analyzeWorkoutChatMessage } from "@/lib/ai/workoutChatAI";
 import {
@@ -18,7 +19,7 @@ import type { AIProvider } from "@/types";
 
 export type ChatServiceResponse =
   | { kind: "text"; text: string }
-  | { kind: "nutrition"; items: NutritionChatItem[]; text: string }
+  | { kind: "nutrition_review"; items: NutritionReviewItem[]; text: string }
   | {
       kind: "workout";
       action:
@@ -85,13 +86,45 @@ function toHomeHistory(
   });
 }
 
-function toNutritionHistoryItems(history: ChatMessage[]): NutritionChatItem[] {
+function toNutritionReviewHistoryItems(
+  history: ChatMessage[],
+): NutritionReviewItem[] {
   return history.flatMap((message) => {
+    if (message.type === "nutrition_review") {
+      return message.items;
+    }
+
     if (message.type !== "nutrition_card") {
       return [];
     }
 
-    return message.payload;
+    return message.payload.map((item, index): NutritionReviewItem => {
+      const per100g = {
+        calories: item.calories,
+        protein_g: item.protein_g,
+        carbs_g: item.carbs_g,
+        fat_g: item.fat_g,
+      };
+
+      const candidate: FoodCandidate = {
+        name: item.name,
+        confidence:
+          item.confidence === "high"
+            ? 0.95
+            : item.confidence === "medium"
+              ? 0.8
+              : 0.6,
+        per100g,
+        source: item.source === "pantry" ? "pantry" : "generic",
+      };
+
+      return {
+        id: `${message.id}-${index}`,
+        candidates: [candidate],
+        selectedCandidateIndex: 0,
+        weight_g: Math.max(1, item.quantity),
+      };
+    });
   });
 }
 
@@ -166,11 +199,11 @@ async function sendNutritionContext(
 
   let response;
   try {
-    response = await analyzeNutritionChatText({
+    response = await analyzeNutritionReviewText({
       preferredProvider: args.preferredProvider,
       userMessage: args.message,
       pantryItems,
-      previousItems: toNutritionHistoryItems(args.history),
+      previousItems: toNutritionReviewHistoryItems(args.history),
     });
   } catch {
     const fallbackText = await sendHomeChatMessage({
@@ -186,11 +219,11 @@ async function sendNutritionContext(
 
   if (response.items.length > 0) {
     return {
-      kind: "nutrition",
+      kind: "nutrition_review",
       items: response.items,
       text: appContext
-        ? `Nutrition parsed with app context available.\n${appContext}`
-        : `Nutrition parsed: ${response.items.length} item${response.items.length === 1 ? "" : "s"}.`,
+        ? `Nutrition review ready with app context available.\n${appContext}`
+        : `Nutrition review ready: ${response.items.length} item${response.items.length === 1 ? "" : "s"}.`,
     };
   }
 
