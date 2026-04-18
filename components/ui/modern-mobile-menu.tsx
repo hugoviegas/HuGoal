@@ -73,6 +73,7 @@ export function ModernMobileMenu({
   const slideAnim = useSharedValue(navbarVisible ? 0 : 120);
   const opacityAnim = useSharedValue(navbarVisible ? 1 : 0);
   const indicatorIndex = useSharedValue(state.index);
+  const chatIndicatorOpacity = useSharedValue(chatState !== "hidden" ? 1 : 0);
   const [containerWidth, setContainerWidth] = useState(0);
 
   useEffect(() => {
@@ -98,6 +99,12 @@ export function ModernMobileMenu({
   useEffect(() => {
     indicatorIndex.value = withTiming(activeIndicatorSlot, { duration: 220 });
   }, [activeIndicatorSlot, indicatorIndex]);
+
+  useEffect(() => {
+    chatIndicatorOpacity.value = withTiming(chatState !== "hidden" ? 1 : 0, {
+      duration: 200,
+    });
+  }, [chatIndicatorOpacity, chatState]);
 
   const handleItemPress = (
     route: BottomTabBarProps["state"]["routes"][number],
@@ -150,16 +157,23 @@ export function ModernMobileMenu({
     transform: [{ translateX: indicatorIndex.value * normalizedTabWidth }],
   }));
 
+  const chatIndicatorStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: 2 * normalizedTabWidth }],
+    opacity: chatIndicatorOpacity.value,
+  }));
+
   const firstHalfRoutes = visibleRoutes.slice(0, 2);
   const secondHalfRoutes = visibleRoutes.slice(2);
 
   const handleChatPress = () => {
-    if (chatState === "hidden" || chatState === "collapsed") {
-      setChatState("expanded");
+    // Toggle behavior: if currently expanded/fullscreen -> collapse,
+    // otherwise (hidden or collapsed) -> expand.
+    if (chatState === "expanded" || chatState === "fullscreen") {
+      setChatState("collapsed");
       return;
     }
 
-    setChatState("hidden");
+    setChatState("expanded");
   };
 
   const shadowStyle =
@@ -206,6 +220,24 @@ export function ModernMobileMenu({
         />
       )}
 
+      {containerWidth > 0 && (
+        <Animated.View
+          style={[
+            {
+              position: "absolute",
+              left: indicatorLeftBase,
+              top: containerPaddingVertical,
+              bottom: containerPaddingVertical,
+              borderRadius: 16,
+              backgroundColor: withOpacity(activeColor, 0.07),
+              width: indicatorWidth,
+              pointerEvents: "none",
+            },
+            chatIndicatorStyle,
+          ]}
+        />
+      )}
+
       {firstHalfRoutes.map((route) => {
         const isFocused = activeRouteKey === route.key;
         const routeName = route.name.toLowerCase();
@@ -233,28 +265,12 @@ export function ModernMobileMenu({
         onPress={handleChatPress}
         accessibilityRole="button"
         accessibilityLabel="Toggle coach chat"
-        style={[
-          styles.chatSlot,
-          {
-            shadowColor: colors.primary,
-            shadowOffset: { width: 0, height: 6 },
-            shadowOpacity: isDark ? 0.35 : 0.26,
-            shadowRadius: 12,
-            elevation: 8,
-          },
-        ]}
+        style={styles.tabItem}
       >
-        <View
-          style={[
-            styles.chatButton,
-            {
-              backgroundColor: colors.primary,
-              borderColor: withOpacity(colors.primaryForeground, 0.2),
-            },
-          ]}
-        >
-          <MessageCircle size={22} color={colors.primaryForeground} />
-        </View>
+        <MessageCircle
+          size={24}
+          color={chatState !== "hidden" ? activeColor : inactiveColor}
+        />
       </Pressable>
 
       {secondHalfRoutes.map((route) => {
@@ -343,20 +359,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     borderRadius: 16,
     zIndex: 1,
-  },
-  chatSlot: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 2,
-  },
-  chatButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
   },
 });
 

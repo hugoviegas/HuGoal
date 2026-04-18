@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ComponentType } from "react";
 import {
   FlatList,
+  Keyboard,
   Platform,
   Pressable,
   Text,
@@ -10,7 +11,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Maximize2,
-  MessageCircle,
   Minimize2,
   Users,
   Dumbbell,
@@ -25,10 +25,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import {
-  ChatInputBar,
-  type AudioRecordedPayload,
-} from "@/components/nutrition/ChatInputBar";
+import { ChatInputBar } from "@/components/nutrition/ChatInputBar";
 import { TypingIndicator } from "@/components/shared/TypingIndicator";
 import {
   FLOATING_TAB_BAR_BOTTOM_OFFSET,
@@ -45,7 +42,6 @@ import {
 } from "@/stores/chat.store";
 import { useNavigationStore } from "@/stores/navigation.store";
 import { useThemeStore } from "@/stores/theme.store";
-import { useToastStore } from "@/stores/toast.store";
 
 type ContextMeta = {
   label: string;
@@ -85,7 +81,6 @@ export function GlobalChatOverlay() {
   const colors = useThemeStore((state) => state.colors);
   const isDark = useThemeStore((state) => state.isDark);
   const navbarVisible = useNavigationStore((state) => state.navbarVisible);
-  const showToast = useToastStore((state) => state.show);
 
   const chatState = useChatStore((state) => state.state);
   const activeContext = useChatStore((state) => state.activeContext);
@@ -101,12 +96,15 @@ export function GlobalChatOverlay() {
   const panelOpacity = useSharedValue(chatState === "hidden" ? 0 : 1);
   const panelScale = useSharedValue(chatState === "hidden" ? 0.85 : 1);
   const panelTranslateY = useSharedValue(chatState === "hidden" ? 320 : 0);
+  const backdropOpacity = useSharedValue(0);
   const navTranslateY = useSharedValue(navbarVisible ? 0 : 120);
 
   const contextMeta = CONTEXT_META[activeContext];
   const messages = history[activeContext];
 
   const collapsedOrHidden = chatState === "collapsed" || chatState === "hidden";
+  const isExpandedOrFullscreen =
+    chatState === "expanded" || chatState === "fullscreen";
   const panelBottom =
     chatState === "fullscreen"
       ? insets.bottom + 4
@@ -138,9 +136,15 @@ export function GlobalChatOverlay() {
       stiffness: 150,
       mass: 0.9,
     });
+
+    backdropOpacity.value = withTiming(isExpandedOrFullscreen ? 0.5 : 0, {
+      duration: 220,
+    });
   }, [
+    backdropOpacity,
     chatState,
     insets.top,
+    isExpandedOrFullscreen,
     panelHeight,
     panelOpacity,
     panelScale,
@@ -158,6 +162,20 @@ export function GlobalChatOverlay() {
     }
   }, [chatState, navTranslateY, navbarVisible, setState]);
 
+  useEffect(() => {
+    const showEvent =
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const subscription = Keyboard.addListener(showEvent, () => {
+      if (chatState === "hidden" || chatState === "collapsed") {
+        setState("expanded");
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [chatState, setState]);
+
   const animatedPanelStyle = useAnimatedStyle(() => ({
     height: panelHeight.value,
     opacity: panelOpacity.value,
@@ -165,6 +183,10 @@ export function GlobalChatOverlay() {
       { translateY: panelTranslateY.value + navTranslateY.value },
       { scale: panelScale.value },
     ],
+  }));
+
+  const animatedBackdropStyle = useAnimatedStyle(() => ({
+    opacity: backdropOpacity.value,
   }));
 
   const containerPointerEvents =
@@ -216,14 +238,6 @@ export function GlobalChatOverlay() {
     }
   };
 
-  const handleAudioRecorded = (_payload: AudioRecordedPayload) => {
-    showToast("Audio is not enabled in global chat yet.", "info");
-  };
-
-  const handleImageSelected = (_uri: string) => {
-    showToast("Image is not enabled in global chat yet.", "info");
-  };
-
   const emptyStateText = useMemo(() => {
     if (activeContext === "workouts") {
       return "Ask for workout adjustments or a new training idea.";
@@ -246,6 +260,28 @@ export function GlobalChatOverlay() {
       style={{ position: "absolute", inset: 0, zIndex: 40 }}
     >
       <Animated.View
+        pointerEvents={isExpandedOrFullscreen ? "auto" : "none"}
+        style={[
+          {
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "#000",
+          },
+          animatedBackdropStyle,
+        ]}
+      >
+        <Pressable
+          style={{ flex: 1 }}
+          onPress={() => setState("collapsed")}
+          accessibilityRole="button"
+          accessibilityLabel="Minimize chat"
+        />
+      </Animated.View>
+
+      <Animated.View
         style={[
           {
             position: "absolute",
@@ -267,7 +303,13 @@ export function GlobalChatOverlay() {
           animatedPanelStyle,
         ]}
       >
-        <View
+        <Pressable
+          disabled={chatState !== "collapsed"}
+          onPress={() => {
+            if (chatState === "collapsed") {
+              setState("expanded");
+            }
+          }}
           style={{
             minHeight: 52,
             paddingHorizontal: spacing.sm,
@@ -304,52 +346,74 @@ export function GlobalChatOverlay() {
             </Text>
           </View>
 
-          {chatState === "fullscreen" ? (
+          {chatState === "collapsed" ? (
             <Pressable
               onPress={() => setState("expanded")}
               hitSlop={10}
               accessibilityRole="button"
-              accessibilityLabel="Exit fullscreen chat"
-              style={{ padding: 4 }}
-            >
-              <Minimize2 size={18} color={colors.mutedForeground} />
-            </Pressable>
-          ) : (
-            <Pressable
-              onPress={() => setState("fullscreen")}
-              hitSlop={10}
-              accessibilityRole="button"
-              accessibilityLabel="Fullscreen chat"
+              accessibilityLabel="Expand chat"
               style={{ padding: 4 }}
             >
               <Maximize2 size={18} color={colors.mutedForeground} />
             </Pressable>
+          ) : (
+            <>
+              <Pressable
+                onPress={() => setState("collapsed")}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel="Minimize chat"
+                style={{
+                  width: 26,
+                  height: 26,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <View
+                  style={{
+                    width: 16,
+                    height: 2,
+                    borderRadius: 1,
+                    backgroundColor: colors.mutedForeground,
+                  }}
+                />
+              </Pressable>
+
+              <Pressable
+                onPress={() =>
+                  setState(
+                    chatState === "fullscreen" ? "expanded" : "fullscreen",
+                  )
+                }
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  chatState === "fullscreen"
+                    ? "Exit fullscreen chat"
+                    : "Fullscreen chat"
+                }
+                style={{ padding: 4 }}
+              >
+                {chatState === "fullscreen" ? (
+                  <Minimize2 size={18} color={colors.mutedForeground} />
+                ) : (
+                  <Maximize2 size={18} color={colors.mutedForeground} />
+                )}
+              </Pressable>
+
+              <Pressable
+                onPress={() => setState("hidden")}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel="Hide chat"
+                style={{ padding: 4 }}
+              >
+                <X size={18} color={colors.mutedForeground} />
+              </Pressable>
+            </>
           )}
-
-          <Pressable
-            onPress={() =>
-              setState(chatState === "collapsed" ? "expanded" : "collapsed")
-            }
-            hitSlop={10}
-            accessibilityRole="button"
-            accessibilityLabel={
-              chatState === "collapsed" ? "Expand chat" : "Collapse chat"
-            }
-            style={{ padding: 4 }}
-          >
-            <MessageCircle size={18} color={colors.mutedForeground} />
-          </Pressable>
-
-          <Pressable
-            onPress={() => setState("hidden")}
-            hitSlop={10}
-            accessibilityRole="button"
-            accessibilityLabel="Hide chat"
-            style={{ padding: 4 }}
-          >
-            <X size={18} color={colors.mutedForeground} />
-          </Pressable>
-        </View>
+        </Pressable>
 
         {chatState !== "collapsed" && chatState !== "hidden" ? (
           <View style={{ flex: 1 }}>
@@ -420,8 +484,12 @@ export function GlobalChatOverlay() {
                 onSendText={(text) => {
                   void sendTextMessage(text);
                 }}
-                onAudioRecorded={handleAudioRecorded}
-                onImageSelected={handleImageSelected}
+                onAudioRecorded={() => {}}
+                onImageSelected={() => {}}
+                onInputFocus={() => {
+                  setState("expanded");
+                }}
+                disabled={sending}
                 placeholder="Message your coach"
               />
             </View>

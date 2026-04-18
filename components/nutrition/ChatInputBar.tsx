@@ -11,22 +11,10 @@ import {
   RecordingPresets,
   requestRecordingPermissionsAsync,
   setAudioModeAsync,
-  useAudioPlayer,
-  useAudioPlayerStatus,
   useAudioRecorder,
 } from "expo-audio";
-import * as FileSystem from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
-import {
-  ArrowUp,
-  Mic,
-  MicOff,
-  Paperclip,
-  Play,
-  Send,
-  Square,
-  X,
-} from "lucide-react-native";
+import { ArrowUp, Mic, Paperclip, Square } from "lucide-react-native";
 
 import { spacing } from "@/constants/spacing";
 import { typography } from "@/constants/typography";
@@ -73,24 +61,19 @@ export function ChatInputBar({
 
   const [text, setText] = useState("");
   const [isRecording, setIsRecording] = useState(false);
-  const [isPreview, setIsPreview] = useState(false);
   const [isPicking, setIsPicking] = useState(false);
   const [durationSec, setDurationSec] = useState(0);
   const [inputBarHeight, setInputBarHeight] = useState(64);
   const [isSlideCancelCue, setIsSlideCancelCue] = useState(false);
-  const [previewTranscript, setPreviewTranscript] = useState("");
   const [nativeSpeechSessionStarted, setNativeSpeechSessionStarted] =
     useState(false);
 
-  const recordedUriRef = useRef<string | null>(null);
   const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
     null,
   );
   const hasCancelledRef = useRef(false);
   const releasedByPanRef = useRef(false);
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
-  const previewPlayer = useAudioPlayer(null);
-  const previewPlayerStatus = useAudioPlayerStatus(previewPlayer);
 
   const modeAnim = useRef(new Animated.Value(0)).current;
   const recordButtonPulseAnim = useRef(new Animated.Value(0)).current;
@@ -99,11 +82,11 @@ export function ChatInputBar({
   const indicatorTranslateXAnim = useRef(new Animated.Value(0)).current;
 
   const isSendMode = text.trim().length > 0;
-  const isPlaying =
-    previewPlayerStatus.playing && !previewPlayerStatus.didJustFinish;
+  // Keep prop in API for compatibility with existing callers.
+  void onAudioRecorded;
 
   useEffect(() => {
-    if (isRecording || isPreview) {
+    if (isRecording) {
       return;
     }
 
@@ -113,7 +96,7 @@ export function ChatInputBar({
       damping: 15,
       stiffness: 200,
     }).start();
-  }, [isPreview, isRecording, isSendMode, modeAnim]);
+  }, [isRecording, isSendMode, modeAnim]);
 
   useEffect(() => {
     if (!isRecording) {
@@ -157,14 +140,13 @@ export function ChatInputBar({
   }, [isRecording, recordButtonPulseAnim, redDotAnim]);
 
   useEffect(() => {
-    const visible = isRecording || isPreview;
     Animated.spring(indicatorSlideAnim, {
-      toValue: visible ? 0 : 40,
+      toValue: isRecording ? 0 : 40,
       useNativeDriver: true,
       damping: 14,
       stiffness: 180,
     }).start();
-  }, [indicatorSlideAnim, isPreview, isRecording]);
+  }, [indicatorSlideAnim, isRecording]);
 
   useEffect(() => {
     return () => {
@@ -201,41 +183,35 @@ export function ChatInputBar({
     setNativeSpeechSessionStarted(false);
   }, [indicatorTranslateXAnim, stopDurationTimer]);
 
-  const deleteRecordedFile = useCallback(async () => {
-    const uri = recordedUriRef.current;
-    if (!uri) {
-      return;
-    }
-
-    try {
-      await FileSystem.deleteAsync(uri, { idempotent: true });
-    } catch {
-      // Best effort cleanup
-    }
-  }, []);
-
   const cancelRecording = useCallback(async () => {
     try {
       await cancelNutritionAudioRecording();
     } catch {
-      // Best-effort cancellation
+      // Best-effort cancellation.
     }
 
     try {
       await audioRecorder.stop();
     } catch {
-      // Ignore
+      // Ignore.
     }
 
-    await deleteRecordedFile();
-    recordedUriRef.current = null;
-    setPreviewTranscript("");
-    setIsPreview(false);
     resetRecordingUi();
-  }, [audioRecorder, deleteRecordedFile, resetRecordingUi]);
+  }, [audioRecorder, resetRecordingUi]);
+
+  const appendTranscriptToInput = useCallback((transcript: string) => {
+    setText((current) => {
+      if (!current.trim()) {
+        return transcript;
+      }
+
+      const spacer = current.endsWith("\n") ? "" : "\n";
+      return `${current}${spacer}${transcript}`;
+    });
+  }, []);
 
   const handleStartRecording = useCallback(async () => {
-    if (disabled || isSendMode || isRecording || isPreview) {
+    if (disabled || isSendMode || isRecording) {
       return;
     }
 
@@ -253,23 +229,21 @@ export function ChatInputBar({
 
       await audioRecorder.prepareToRecordAsync();
       audioRecorder.record();
+
       if (isNativeSpeechRecognitionAvailable()) {
         try {
           await startNutritionAudioRecording();
           setNativeSpeechSessionStarted(true);
         } catch {
-          // Native speech module is optional in this build (e.g. Expo Go).
+          // Native speech module can be unavailable in some builds.
           setNativeSpeechSessionStarted(false);
         }
       } else {
         setNativeSpeechSessionStarted(false);
       }
 
-      recordedUriRef.current = null;
-      setPreviewTranscript("");
       setDurationSec(0);
       setIsRecording(true);
-      setIsPreview(false);
       setIsSlideCancelCue(false);
       startDurationTimer();
     } catch {
@@ -279,7 +253,6 @@ export function ChatInputBar({
   }, [
     audioRecorder,
     disabled,
-    isPreview,
     isRecording,
     isSendMode,
     resetRecordingUi,
@@ -302,7 +275,7 @@ export function ChatInputBar({
       try {
         await audioRecorder.stop();
       } catch {
-        // Stop is best-effort here; we'll fall back to the available URI.
+        // Stop is best effort.
       }
 
       let uri = audioRecorder.uri ?? null;
@@ -323,34 +296,29 @@ export function ChatInputBar({
         try {
           transcript = (await transcribeNutritionAudioFromFile(uri)).trim();
         } catch {
-          // Keep preview flow even if transcription fails on this device/build.
+          // Error handled below.
         }
       }
 
       resetRecordingUi();
 
-      if (!uri) {
-        showToast("Nao foi possivel salvar o audio", "error");
+      if (!transcript) {
+        showToast("Não foi possível transcrever o áudio", "error");
         return;
       }
 
-      recordedUriRef.current = uri;
-      previewPlayer.replace(uri);
-      previewPlayer.pause();
-      void previewPlayer.seekTo(0);
-      setPreviewTranscript(transcript);
-      setIsPreview(true);
+      appendTranscriptToInput(transcript);
     } catch {
       await cancelRecording();
-      showToast("Nao foi possivel finalizar a gravacao", "error");
+      showToast("Não foi possível transcrever o áudio", "error");
     }
   }, [
+    appendTranscriptToInput,
     audioRecorder,
     cancelRecording,
     isRecording,
     nativeSpeechSessionStarted,
     resetRecordingUi,
-    previewPlayer,
     showToast,
   ]);
 
@@ -450,50 +418,6 @@ export function ChatInputBar({
     }
   }, [disabled, isPicking, onImageSelected, showToast]);
 
-  const handlePreviewPlayToggle = useCallback(async () => {
-    const uri = recordedUriRef.current;
-    if (!uri) {
-      return;
-    }
-
-    if (isPlaying) {
-      previewPlayer.pause();
-      return;
-    }
-
-    if (previewPlayerStatus.didJustFinish) {
-      void previewPlayer.seekTo(0);
-    }
-
-    previewPlayer.replace(uri);
-    previewPlayer.play();
-  }, [isPlaying, previewPlayer, previewPlayerStatus.didJustFinish]);
-
-  const handleDiscardPreview = useCallback(async () => {
-    previewPlayer.pause();
-    void previewPlayer.seekTo(0);
-    setIsPreview(false);
-    setPreviewTranscript("");
-    await deleteRecordedFile();
-    recordedUriRef.current = null;
-    setDurationSec(0);
-  }, [deleteRecordedFile, previewPlayer]);
-
-  const handleSendPreview = useCallback(() => {
-    const uri = recordedUriRef.current;
-    if (!uri) {
-      return;
-    }
-
-    previewPlayer.pause();
-    void previewPlayer.seekTo(0);
-    onAudioRecorded({ uri, transcript: previewTranscript });
-    setIsPreview(false);
-    setPreviewTranscript("");
-    recordedUriRef.current = null;
-    setDurationSec(0);
-  }, [onAudioRecorded, previewPlayer, previewTranscript]);
-
   const sendOpacity = modeAnim;
   const sendScale = modeAnim.interpolate({
     inputRange: [0, 1],
@@ -530,7 +454,7 @@ export function ChatInputBar({
   return (
     <View>
       <Animated.View
-        pointerEvents={isRecording || isPreview ? "auto" : "none"}
+        pointerEvents={isRecording ? "auto" : "none"}
         style={{
           position: "absolute",
           left: 12,
@@ -543,126 +467,46 @@ export function ChatInputBar({
           paddingHorizontal: 16,
           paddingVertical: 10,
           transform: [{ translateY: indicatorSlideAnim }],
-          opacity: isRecording || isPreview ? 1 : 0,
+          opacity: isRecording ? 1 : 0,
           zIndex: 5,
         }}
       >
-        {isRecording ? (
+        <Animated.View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: spacing.xs,
+            transform: [{ translateX: indicatorTranslateXAnim }],
+            opacity: indicatorOpacity,
+          }}
+        >
           <Animated.View
             style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: spacing.xs,
-              transform: [{ translateX: indicatorTranslateXAnim }],
-              opacity: indicatorOpacity,
+              width: 10,
+              height: 10,
+              borderRadius: 5,
+              backgroundColor: "#ef4444",
+              transform: [{ scale: dotScale }],
             }}
+          />
+          <Text style={[typography.smallMedium, { color: colors.foreground }]}>
+            A gravar... {formatDuration(durationSec)}
+          </Text>
+          <Text
+            style={[
+              typography.caption,
+              {
+                color: isSlideCancelCue
+                  ? colors.destructive
+                  : colors.mutedForeground,
+              },
+            ]}
           >
-            <Animated.View
-              style={{
-                width: 10,
-                height: 10,
-                borderRadius: 5,
-                backgroundColor: "#ef4444",
-                transform: [{ scale: dotScale }],
-              }}
-            />
-            <Text
-              style={[typography.smallMedium, { color: colors.foreground }]}
-            >
-              A gravar... {formatDuration(durationSec)}
-            </Text>
-            <Text
-              style={[
-                typography.caption,
-                {
-                  color: isSlideCancelCue
-                    ? colors.destructive
-                    : colors.mutedForeground,
-                },
-              ]}
-            >
-              {isSlideCancelCue
-                ? "Soltar para cancelar"
-                : "← Desliza para cancelar"}
-            </Text>
-          </Animated.View>
-        ) : isPreview ? (
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: spacing.sm,
-            }}
-          >
-            <Pressable
-              onPress={() => void handlePreviewPlayToggle()}
-              disabled={disabled}
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: 17,
-                alignItems: "center",
-                justifyContent: "center",
-                borderWidth: 1,
-                borderColor: colors.cardBorder,
-                backgroundColor: colors.background,
-                opacity: disabled ? 0.6 : 1,
-              }}
-            >
-              {isPlaying ? (
-                <Square size={15} color={colors.foreground} />
-              ) : (
-                <Play size={15} color={colors.foreground} />
-              )}
-            </Pressable>
-
-            <Text
-              style={[typography.small, { color: colors.foreground, flex: 1 }]}
-            >
-              Audio gravado — {formatDuration(durationSec)}
-            </Text>
-
-            <Pressable
-              onPress={() => void handleDiscardPreview()}
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: 17,
-                alignItems: "center",
-                justifyContent: "center",
-                borderWidth: 1,
-                borderColor: colors.cardBorder,
-                backgroundColor: colors.background,
-              }}
-            >
-              <X size={16} color={colors.foreground} />
-            </Pressable>
-
-            <Pressable
-              onPress={handleSendPreview}
-              style={{
-                height: 34,
-                borderRadius: 17,
-                paddingHorizontal: 12,
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: colors.primary,
-                flexDirection: "row",
-                gap: 6,
-              }}
-            >
-              <Send size={14} color={colors.primaryForeground} />
-              <Text
-                style={[
-                  typography.caption,
-                  { color: colors.primaryForeground },
-                ]}
-              >
-                Enviar
-              </Text>
-            </Pressable>
-          </View>
-        ) : null}
+            {isSlideCancelCue
+              ? "Soltar para cancelar"
+              : "← Desliza para cancelar"}
+          </Text>
+        </Animated.View>
       </Animated.View>
 
       <View
@@ -686,14 +530,14 @@ export function ChatInputBar({
       >
         <Pressable
           onPress={() => void handleAttachImage()}
-          disabled={disabled || isPicking}
+          disabled={disabled || isPicking || isRecording}
           style={{
             width: 36,
             height: 36,
             borderRadius: 18,
             alignItems: "center",
             justifyContent: "center",
-            opacity: disabled || isPicking ? 0.6 : 1,
+            opacity: disabled || isPicking || isRecording ? 0.6 : 1,
           }}
         >
           <Paperclip size={20} color={colors.foreground} />
@@ -752,7 +596,7 @@ export function ChatInputBar({
                 }}
               />
               <Pressable
-                onPressOut={() => {
+                onPress={() => {
                   void handleStopRecording();
                 }}
                 style={{
@@ -763,25 +607,20 @@ export function ChatInputBar({
                 }}
                 disabled={disabled}
               >
-                <MicOff size={20} color={colors.primaryForeground} />
+                <Square size={18} color={colors.primaryForeground} />
               </Pressable>
             </>
           ) : (
             <Pressable
-              onPressIn={() => {
-                void handleStartRecording();
-              }}
-              onPressOut={() => {
-                if (!isSendMode) {
-                  void handleStopRecording();
-                }
-              }}
               onPress={() => {
                 if (isSendMode) {
                   handleSendTextPress();
+                  return;
                 }
+
+                void handleStartRecording();
               }}
-              disabled={disabled || isPreview}
+              disabled={disabled}
               style={{
                 width: 40,
                 height: 40,
@@ -815,17 +654,3 @@ export function ChatInputBar({
     </View>
   );
 }
-
-// TEST:
-// - Permission denied flow for mic -> toast appears, no crash
-// - Permission denied for image picker -> toast appears
-// - Type text -> button switches to Send (ArrowUp), spring animation visible
-// - Clear text -> button switches back to Mic, spring animation visible
-// - Hold mic -> recording starts, indicator bar slides up, duration counter ticks
-// - Drag left > 120px -> recording cancels silently, bar slides down, no callback fired
-// - Release mic normally -> indicator switches to preview state (play/discard/send)
-// - Play button in preview -> audio plays back
-// - Discard in preview -> resets, no callback
-// - Send in preview -> onAudioRecorded fires with valid URI
-// - Attach button -> image picker opens, selection calls onImageSelected
-// - disabled=true -> all interactions blocked
