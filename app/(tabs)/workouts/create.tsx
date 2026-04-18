@@ -36,6 +36,7 @@ import { ProgressFormIndicator } from "@/components/ui/ProgressFormIndicator";
 import { Modal } from "@/components/ui/Modal";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
+import { generateText } from "@/lib/ai-provider";
 import {
   createWorkoutTemplate,
   getWorkoutTemplate,
@@ -60,6 +61,12 @@ type WorkflowType = "manual" | "ai";
 type CreateStep = "workflow" | "details" | "exercises" | "preview";
 type BuilderSectionType = "warmup" | "round" | "cooldown";
 type ExerciseExecutionMode = "reps" | "time";
+type WizardStep =
+  | "idle"
+  | "muscle_group"
+  | "duration"
+  | "location"
+  | "summary";
 
 interface BuilderExerciseItem {
   id: string;
@@ -121,6 +128,34 @@ interface WorkoutDraft {
   };
 }
 
+interface AIWizardAnswers {
+  muscleGroups: string[];
+  duration: string;
+  location: string;
+}
+
+interface AIGeneratedExercise {
+  name: string;
+  exercise_id: string;
+  sets: number;
+  reps: string;
+  execution_mode: "reps" | "time";
+  exercise_seconds: number | null;
+  primary_muscles: string[];
+}
+
+interface AIGeneratedRound {
+  name: string;
+  type: "straight" | "superset" | "circuit";
+  exercises: AIGeneratedExercise[];
+}
+
+interface AIGeneratedWorkout {
+  name: string;
+  description: string;
+  rounds: AIGeneratedRound[];
+}
+
 const DIFFICULTIES = [
   { label: "Beginner", value: "beginner" },
   { label: "Intermediate", value: "intermediate" },
@@ -128,6 +163,32 @@ const DIFFICULTIES = [
 ];
 
 const LOCATIONS = ["Home", "Gym", "Outdoor", "Hotel", "Other"] as const;
+
+const WIZARD_MUSCLE_GROUP_OPTIONS = [
+  "Upper Body",
+  "Lower Body",
+  "Core",
+  "Cardio",
+  "Full Body",
+  "Push",
+  "Pull",
+  "Legs",
+  "Glutes",
+  "Arms",
+  "Back",
+  "Chest",
+  "Shoulders",
+  "Mobility",
+] as const;
+
+const WIZARD_DURATION_OPTIONS = [
+  "15 min",
+  "20 min",
+  "30 min",
+  "45 min",
+  "60 min",
+  "90 min+",
+] as const;
 
 const STEP_LABELS = ["Workflow", "Details", "Exercises", "Preview"];
 
@@ -190,12 +251,151 @@ function createRound(name: string): WorkoutRound {
   };
 }
 
+function normalizeLocationName(name: string): string {
+  if (!name) return "";
+  return name
+    .replace(/[_-]/g, " ")
+    .split(" ")
+    .filter(Boolean)
+    .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1))
+    .join(" ");
+}
+
+function parseAIWorkoutResponse(rawText: string): AIGeneratedWorkout | null {
+  const trimmed = rawText.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const withoutCodeFence = trimmed
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+
+  const candidates: string[] = [withoutCodeFence];
+  const objectStart = withoutCodeFence.indexOf("{");
+  const objectEnd = withoutCodeFence.lastIndexOf("}");
+  if (objectStart >= 0 && objectEnd > objectStart) {
+    candidates.push(withoutCodeFence.slice(objectStart, objectEnd + 1));
+  }
+
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate) as Partial<AIGeneratedWorkout>;
+      if (!parsed || typeof parsed !== "object") {
+        continue;
+      }
+
+      if (!Array.isArray(parsed.rounds)) {
+        continue;
+      }
+
+      const rounds = parsed.rounds
+        .map((round): AIGeneratedRound | null => {
+          if (!round || typeof round !== "object") {
+            return null;
+          }
+
+          const exercises = Array.isArray(round.exercises)
+            ? round.exercises
+                .map((exercise): AIGeneratedExercise | null => {
+                  if (!exercise || typeof exercise !== "object") {
+                    return null;
+                  }
+
+                  const exerciseName =
+                    typeof exercise.name === "string" && exercise.name.trim()
+                      ? exercise.name.trim()
+                      : "Exercise";
+
+                  const exerciseId =
+                    typeof exercise.exercise_id === "string" &&
+                    exercise.exercise_id.trim()
+                      ? exercise.exercise_id.trim()
+                      : exerciseName.toLowerCase().replace(/\s+/g, "_");
+
+                  const executionMode: "reps" | "time" =
+                    exercise.execution_mode === "time" ? "time" : "reps";
+
+                  return {
+                    name: exerciseName,
+                    exercise_id: exerciseId,
+                    sets: Math.max(1, Number(exercise.sets ?? 1) || 1),
+                    reps:
+                      typeof exercise.reps === "string" &&
+                      exercise.reps.trim().length > 0
+                        ? exercise.reps.trim()
+                        : "10-12",
+                    execution_mode: executionMode,
+                    exercise_seconds:
+                      executionMode === "time"
+                        ? Math.max(
+                            1,
+                            Number(exercise.exercise_seconds ?? 30) || 30,
+                          )
+                        : null,
+                    primary_muscles: Array.isArray(exercise.primary_muscles)
+                      ? exercise.primary_muscles.filter(
+                          (muscle): muscle is string =>
+                            typeof muscle === "string" && muscle.trim().length > 0,
+                        )
+                      : [],
+                  };
+                })
+                .filter(
+                  (exercise): exercise is AIGeneratedExercise =>
+                    Boolean(exercise),
+                )
+            : [];
+
+          if (exercises.length === 0) {
+            return null;
+          }
+
+          return {
+            name:
+              typeof round.name === "string" && round.name.trim().length > 0
+                ? round.name.trim()
+                : "Round",
+            type:
+              round.type === "superset" ||
+              round.type === "circuit" ||
+              round.type === "straight"
+                ? round.type
+                : "straight",
+            exercises,
+          };
+        })
+        .filter((round): round is AIGeneratedRound => Boolean(round));
+
+      if (rounds.length === 0) {
+        continue;
+      }
+
+      return {
+        name:
+          typeof parsed.name === "string" && parsed.name.trim().length > 0
+            ? parsed.name.trim()
+            : "AI Workout",
+        description:
+          typeof parsed.description === "string" ? parsed.description.trim() : "",
+        rounds,
+      };
+    } catch {
+      continue;
+    }
+  }
+
+  return null;
+}
+
 export default function CreateWorkoutScreen() {
   const params = useLocalSearchParams<{ mode?: string; templateId?: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isDark, colors } = useThemeStore();
   const user = useAuthStore((s) => s.user);
+  const profile = useAuthStore((s) => s.profile);
   const { show: showToast } = useToastStore();
   useHideMainTabBar();
   const tabBarClearance = insets.bottom + 16;
@@ -208,6 +408,12 @@ export default function CreateWorkoutScreen() {
   const [isHydratingEdit, setIsHydratingEdit] = useState(false);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
+  const [wizardStep, setWizardStep] = useState<WizardStep>("idle");
+  const [wizardAnswers, setWizardAnswers] = useState<AIWizardAnswers>({
+    muscleGroups: [],
+    duration: "",
+    location: "",
+  });
   const [pickerTarget, setPickerTarget] = useState<BuilderTarget | null>(null);
   const [exerciseSearch, setExerciseSearch] = useState("");
   const [showSaveDraftConfirm, setShowSaveDraftConfirm] = useState(false);
@@ -251,6 +457,84 @@ export default function CreateWorkoutScreen() {
     isPublic: false,
     location: "",
   });
+
+  const wizardLocationOptions = useMemo(() => {
+    const options = new Set<string>();
+
+    for (const locationProfile of profile?.workout_settings?.location_profiles ??
+      []) {
+      if (locationProfile?.name) {
+        options.add(normalizeLocationName(locationProfile.name));
+      }
+    }
+
+    const legacyLocationProfile = (profile as { location_profile?: unknown } | null)
+      ?.location_profile;
+    if (
+      legacyLocationProfile &&
+      typeof legacyLocationProfile === "object" &&
+      !Array.isArray(legacyLocationProfile)
+    ) {
+      for (const key of Object.keys(legacyLocationProfile as object)) {
+        options.add(normalizeLocationName(key));
+      }
+    }
+
+    if (options.size === 0) {
+      return [...LOCATIONS];
+    }
+
+    return Array.from(options);
+  }, [profile]);
+
+  const equipmentForLocation = useMemo(() => {
+    const selectedLocation = wizardAnswers.location.trim().toLowerCase();
+    if (!selectedLocation) {
+      return [] as string[];
+    }
+
+    const equipment = new Set<string>();
+
+    for (const locationProfile of profile?.workout_settings?.location_profiles ??
+      []) {
+      if (locationProfile?.name?.trim().toLowerCase() !== selectedLocation) {
+        continue;
+      }
+
+      for (const equipmentId of locationProfile.equipment_ids ?? []) {
+        if (equipmentId) {
+          equipment.add(equipmentId.replace(/_/g, " "));
+        }
+      }
+    }
+
+    const legacyLocationProfile = (profile as { location_profile?: unknown } | null)
+      ?.location_profile;
+    if (
+      equipment.size === 0 &&
+      legacyLocationProfile &&
+      typeof legacyLocationProfile === "object" &&
+      !Array.isArray(legacyLocationProfile)
+    ) {
+      const source = legacyLocationProfile as Record<string, unknown>;
+      const matchedKey = Object.keys(source).find(
+        (key) => normalizeLocationName(key).toLowerCase() === selectedLocation,
+      );
+
+      if (matchedKey) {
+        const values = source[matchedKey];
+        if (Array.isArray(values)) {
+          for (const value of values) {
+            if (typeof value === "string" && value.trim().length > 0) {
+              equipment.add(value.replace(/_/g, " "));
+            }
+          }
+        }
+      }
+    }
+
+    return Array.from(equipment);
+  }, [profile, wizardAnswers.location]);
 
   const editingTemplateId =
     params.mode === "edit" && typeof params.templateId === "string"
@@ -711,6 +995,8 @@ export default function CreateWorkoutScreen() {
   const handleWorkflowSelect = (type: WorkflowType) => {
     setWorkflowType(type);
     setDraft((prev) => ({ ...prev, workflowType: type }));
+    setWizardStep("idle");
+    setWizardAnswers({ muscleGroups: [], duration: "", location: "" });
   };
 
   const handleContinueFromWorkflow = () => {
@@ -775,17 +1061,28 @@ export default function CreateWorkoutScreen() {
       return;
     }
 
-    if (!aiPrompt.trim()) {
-      showToast("Please describe your desired workout", "error");
+    if (wizardStep !== "summary") {
+      showToast("Complete the setup wizard before generating your workout", "error");
+      return;
+    }
+
+    if (wizardAnswers.muscleGroups.length === 0) {
+      showToast("Select at least one muscle group", "error");
+      return;
+    }
+
+    if (!wizardAnswers.duration) {
+      showToast("Select a workout duration", "error");
+      return;
+    }
+
+    if (!wizardAnswers.location) {
+      showToast("Select a workout location", "error");
       return;
     }
 
     setIsLoadingAI(true);
     try {
-      // Simulate AI generation
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      // Mock AI response - replace with real Gemini API call later
       if (!exerciseLibrary || exerciseLibrary.length === 0) {
         showToast(
           "Exercise catalog is still loading. Try again in a moment.",
@@ -794,33 +1091,144 @@ export default function CreateWorkoutScreen() {
         return;
       }
 
-      const generatedExercises: BuilderExerciseItem[] = exerciseLibrary
-        .slice(0, 5)
-        .map((exercise) => ({
-          id: `selected-${exercise.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          type: "exercise",
-          exerciseId: exercise.id,
-          name: exercise.name,
-          muscleGroups: exercise.primary_muscles,
-          equipment: exercise.equipment_label,
-          difficulty: exercise.difficulty,
-          hasWeight: exercise.has_weight,
-          imageUrl: GENERIC_EXERCISE_IMAGE,
-          executionMode: "reps",
-          reps: `${8 + Math.floor(Math.random() * 4)}-${12 + Math.floor(Math.random() * 4)}`,
-          exerciseSeconds: 30,
-          prepSeconds: 3,
-          weightKg: exercise.has_weight ? 20 : undefined,
-        }));
+      const systemPrompt = `You are an expert fitness programming coach.
+Return only valid JSON with no markdown and no extra prose.
+
+Round rules:
+- A round groups exercises that repeat together as a block.
+- Each unique exercise or superset group must be its own round.
+- Never mix unrelated exercises in the same round unless they are intentionally alternated.
+- If sequence is ExA -> ExA -> ExA -> ExB -> ExB -> ExB, output 2 rounds.
+- If sequence is ExA -> ExB -> ExA -> ExB, output 1 superset round.
+
+Use meaningful round names like "Squat Round", "Push Superset", or "Core Finisher".
+Keep exercise IDs realistic and stable strings.`.trim();
+
+      const age = profile?.age ?? "unknown";
+      const height = profile?.height_cm ?? "unknown";
+      const weight = profile?.weight_kg ?? "unknown";
+      const goal = profile?.goal ?? "unspecified";
+      const fitnessLevel = profile?.level ?? draft.difficulty;
+      const selectedLocation =
+        wizardAnswers.location || draft.location || "unspecified";
+      const equipmentText =
+        equipmentForLocation.length > 0
+          ? equipmentForLocation.join(", ")
+          : "bodyweight only";
+
+      const systemContext = `
+User profile: age ${age}, height ${height}cm, weight ${weight}kg
+Goal: ${goal}, Fitness level: ${fitnessLevel}
+Target muscles: ${wizardAnswers.muscleGroups.join(", ")}
+Duration: ${wizardAnswers.duration}
+Location: ${selectedLocation}
+Available equipment: ${equipmentText}
+Extra notes: ${aiPrompt.trim() || "none"}
+
+Generate a structured workout as JSON with this exact shape:
+{
+  "name": string,
+  "description": string,
+  "rounds": [
+    {
+      "name": string,
+      "type": "straight" | "superset" | "circuit",
+      "exercises": [
+        {
+          "name": string,
+          "exercise_id": string,
+          "sets": number,
+          "reps": string,
+          "execution_mode": "reps" | "time",
+          "exercise_seconds": number | null,
+          "primary_muscles": string[]
+        }
+      ]
+    }
+  ]
+}
+`.trim();
+
+      const response = await generateText("gemini", systemPrompt, systemContext);
+      const parsed = parseAIWorkoutResponse(response.text);
+      if (!parsed) {
+        showToast("AI returned an invalid format. Please try again.", "error");
+        return;
+      }
+
+      const generatedRounds: WorkoutRound[] = parsed.rounds.map(
+        (round, roundIndex) => {
+          const firstExerciseName = round.exercises[0]?.name ?? "Workout";
+          const fallbackRoundName =
+            round.type === "superset"
+              ? `${firstExerciseName} Superset`
+              : round.type === "circuit"
+                ? `${firstExerciseName} Circuit`
+                : `${firstExerciseName} Round`;
+
+          const items: BuilderExerciseItem[] = round.exercises.map((exercise) => {
+            const matchedExercise = exerciseLibrary.find(
+              (libraryExercise) =>
+                libraryExercise.id.toLowerCase() ===
+                  exercise.exercise_id.toLowerCase() ||
+                libraryExercise.name.toLowerCase() ===
+                  exercise.name.toLowerCase(),
+            );
+
+            const executionMode: ExerciseExecutionMode =
+              exercise.execution_mode === "time" ? "time" : "reps";
+            const exerciseSeconds =
+              executionMode === "time"
+                ? Math.max(1, Number(exercise.exercise_seconds ?? 30) || 30)
+                : 30;
+
+            return {
+              id: `selected-${exercise.exercise_id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+              type: "exercise",
+              exerciseId: exercise.exercise_id,
+              name: exercise.name,
+              muscleGroups:
+                exercise.primary_muscles.length > 0
+                  ? exercise.primary_muscles
+                  : (matchedExercise?.primary_muscles ?? []),
+              equipment: matchedExercise?.equipment_label ?? "none",
+              difficulty: matchedExercise?.difficulty ?? draft.difficulty,
+              hasWeight: matchedExercise?.has_weight ?? false,
+              imageUrl: matchedExercise
+                ? getExercisePrimaryImage(matchedExercise)
+                : GENERIC_EXERCISE_IMAGE,
+              executionMode,
+              reps:
+                executionMode === "reps"
+                  ? exercise.reps || "10-12"
+                  : `${exerciseSeconds}s`,
+              exerciseSeconds,
+              prepSeconds: executionMode === "time" ? 3 : 0,
+              weightKg:
+                matchedExercise?.has_weight && executionMode === "reps"
+                  ? 20
+                  : undefined,
+            };
+          });
+
+          return {
+            ...createRound(round.name?.trim() || fallbackRoundName),
+            name: round.name?.trim() || fallbackRoundName || `Round ${roundIndex + 1}`,
+            items,
+          };
+        },
+      );
+
+      if (generatedRounds.length === 0) {
+        showToast("AI did not return any valid rounds.", "error");
+        return;
+      }
 
       setDraft((prev) => ({
         ...prev,
-        rounds: [
-          {
-            ...createRound("Round 1"),
-            items: generatedExercises,
-          },
-        ],
+        description: parsed.description || prev.description,
+        rounds: generatedRounds,
+        location: wizardAnswers.location || prev.location,
         tags: ["AI-Generated", prev.difficulty],
       }));
 
@@ -830,10 +1238,44 @@ export default function CreateWorkoutScreen() {
       );
 
       setStep("exercises");
-    } catch {
+    } catch (error) {
+      console.error("[createWorkout] AI generation failed", error);
       showToast("Failed to generate workout. Try again.", "error");
     } finally {
       setIsLoadingAI(false);
+    }
+  };
+
+  const handleWizardContinue = () => {
+    if (wizardStep === "idle") {
+      setWizardStep("muscle_group");
+      return;
+    }
+
+    if (wizardStep === "muscle_group") {
+      if (wizardAnswers.muscleGroups.length === 0) {
+        showToast("Select at least one muscle group", "error");
+        return;
+      }
+      setWizardStep("duration");
+      return;
+    }
+
+    if (wizardStep === "duration") {
+      if (!wizardAnswers.duration) {
+        showToast("Select a workout duration", "error");
+        return;
+      }
+      setWizardStep("location");
+      return;
+    }
+
+    if (wizardStep === "location") {
+      if (!wizardAnswers.location) {
+        showToast("Select a workout location", "error");
+        return;
+      }
+      setWizardStep("summary");
     }
   };
 
@@ -1875,21 +2317,179 @@ export default function CreateWorkoutScreen() {
                 isDark ? "border-dark-border" : "border-light-border",
               )}
             >
-              <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                Describe Your Workout
+              <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                Workout Setup Wizard
               </Text>
-              <TextInput
-                multiline
-                numberOfLines={5}
-                placeholder="E.g., Full body strength with dumbbells in 30 minutes"
+
+              {wizardStep !== "idle" ? (
+                <View
+                  className={cn(
+                    "rounded-2xl p-4 mb-3",
+                    isDark ? "bg-dark-surface" : "bg-light-surface",
+                  )}
+                >
+                  <Text className="text-sm text-gray-800 dark:text-gray-200">
+                    {wizardStep === "muscle_group"
+                      ? "What muscle group are you targeting today?"
+                      : wizardStep === "duration"
+                        ? "How much time do you have?"
+                        : wizardStep === "location"
+                          ? "Where are you working out?"
+                          : "Review your setup before generating."}
+                  </Text>
+                </View>
+              ) : null}
+
+              {wizardAnswers.muscleGroups.length > 0 ? (
+                <View className="rounded-2xl p-4 mb-3 bg-gray-200/80 dark:bg-gray-700/60">
+                  <Text className="text-sm text-gray-700 dark:text-gray-300">
+                    Muscle Groups: {wizardAnswers.muscleGroups.join(", ")}
+                  </Text>
+                </View>
+              ) : null}
+
+              {wizardAnswers.duration ? (
+                <View className="rounded-2xl p-4 mb-3 bg-gray-200/80 dark:bg-gray-700/60">
+                  <Text className="text-sm text-gray-700 dark:text-gray-300">
+                    Duration: {wizardAnswers.duration}
+                  </Text>
+                </View>
+              ) : null}
+
+              {wizardAnswers.location ? (
+                <View className="rounded-2xl p-4 mb-3 bg-gray-200/80 dark:bg-gray-700/60">
+                  <Text className="text-sm text-gray-700 dark:text-gray-300">
+                    Location: {wizardAnswers.location}
+                  </Text>
+                </View>
+              ) : null}
+
+              {wizardStep === "muscle_group" ? (
+                <View
+                  className={cn(
+                    "rounded-2xl p-4 mb-3",
+                    isDark ? "bg-dark-surface" : "bg-light-surface",
+                  )}
+                >
+                  <View className="flex-row flex-wrap gap-2">
+                    {WIZARD_MUSCLE_GROUP_OPTIONS.map((option) => {
+                      const isSelected = wizardAnswers.muscleGroups.includes(option);
+                      return (
+                        <Badge
+                          key={option}
+                          variant={isSelected ? "primary" : "secondary"}
+                          onPress={() =>
+                            setWizardAnswers((prev) => ({
+                              ...prev,
+                              muscleGroups: isSelected
+                                ? prev.muscleGroups.filter((item) => item !== option)
+                                : [...prev.muscleGroups, option],
+                            }))
+                          }
+                        >
+                          {option}
+                        </Badge>
+                      );
+                    })}
+                  </View>
+                </View>
+              ) : null}
+
+              {wizardStep === "duration" ? (
+                <View
+                  className={cn(
+                    "rounded-2xl p-4 mb-3",
+                    isDark ? "bg-dark-surface" : "bg-light-surface",
+                  )}
+                >
+                  <View className="flex-row flex-wrap gap-2">
+                    {WIZARD_DURATION_OPTIONS.map((option) => {
+                      const isSelected = wizardAnswers.duration === option;
+                      return (
+                        <Badge
+                          key={option}
+                          variant={isSelected ? "primary" : "secondary"}
+                          onPress={() =>
+                            setWizardAnswers((prev) => ({
+                              ...prev,
+                              duration: option,
+                            }))
+                          }
+                        >
+                          {option}
+                        </Badge>
+                      );
+                    })}
+                  </View>
+                </View>
+              ) : null}
+
+              {wizardStep === "location" ? (
+                <View
+                  className={cn(
+                    "rounded-2xl p-4 mb-3",
+                    isDark ? "bg-dark-surface" : "bg-light-surface",
+                  )}
+                >
+                  <View className="flex-row flex-wrap gap-2">
+                    {wizardLocationOptions.map((location) => {
+                      const isSelected = wizardAnswers.location === location;
+                      return (
+                        <Badge
+                          key={location}
+                          variant={isSelected ? "primary" : "secondary"}
+                          onPress={() => {
+                            setWizardAnswers((prev) => ({
+                              ...prev,
+                              location,
+                            }));
+                            setDraft((prev) => ({ ...prev, location }));
+                          }}
+                        >
+                          {location}
+                        </Badge>
+                      );
+                    })}
+                  </View>
+                </View>
+              ) : null}
+
+              {wizardStep === "summary" ? (
+                <View
+                  className={cn(
+                    "rounded-2xl p-4 mb-3",
+                    isDark ? "bg-dark-surface" : "bg-light-surface",
+                  )}
+                >
+                  <Text className="text-sm text-gray-800 dark:text-gray-200 mb-1">
+                    Muscle Groups: {wizardAnswers.muscleGroups.join(", ")}
+                  </Text>
+                  <Text className="text-sm text-gray-800 dark:text-gray-200 mb-1">
+                    Duration: {wizardAnswers.duration}
+                  </Text>
+                  <Text className="text-sm text-gray-800 dark:text-gray-200 mb-4">
+                    Location: {wizardAnswers.location}
+                  </Text>
+                  <Button
+                    variant="primary"
+                    className="w-full"
+                    isLoading={isLoadingAI}
+                    onPress={handleGenerateAI}
+                  >
+                    Generate Workout ✨
+                  </Button>
+                </View>
+              ) : null}
+
+              <Input
+                label="Additional notes (optional)"
+                placeholder="Anything else the AI should consider"
                 value={aiPrompt}
                 onChangeText={setAiPrompt}
-                className={cn(
-                  "rounded-2xl border-2 px-5 py-4 text-base leading-6 min-h-[140px]",
-                  isDark
-                    ? "bg-dark-bg border-dark-border text-gray-100"
-                    : "bg-light-bg border-light-border text-gray-900",
-                )}
+                containerClassName="mb-0"
+                className="rounded-2xl px-5 py-4 text-base leading-6 min-h-[120px]"
+                multiline
+                numberOfLines={4}
                 textAlignVertical="top"
               />
             </View>
@@ -1929,19 +2529,25 @@ export default function CreateWorkoutScreen() {
             onBack={() => setStep("workflow")}
             onContinue={
               workflowType === "ai"
-                ? handleGenerateAI
+                ? handleWizardContinue
                 : handleContinueToExercises
             }
             continueLabel={
               workflowType === "ai"
                 ? isLoadingAI
                   ? "Generating..."
-                  : "Generate Workout"
+                  : wizardStep === "idle"
+                    ? "Start Wizard"
+                    : wizardStep === "summary"
+                      ? "Generate via card button"
+                      : "Next"
                 : "Continue"
             }
             disableBack={isLoadingAI}
             disableContinue={
-              workflowType === "ai" ? isLoadingAI || !draft.name.trim() : false
+              workflowType === "ai"
+                ? isLoadingAI || !draft.name.trim() || wizardStep === "summary"
+                : false
             }
           />
         </View>

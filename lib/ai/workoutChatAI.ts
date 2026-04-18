@@ -35,47 +35,65 @@ function providerOrder(preferred: AIProvider): AIProvider[] {
 }
 
 const EXAMPLE_TEMPLATE = `{
-  "name": "Full Body Strength - 45min",
+  "name": "Upper Body Strength - 45min",
   "difficulty": "intermediate",
   "is_ai_generated": true,
   "estimated_duration_minutes": 45,
   "location": "gym",
-  "tags": ["strength", "full_body", "ai_generated"],
+  "tags": ["strength", "upper_body", "ai_generated"],
   "exercises": [],
   "sections": [
     {
-      "id": "warmup", "type": "warmup", "name": "Warmup", "order": 0,
+      "id": "warmup",
+      "type": "warmup",
+      "name": "Warmup",
+      "order": 0,
       "blocks": [
-        { "id": "w1", "type": "exercise", "order": 0, "exercise_id": "arm-circles", "name": "Arm Circles", "execution_mode": "time", "exercise_seconds": 30, "prep_seconds": 5, "primary_muscles": ["shoulders"] },
-        { "id": "w2", "type": "exercise", "order": 1, "exercise_id": "kneeling-hip-flexor", "name": "Kneeling Hip Flexor", "execution_mode": "time", "exercise_seconds": 30, "prep_seconds": 5, "primary_muscles": ["hip_flexors"] }
+        { "id": "warmup_b0", "type": "exercise", "order": 0, "exercise_id": "arm-circles", "name": "Arm Circles", "execution_mode": "time", "exercise_seconds": 25, "prep_seconds": 5, "primary_muscles": ["shoulders"] },
+        { "id": "warmup_b1", "type": "exercise", "order": 1, "exercise_id": "cat-cow", "name": "Cat Cow", "execution_mode": "time", "exercise_seconds": 25, "prep_seconds": 5, "primary_muscles": ["core"] }
       ]
     },
     {
-      "id": "round_1", "type": "round", "name": "Round 1", "order": 1,
+      "id": "round_lat_pull_down",
+      "type": "round",
+      "name": "Lat Pull Down",
+      "order": 1,
       "blocks": [
-        { "id": "r1e1", "type": "exercise", "order": 0, "exercise_id": "barbell-squat", "name": "Barbell Squat", "execution_mode": "reps", "reps": "10-12", "weight_kg": 60, "primary_muscles": ["quadriceps", "glutes"] },
-        { "id": "r1rst1", "type": "rest", "order": 1, "rest_seconds": 45 },
-        { "id": "r1e2", "type": "exercise", "order": 2, "exercise_id": "decline-push-up", "name": "Decline Push Up", "execution_mode": "reps", "reps": "12-15", "primary_muscles": ["chest", "triceps"] },
-        { "id": "r1rst2", "type": "rest", "order": 3, "rest_seconds": 45 },
-        { "id": "r1e3", "type": "exercise", "order": 4, "exercise_id": "plank", "name": "Plank", "execution_mode": "time", "exercise_seconds": 45, "prep_seconds": 3, "primary_muscles": ["core"] },
-        { "id": "r1rrst", "type": "rest", "order": 5, "rest_seconds": 90 }
+        { "id": "round_lat_pull_down_b0", "type": "exercise", "order": 0, "exercise_id": "lat-pulldown", "name": "Lat Pulldown", "execution_mode": "reps", "reps": "10", "primary_muscles": ["lats", "biceps"] },
+        { "id": "round_lat_pull_down_b1", "type": "rest", "order": 1, "rest_seconds": 60 },
+        { "id": "round_lat_pull_down_b2", "type": "exercise", "order": 2, "exercise_id": "lat-pulldown", "name": "Lat Pulldown", "execution_mode": "reps", "reps": "10", "primary_muscles": ["lats", "biceps"] },
+        { "id": "round_lat_pull_down_b3", "type": "rest", "order": 3, "rest_seconds": 60 },
+        { "id": "round_lat_pull_down_b4", "type": "exercise", "order": 4, "exercise_id": "lat-pulldown", "name": "Lat Pulldown", "execution_mode": "reps", "reps": "10", "primary_muscles": ["lats", "biceps"] },
+        { "id": "round_lat_pull_down_b5", "type": "rest", "order": 5, "rest_seconds": 90 }
       ]
     },
     {
-      "id": "round_2", "type": "round", "name": "Round 2", "order": 2,
+      "id": "round_lateral_front_raise",
+      "type": "round",
+      "name": "Lateral Raise + Front Raise",
+      "order": 2,
       "blocks": [
-        { "id": "r2e1", "type": "exercise", "order": 0, "exercise_id": "barbell-squat", "name": "Barbell Squat", "execution_mode": "reps", "reps": "10-12", "weight_kg": 60, "primary_muscles": ["quadriceps", "glutes"] },
-        { "id": "r2rst1", "type": "rest", "order": 1, "rest_seconds": 45 },
-        { "id": "r2e2", "type": "exercise", "order": 2, "exercise_id": "decline-push-up", "name": "Decline Push Up", "execution_mode": "reps", "reps": "12-15", "primary_muscles": ["chest", "triceps"] },
-        { "id": "r2rst2", "type": "rest", "order": 3, "rest_seconds": 45 },
-        { "id": "r2e3", "type": "exercise", "order": 4, "exercise_id": "plank", "name": "Plank", "execution_mode": "time", "exercise_seconds": 45, "prep_seconds": 3, "primary_muscles": ["core"] }
+        { "id": "round_lateral_front_raise_b0", "type": "exercise", "order": 0, "exercise_id": "lateral-raise", "name": "Lateral Raise", "execution_mode": "reps", "reps": "12", "primary_muscles": ["shoulders"] },
+        { "id": "round_lateral_front_raise_b1", "type": "rest", "order": 1, "rest_seconds": 30 },
+        { "id": "round_lateral_front_raise_b2", "type": "exercise", "order": 2, "exercise_id": "front-raise", "name": "Front Raise", "execution_mode": "reps", "reps": "12", "primary_muscles": ["shoulders"] },
+        { "id": "round_lateral_front_raise_b3", "type": "rest", "order": 3, "rest_seconds": 30 },
+        { "id": "round_lateral_front_raise_b4", "type": "exercise", "order": 4, "exercise_id": "lateral-raise", "name": "Lateral Raise", "execution_mode": "reps", "reps": "12", "primary_muscles": ["shoulders"] },
+        { "id": "round_lateral_front_raise_b5", "type": "rest", "order": 5, "rest_seconds": 30 },
+        { "id": "round_lateral_front_raise_b6", "type": "exercise", "order": 6, "exercise_id": "front-raise", "name": "Front Raise", "execution_mode": "reps", "reps": "12", "primary_muscles": ["shoulders"] },
+        { "id": "round_lateral_front_raise_b7", "type": "rest", "order": 7, "rest_seconds": 30 },
+        { "id": "round_lateral_front_raise_b8", "type": "exercise", "order": 8, "exercise_id": "lateral-raise", "name": "Lateral Raise", "execution_mode": "reps", "reps": "12", "primary_muscles": ["shoulders"] },
+        { "id": "round_lateral_front_raise_b9", "type": "rest", "order": 9, "rest_seconds": 30 },
+        { "id": "round_lateral_front_raise_b10", "type": "exercise", "order": 10, "exercise_id": "front-raise", "name": "Front Raise", "execution_mode": "reps", "reps": "12", "primary_muscles": ["shoulders"] }
       ]
     },
     {
-      "id": "cooldown", "type": "cooldown", "name": "Cooldown", "order": 3,
+      "id": "cooldown",
+      "type": "cooldown",
+      "name": "Cooldown",
+      "order": 3,
       "blocks": [
-        { "id": "c1", "type": "exercise", "order": 0, "exercise_id": "quad-stretch", "name": "Quad Stretch", "execution_mode": "time", "exercise_seconds": 30, "prep_seconds": 5, "primary_muscles": ["quadriceps"] },
-        { "id": "c2", "type": "exercise", "order": 1, "exercise_id": "hamstring-stretch", "name": "Hamstring Stretch", "execution_mode": "time", "exercise_seconds": 45, "prep_seconds": 0, "primary_muscles": ["hamstrings"] }
+        { "id": "cooldown_b0", "type": "exercise", "order": 0, "exercise_id": "quad-stretch", "name": "Quad Stretch", "execution_mode": "time", "exercise_seconds": 40, "prep_seconds": 0, "primary_muscles": ["quadriceps"] },
+        { "id": "cooldown_b1", "type": "exercise", "order": 1, "exercise_id": "hamstring-stretch", "name": "Hamstring Stretch", "execution_mode": "time", "exercise_seconds": 40, "prep_seconds": 0, "primary_muscles": ["hamstrings"] }
       ]
     }
   ]
@@ -100,11 +118,18 @@ ${JSON.stringify(context)}
 EXERCISE CATALOG RULES:
 - You MUST ONLY use exercise_ids from the catalog below. NEVER invent exercise IDs.
 - Only select exercises compatible with the user's equipment list (user_equipment).
-- Warmup sections: use category "stretching" exercises, execution_mode = "time" (30-45s), add prep_seconds = 5.
+- Warmup sections: use category "stretching" exercises, execution_mode = "time" (20-30s), add prep_seconds = 5, and NEVER add rest blocks.
 - Round sections: use strength/bodyweight exercises matching target muscles and user equipment.
-- Cooldown sections: use stretching/static exercises, execution_mode = "time" (30-60s).
-- Insert a rest block (type: "rest") after each exercise block within a round (rest_seconds: 30-60).
-- Insert a rest block at the end of each round section (rest_seconds: 60-90) as the last block.
+- Cooldown sections: use static stretching exercises, execution_mode = "time" (30-60s), prep_seconds = 0, and NEVER add rest blocks.
+- Round structure: each round section can contain only 1 exercise OR 1 superset pair (max 2 exercises).
+- Never create a round with 3 or more exercises; split those into separate rounds.
+- Single-exercise round: repeat the same exercise block for each set, with rest blocks between sets, and NEVER end the section with a rest block.
+- Superset round: alternate exercise A -> rest -> exercise B -> rest and repeat, and NEVER end the section with a rest block.
+- Optional inter-round rest (90-120s) is allowed as the final block of a round only when explicitly desired.
+- Rest guidelines: single strength sets 60-90s, single hypertrophy sets 45-60s, superset transitions 20-30s.
+- Section names: single rounds use the exercise name, supersets use "X + Y".
+- Section order must be Warmup (0) -> Round 1 (1) -> Round 2 (2) -> ... -> Cooldown (last).
+- block.id format must be "{section_id}_b{order}" and block.order starts at 0 with no gaps.
 - Every exercise block MUST have execution_mode set.
 - Copy name and primary_muscles exactly from the catalog entry.
 - sections[] is ALWAYS required. exercises[] must be set to [].
@@ -130,7 +155,8 @@ function buildConversationHistory(messages: WorkoutChatMessage[]): string {
     "\n\nConversation so far:\n" +
     recent
       .map((m) => {
-        const role = m.type === "user_text" || m.type === "user_file" ? "User" : "Coach";
+        const role =
+          m.type === "user_text" || m.type === "user_file" ? "User" : "Coach";
         return `${role}: ${m.text ?? ""}`;
       })
       .join("\n")
@@ -188,9 +214,10 @@ function parseResponse(rawText: string): WorkoutChatAIResponse {
     extractXmlBlock(rawText, "workout_template") ??
     extractXmlBlock(rawText, "new_workout");
   if (templateRaw) {
-    const newTemplate = tryParseJson<
-      Omit<WorkoutTemplateRecord, "id" | "created_at" | "updated_at">
-    >(templateRaw);
+    const newTemplate =
+      tryParseJson<
+        Omit<WorkoutTemplateRecord, "id" | "created_at" | "updated_at">
+      >(templateRaw);
     return {
       text: stripXmlBlocks(rawText),
       action: "create_workout",
@@ -204,7 +231,13 @@ function parseResponse(rawText: string): WorkoutChatAIResponse {
 export async function analyzeWorkoutChatMessage(
   input: WorkoutChatAIInput,
 ): Promise<WorkoutChatAIResponse> {
-  const { preferredProvider, userMessage, sessionContext, previousMessages, userMemories = [] } = input;
+  const {
+    preferredProvider,
+    userMessage,
+    sessionContext,
+    previousMessages,
+    userMemories = [],
+  } = input;
   const order = providerOrder(preferredProvider);
 
   const catalogIndex = await getAICatalogIndex();
@@ -215,7 +248,11 @@ export async function analyzeWorkoutChatMessage(
   );
   const exerciseCatalogJson = JSON.stringify(subset);
 
-  const systemPrompt = buildSystemPrompt(sessionContext, userMemories.slice(0, 5), exerciseCatalogJson);
+  const systemPrompt = buildSystemPrompt(
+    sessionContext,
+    userMemories.slice(0, 5),
+    exerciseCatalogJson,
+  );
   const history = buildConversationHistory(previousMessages);
   const userPrompt = `${history}\n\nUser: ${userMessage}`;
 

@@ -17,10 +17,14 @@ import {
   buildAIExerciseSubset,
   type AIExerciseIndex,
 } from "../workout-ai-catalog";
+import { beforeAll, describe, expect, it } from "@jest/globals";
 import { validateAITemplate } from "../workout-template-validator";
 import { buildWorkoutSessionContext } from "../workout-session-context";
 import type { CachedLibraryExercise } from "../exercise-cache";
-import type { WorkoutTemplateRecord, WorkoutDailyOverrideRecord } from "../../firestore/workouts";
+import type {
+  WorkoutTemplateRecord,
+  WorkoutDailyOverrideRecord,
+} from "../../firestore/workouts";
 import type { UserProfile } from "../../../types";
 
 // ---------------------------------------------------------------------------
@@ -30,22 +34,23 @@ import type { UserProfile } from "../../../types";
 function makeExercise(
   overrides: Partial<CachedLibraryExercise> & { id: string },
 ): CachedLibraryExercise {
+  const { id, ...rest } = overrides;
   return {
-    id: overrides.id,
-    name: overrides.name ?? `Exercise ${overrides.id}`,
-    name_en: overrides.name_en ?? `Exercise ${overrides.id}`,
-    primary_muscles: overrides.primary_muscles ?? ["chest"],
-    secondary_muscles: overrides.secondary_muscles ?? [],
-    equipment: overrides.equipment ?? ["barbell"],
-    equipment_label: overrides.equipment_label ?? "barbell",
-    difficulty: overrides.difficulty ?? "beginner",
-    category: overrides.category ?? "strength",
-    type: overrides.type,
-    has_weight: overrides.has_weight ?? true,
-    short_description: overrides.short_description ?? "strength • Chest",
-    video_youtube_ids: overrides.video_youtube_ids ?? [],
-    aliases: overrides.aliases ?? [],
-    ...overrides,
+    ...rest,
+    id,
+    name: rest.name ?? `Exercise ${id}`,
+    name_en: rest.name_en ?? `Exercise ${id}`,
+    primary_muscles: rest.primary_muscles ?? ["chest"],
+    secondary_muscles: rest.secondary_muscles ?? [],
+    equipment: rest.equipment ?? ["barbell"],
+    equipment_label: rest.equipment_label ?? "barbell",
+    difficulty: rest.difficulty ?? "beginner",
+    category: rest.category ?? "strength",
+    type: rest.type,
+    has_weight: rest.has_weight ?? true,
+    short_description: rest.short_description ?? "strength • Chest",
+    video_youtube_ids: rest.video_youtube_ids ?? [],
+    aliases: rest.aliases ?? [],
   } as CachedLibraryExercise;
 }
 
@@ -176,7 +181,11 @@ describe("buildAIExerciseSubset", () => {
 
   describe("equipment filtering", () => {
     it("returns only matching equipment + bodyweight when equipment is specified", () => {
-      const result = buildAIExerciseSubset(INDEX, ["dumbbell"], ["chest", "back"]);
+      const result = buildAIExerciseSubset(
+        INDEX,
+        ["dumbbell"],
+        ["chest", "back"],
+      );
       const ids = result.map((e) => e.id);
       // dumbbell row matches; push-up is bodyweight (always allowed)
       expect(ids).toContain("ex_row");
@@ -281,7 +290,9 @@ describe("buildAIExerciseSubset", () => {
 
 describe("validateAITemplate", () => {
   /** Helper for a minimal valid template raw object */
-  function validRaw(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  function validRaw(
+    overrides: Record<string, unknown> = {},
+  ): Record<string, unknown> {
     return {
       name: "Push Day",
       difficulty: "intermediate",
@@ -346,7 +357,10 @@ describe("validateAITemplate", () => {
 
   describe("difficulty validation", () => {
     it("reports error for invalid difficulty value", () => {
-      const result = validateAITemplate(validRaw({ difficulty: "expert" }), INDEX);
+      const result = validateAITemplate(
+        validRaw({ difficulty: "expert" }),
+        INDEX,
+      );
       expect(result.valid).toBe(false);
       expect(result.errors.some((e) => e.includes("difficulty"))).toBe(true);
     });
@@ -441,9 +455,9 @@ describe("validateAITemplate", () => {
       });
       const result = validateAITemplate(raw, INDEX);
       expect(result.valid).toBe(false);
-      expect(
-        result.errors.some((e) => e.includes("nonexistent_id")),
-      ).toBe(true);
+      expect(result.errors.some((e) => e.includes("nonexistent_id"))).toBe(
+        true,
+      );
     });
 
     it("reports error when exercise_id is missing", () => {
@@ -467,9 +481,7 @@ describe("validateAITemplate", () => {
       });
       const result = validateAITemplate(raw, INDEX);
       expect(result.valid).toBe(false);
-      expect(
-        result.errors.some((e) => e.includes("exercise_id")),
-      ).toBe(true);
+      expect(result.errors.some((e) => e.includes("exercise_id"))).toBe(true);
     });
   });
 
@@ -495,9 +507,9 @@ describe("validateAITemplate", () => {
       });
       const result = validateAITemplate(raw, INDEX);
       expect(result.valid).toBe(false);
-      expect(
-        result.errors.some((e) => e.includes("execution_mode")),
-      ).toBe(true);
+      expect(result.errors.some((e) => e.includes("execution_mode"))).toBe(
+        true,
+      );
     });
   });
 
@@ -721,9 +733,7 @@ describe("buildWorkoutSessionContext", () => {
   }
 
   /** Minimal UserProfile with no workout_settings */
-  function makeProfile(
-    overrides: Partial<UserProfile> = {},
-  ): UserProfile {
+  function makeProfile(overrides: Partial<UserProfile> = {}): UserProfile {
     return {
       id: "user_1",
       email: "test@example.com",
@@ -799,7 +809,9 @@ describe("buildWorkoutSessionContext", () => {
 
       const ctx = buildWorkoutSessionContext(makeTemplate(), profile, null);
       // All three map to "barbell" — should appear only once
-      const barbellCount = ctx.user_equipment.filter((e) => e === "barbell").length;
+      const barbellCount = ctx.user_equipment.filter(
+        (e) => e === "barbell",
+      ).length;
       expect(barbellCount).toBe(1);
     });
 
@@ -882,7 +894,9 @@ describe("buildWorkoutSessionContext", () => {
       });
 
       const ctx = buildWorkoutSessionContext(makeTemplate(), profile, null);
-      const bwCount = ctx.user_equipment.filter((e) => e === "bodyweight").length;
+      const bwCount = ctx.user_equipment.filter(
+        (e) => e === "bodyweight",
+      ).length;
       expect(bwCount).toBe(1);
     });
 
@@ -968,7 +982,11 @@ describe("buildWorkoutSessionContext", () => {
 
   describe("sections-based template", () => {
     it("maps exercise blocks to WorkoutSessionContextBlocks", () => {
-      const ctx = buildWorkoutSessionContext(makeTemplate(), makeProfile(), null);
+      const ctx = buildWorkoutSessionContext(
+        makeTemplate(),
+        makeProfile(),
+        null,
+      );
 
       expect(ctx.sections).toHaveLength(1);
       expect(ctx.sections[0].type).toBe("round");
@@ -1100,8 +1118,20 @@ describe("buildWorkoutSessionContext", () => {
       const template = makeTemplate({
         sections: undefined,
         exercises: [
-          { id: "ex_bench", name: "Bench Press", sets: 3, reps: "10", muscleGroups: ["chest"] },
-          { id: "ex_squat", name: "Back Squat", sets: 4, reps: "8", muscleGroups: ["quads"] },
+          {
+            id: "ex_bench",
+            name: "Bench Press",
+            sets: 3,
+            reps: "10",
+            muscleGroups: ["chest"],
+          },
+          {
+            id: "ex_squat",
+            name: "Back Squat",
+            sets: 4,
+            reps: "8",
+            muscleGroups: ["quads"],
+          },
         ],
       });
 
@@ -1124,9 +1154,15 @@ describe("buildWorkoutSessionContext", () => {
         template_id: "tpl_1",
         source_type: "chat_create_workout",
         manually_set: true,
+        created_at: "2025-04-17T10:00:00Z",
+        updated_at: "2025-04-17T10:00:00Z",
       };
 
-      const ctx = buildWorkoutSessionContext(makeTemplate(), makeProfile(), override);
+      const ctx = buildWorkoutSessionContext(
+        makeTemplate(),
+        makeProfile(),
+        override,
+      );
       expect(ctx.today_override).toEqual({
         source_type: "chat_create_workout",
         manually_set: true,
@@ -1134,14 +1170,22 @@ describe("buildWorkoutSessionContext", () => {
     });
 
     it("sets today_override to null when todayOverride is null", () => {
-      const ctx = buildWorkoutSessionContext(makeTemplate(), makeProfile(), null);
+      const ctx = buildWorkoutSessionContext(
+        makeTemplate(),
+        makeProfile(),
+        null,
+      );
       expect(ctx.today_override).toBeNull();
     });
   });
 
   describe("context metadata", () => {
     it("includes template_id, template_name, difficulty, estimated_duration_minutes", () => {
-      const ctx = buildWorkoutSessionContext(makeTemplate(), makeProfile(), null);
+      const ctx = buildWorkoutSessionContext(
+        makeTemplate(),
+        makeProfile(),
+        null,
+      );
       expect(ctx.template_id).toBe("tpl_1");
       expect(ctx.template_name).toBe("Push Day");
       expect(ctx.difficulty).toBe("intermediate");
@@ -1149,7 +1193,11 @@ describe("buildWorkoutSessionContext", () => {
     });
 
     it("includes target_muscles from template", () => {
-      const ctx = buildWorkoutSessionContext(makeTemplate(), makeProfile(), null);
+      const ctx = buildWorkoutSessionContext(
+        makeTemplate(),
+        makeProfile(),
+        null,
+      );
       expect(ctx.target_muscles).toEqual(["chest"]);
     });
 
@@ -1166,7 +1214,11 @@ describe("buildWorkoutSessionContext", () => {
     });
 
     it("defaults user_fitness_goal to 'maintain' when goal is not set", () => {
-      const ctx = buildWorkoutSessionContext(makeTemplate(), makeProfile(), null);
+      const ctx = buildWorkoutSessionContext(
+        makeTemplate(),
+        makeProfile(),
+        null,
+      );
       expect(ctx.user_fitness_goal).toBe("maintain");
     });
 

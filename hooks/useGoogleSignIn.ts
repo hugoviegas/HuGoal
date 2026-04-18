@@ -12,7 +12,13 @@ import { auth } from "@/lib/firebase";
 import { getDocument, setDocument } from "@/lib/firestore";
 import type { UserProfile } from "@/types";
 
-WebBrowser.maybeCompleteAuthSession();
+console.log("[useGoogleSignIn] module loaded — calling maybeCompleteAuthSession");
+try {
+  WebBrowser.maybeCompleteAuthSession();
+  console.log("[useGoogleSignIn] maybeCompleteAuthSession OK");
+} catch (e: any) {
+  console.error("[useGoogleSignIn] maybeCompleteAuthSession THREW:", e?.message ?? e);
+}
 
 function buildDefaultProfile(
   email: string,
@@ -47,12 +53,16 @@ export function useGoogleSignIn() {
   const redirectUri =
     Platform.OS === "web" ? AuthSession.makeRedirectUri() : undefined;
 
+  console.log("[useGoogleSignIn] hook mount — platform:", Platform.OS, "redirectUri:", redirectUri);
+  console.log("[useGoogleSignIn] androidClientId:", process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ?? "MISSING");
+  console.log("[useGoogleSignIn] iosClientId:", process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? "MISSING");
+  console.log("[useGoogleSignIn] webClientId:", process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? "MISSING");
+
   useEffect(() => {
-    if (__DEV__) {
-      console.log("[useGoogleSignIn] redirectUri:", redirectUri);
-    }
+    console.log("[useGoogleSignIn] redirectUri (effect):", redirectUri);
   }, [redirectUri]);
 
+  console.log("[useGoogleSignIn] Calling useIdTokenAuthRequest...");
   const [request, , promptAsync] = Google.useIdTokenAuthRequest({
     scopes: ["openid", "profile", "email"],
     androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
@@ -60,6 +70,7 @@ export function useGoogleSignIn() {
     webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
     ...(redirectUri !== undefined && { redirectUri }),
   });
+  console.log("[useGoogleSignIn] useIdTokenAuthRequest returned — request ready:", !!request);
 
   const signInWithGoogle =
     useCallback(async (): Promise<GoogleSignInResult> => {

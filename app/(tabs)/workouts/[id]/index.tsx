@@ -14,19 +14,15 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ArrowLeft,
   Check,
-  ChevronDown,
-  ChevronRight,
   Clock3,
   Copy,
   Dumbbell,
   Edit3,
-  Flame,
   Globe,
   Lock,
   MapPin,
   MoreHorizontal,
   Play,
-  Timer,
   Trash2,
   X,
 } from "lucide-react-native";
@@ -44,6 +40,7 @@ import {
   getWorkoutTemplate,
   updateWorkoutTemplate,
   type PausedWorkoutSessionRecord,
+  type WorkoutTemplateBlockRecord,
   type WorkoutTemplateExerciseRecord,
   type WorkoutTemplateRecord,
 } from "@/lib/firestore/workouts";
@@ -100,49 +97,336 @@ function formatBlockPrescription(block: {
 
 // ─── Section helpers ─────────────────────────────────────────────────────────
 
-interface NormalizedExercise {
-  id: string;
+interface SupersetExercise {
+  exercise_id: string;
+  name: string;
+  primary_muscles: string[];
+}
+
+interface ExerciseGroup {
+  type: "exercise_group";
+  exercise_id: string;
   name: string;
   sets: number;
-  prescription: string;
-  muscleGroups: string[];
+  reps?: string;
+  execution_mode: "reps" | "time";
+  exercise_seconds?: number;
+  weight_kg?: number;
+  rest_seconds?: number;
+  primary_muscles: string[];
+  superset_pair?: SupersetExercise[];
+  rounds?: number;
 }
+
+interface RestGroup {
+  type: "rest_group";
+  rest_seconds: number;
+  label: string;
+}
+
+type SectionDisplayRow = ExerciseGroup | RestGroup;
 
 interface NormalizedSection {
   key: string;
   label: string;
   type: "warmup" | "round" | "cooldown";
-  exercises: NormalizedExercise[];
+  rows: SectionDisplayRow[];
+  exerciseCount: number;
+}
+
+function mapBlockToExerciseGroup(
+  block: WorkoutTemplateBlockRecord,
+): ExerciseGroup | null {
+  if (block.type !== "exercise" || !block.exercise_id) {
+    return null;
+  }
+
+  const executionMode: "reps" | "time" =
+    block.execution_mode ??
+    ((block.exercise_seconds ?? block.duration_seconds ?? 0) > 0
+      ? "time"
+      : "reps");
+
+  return {
+    type: "exercise_group",
+    exercise_id: block.exercise_id,
+    name: block.name ?? block.exercise_id,
+    sets: 1,
+    reps: block.reps,
+    execution_mode: executionMode,
+    exercise_seconds:
+      executionMode === "time"
+        ? Math.max(1, block.exercise_seconds ?? block.duration_seconds ?? 30)
+        : undefined,
+    weight_kg: block.weight_kg,
+    primary_muscles: block.primary_muscles ?? [],
+  };
+}
+
+function buildRestGroup(restBlock: WorkoutTemplateBlockRecord): RestGroup {
+  const restSeconds = Math.max(0, restBlock.rest_seconds ?? 0);
+  const notesText = (restBlock.notes ?? "").toLowerCase();
+  const isBetweenRounds =
+    restSeconds >= 90 || notesText.includes("between round");
+
+  return {
+    type: "rest_group",
+    rest_seconds: restSeconds,
+    label: isBetweenRounds ? "Rest between rounds" : "Rest",
+  };
+}
+
+function buildSupersetGroup(
+  blocks: WorkoutTemplateBlockRecord[],
+  startIndex: number,
+): { group: ExerciseGroup; nextIndex: number } | null {
+  const first = blocks[startIndex];
+  if (first?.type !== "exercise" || !first.exercise_id) {
+    return null;
+  }
+
+  const firstRest = blocks[startIndex + 1];
+  const second = blocks[startIndex + 2];
+  const secondRest = blocks[startIndex + 3];
+
+  if (
+    firstRest?.type !== "rest" ||
+    second?.type !== "exercise" ||
+    !second.exercise_id ||
+    second.exercise_id === first.exercise_id ||
+    secondRest?.type !== "rest"
+  ) {
+    return null;
+  }
+
+  const firstMode: "reps" | "time" =
+    first.execution_mode ??
+    ((first.exercise_seconds ?? first.duration_seconds ?? 0) > 0
+      ? "time"
+      : "reps");
+
+  let cursor = startIndex;
+  let rounds = 0;
+  let restSeconds = Math.max(
+    0,
+    firstRest.rest_seconds ?? secondRest.rest_seconds ?? 0,
+  );
+
+  while (cursor < blocks.length) {
+    const a = blocks[cursor];
+    const restAB = blocks[cursor + 1];
+    const b = blocks[cursor + 2];
+
+    if (
+      a?.type !== "exercise" ||
+      a.exercise_id !== first.exercise_id ||
+      restAB?.type !== "rest" ||
+      b?.type !== "exercise" ||
+      b.exercise_id !== second.exercise_id
+    ) {
+      break;
+    }
+
+    rounds += 1;
+    restSeconds = Math.max(0, restSeconds || (restAB.rest_seconds ?? 0));
+    cursor += 3;
+
+    const restBA = blocks[cursor];
+    const nextA = blocks[cursor + 1];
+    if (
+      restBA?.type === "rest" &&
+      nextA?.type === "exercise" &&
+      nextA.exercise_id === first.exercise_id
+    ) {
+      restSeconds = Math.max(0, restSeconds || (restBA.rest_seconds ?? 0));
+      cursor += 1;
+      continue;
+    }
+
+    break;
+  }
+
+  if (rounds === 0) {
+    return null;
+  }
+
+  return {
+    group: {
+      type: "exercise_group",
+      exercise_id: first.exercise_id,
+      name: `${first.name ?? first.exercise_id} + ${second.name ?? second.exercise_id}`,
+      sets: rounds,
+      rounds,
+      reps: first.reps,
+      execution_mode: firstMode,
+      exercise_seconds:
+        firstMode === "time"
+          ? Math.max(1, first.exercise_seconds ?? first.duration_seconds ?? 30)
+          : undefined,
+      rest_seconds: restSeconds > 0 ? restSeconds : undefined,
+      primary_muscles: Array.from(
+        new Set([
+          ...(first.primary_muscles ?? []),
+          ...(second.primary_muscles ?? []),
+        ]),
+      ),
+      superset_pair: [
+        {
+          exercise_id: first.exercise_id,
+          name: first.name ?? first.exercise_id,
+          primary_muscles: first.primary_muscles ?? [],
+        },
+        {
+          exercise_id: second.exercise_id,
+          name: second.name ?? second.exercise_id,
+          primary_muscles: second.primary_muscles ?? [],
+        },
+      ],
+    },
+    nextIndex: cursor,
+  };
+}
+
+export function groupSectionBlocks(
+  blocks: WorkoutTemplateBlockRecord[],
+): SectionDisplayRow[] {
+  const sorted = [...blocks].sort((a, b) => a.order - b.order);
+  const rows: SectionDisplayRow[] = [];
+
+  let index = 0;
+  while (index < sorted.length) {
+    const current = sorted[index];
+
+    if (current.type === "rest") {
+      rows.push(buildRestGroup(current));
+      index += 1;
+      continue;
+    }
+
+    if (!current.exercise_id) {
+      index += 1;
+      continue;
+    }
+
+    const superset = buildSupersetGroup(sorted, index);
+    if (superset) {
+      rows.push(superset.group);
+      index = superset.nextIndex;
+      continue;
+    }
+
+    const currentGroup = mapBlockToExerciseGroup(current);
+    if (!currentGroup) {
+      index += 1;
+      continue;
+    }
+
+    let sets = 1;
+    let restSeconds: number | undefined;
+    let cursor = index + 1;
+
+    while (cursor < sorted.length) {
+      const maybeRest = sorted[cursor];
+      const maybeNextExercise = sorted[cursor + 1];
+
+      if (
+        maybeRest?.type === "rest" &&
+        maybeNextExercise?.type === "exercise" &&
+        maybeNextExercise.exercise_id === current.exercise_id
+      ) {
+        if (restSeconds === undefined && maybeRest.rest_seconds !== undefined) {
+          restSeconds = Math.max(0, maybeRest.rest_seconds);
+        }
+        sets += 1;
+        cursor += 2;
+        continue;
+      }
+
+      if (
+        maybeRest?.type === "exercise" &&
+        maybeRest.exercise_id === current.exercise_id
+      ) {
+        sets += 1;
+        cursor += 1;
+        continue;
+      }
+
+      break;
+    }
+
+    rows.push({
+      ...currentGroup,
+      sets,
+      rest_seconds: sets > 1 ? restSeconds : undefined,
+    });
+    index = cursor;
+  }
+
+  return rows;
 }
 
 function normalizeSections(record: WorkoutTemplateRecord): NormalizedSection[] {
-  // If the workout has structured sections, use them
   if (record.sections && record.sections.length > 0) {
-    return record.sections.map((section) => ({
-      key: section.id,
-      label: section.name,
-      type: section.type,
-      exercises: section.blocks
-        .filter((b) => b.type === "exercise" && b.exercise_id)
-        .sort((a, b) => a.order - b.order)
-        .map((b) => ({
-          id: b.exercise_id!,
-          name: b.name ?? b.exercise_id!,
-          sets: 1,
-          prescription: formatBlockPrescription(b),
-          muscleGroups: b.primary_muscles ?? [],
-        })),
-    }));
+    let roundNumber = 0;
+    return [...record.sections]
+      .sort((a, b) => a.order - b.order)
+      .map((section) => {
+        if (section.type === "round") {
+          roundNumber += 1;
+        }
+
+        const sortedBlocks = [...section.blocks].sort(
+          (a, b) => a.order - b.order,
+        );
+        const rows: SectionDisplayRow[] =
+          section.type === "round"
+            ? groupSectionBlocks(sortedBlocks)
+            : sortedBlocks
+                .map((block) => mapBlockToExerciseGroup(block))
+                .filter((row): row is ExerciseGroup => Boolean(row));
+
+        return {
+          key: section.id,
+          label:
+            section.type === "round"
+              ? `Round ${roundNumber}`
+              : section.type === "warmup"
+                ? "Warmup"
+                : "Cooldown",
+          type: section.type,
+          rows,
+          exerciseCount: sortedBlocks.filter(
+            (block) => block.type === "exercise" && block.exercise_id,
+          ).length,
+        };
+      });
   }
 
-  // Fallback: artificially split flat exercises list
   const exs = record.exercises;
   const total = exs.length;
   if (total === 0) {
     return [
-      { key: "warmup", label: "Warmup", type: "warmup", exercises: [] },
-      { key: "workout", label: "Workout", type: "round", exercises: [] },
-      { key: "cooldown", label: "Cooldown", type: "cooldown", exercises: [] },
+      {
+        key: "warmup",
+        label: "Warmup",
+        type: "warmup",
+        rows: [],
+        exerciseCount: 0,
+      },
+      {
+        key: "workout",
+        label: "Round 1",
+        type: "round",
+        rows: [],
+        exerciseCount: 0,
+      },
+      {
+        key: "cooldown",
+        label: "Cooldown",
+        type: "cooldown",
+        rows: [],
+        exerciseCount: 0,
+      },
     ];
   }
 
@@ -155,32 +439,40 @@ function normalizeSections(record: WorkoutTemplateRecord): NormalizedSection[] {
     cooldown.length > 0 ? total - cooldown.length : total,
   );
 
-  const toEntry = (e: WorkoutTemplateExerciseRecord) => ({
-    id: e.id,
-    name: e.name,
-    sets: e.sets,
-    prescription: e.reps,
-    muscleGroups: e.muscleGroups,
-  });
+  const toRows = (
+    items: WorkoutTemplateExerciseRecord[],
+  ): SectionDisplayRow[] =>
+    items.map((exercise) => ({
+      type: "exercise_group",
+      exercise_id: exercise.id,
+      name: exercise.name,
+      sets: Math.max(1, exercise.sets || 1),
+      reps: exercise.reps,
+      execution_mode: "reps",
+      primary_muscles: exercise.muscleGroups ?? [],
+    }));
 
   return [
     {
       key: "warmup",
       label: "Warmup",
       type: "warmup",
-      exercises: warmup.map(toEntry),
+      rows: toRows(warmup),
+      exerciseCount: warmup.length,
     },
     {
       key: "workout",
-      label: "Workout",
+      label: "Round 1",
       type: "round",
-      exercises: main.map(toEntry),
+      rows: toRows(main),
+      exerciseCount: main.length,
     },
     {
       key: "cooldown",
       label: "Cooldown",
       type: "cooldown",
-      exercises: cooldown.map(toEntry),
+      rows: toRows(cooldown),
+      exerciseCount: cooldown.length,
     },
   ];
 }
@@ -190,8 +482,8 @@ const SECTION_COLORS: Record<
   { bg: string; border: string; label: string }
 > = {
   warmup: { bg: "#fef9c3", border: "#fde047", label: "#a16207" },
-  round: { bg: "#dbeafe", border: "#93c5fd", label: "#1d4ed8" },
-  cooldown: { bg: "#dcfce7", border: "#86efac", label: "#15803d" },
+  round: { bg: "#ccfbf1", border: "#5eead4", label: "#0f766e" },
+  cooldown: { bg: "#dbeafe", border: "#93c5fd", label: "#1d4ed8" },
 };
 
 const SECTION_COLORS_DARK: Record<
@@ -199,8 +491,8 @@ const SECTION_COLORS_DARK: Record<
   { bg: string; border: string; label: string }
 > = {
   warmup: { bg: "#422006", border: "#78350f", label: "#fde68a" },
-  round: { bg: "#1e3a5f", border: "#1e40af", label: "#93c5fd" },
-  cooldown: { bg: "#14532d", border: "#166534", label: "#86efac" },
+  round: { bg: "#042f2e", border: "#115e59", label: "#5eead4" },
+  cooldown: { bg: "#1e3a8a", border: "#1d4ed8", label: "#93c5fd" },
 };
 
 // ─── Main Screen ─────────────────────────────────────────────────────────────
@@ -221,13 +513,6 @@ export default function WorkoutDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [pausedSession, setPausedSession] =
     useState<PausedWorkoutSessionRecord | null>(null);
-
-  // Section collapse state
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    warmup: true,
-    round: true,
-    cooldown: true,
-  });
 
   // Inspect modal
   const [inspectId, setInspectId] = useState<string | null>(null);
@@ -362,7 +647,7 @@ export default function WorkoutDetailScreen() {
 
   // Total exercise count across all sections
   const totalExerciseCount = useMemo(
-    () => sections.reduce((acc, s) => acc + s.exercises.length, 0),
+    () => sections.reduce((acc, s) => acc + s.exerciseCount, 0),
     [sections],
   );
 
@@ -734,140 +1019,143 @@ export default function WorkoutDetailScreen() {
                 ? (SECTION_COLORS_DARK[section.type] ??
                   SECTION_COLORS_DARK.round)
                 : (SECTION_COLORS[section.type] ?? SECTION_COLORS.round);
-              const isOpen = openSections[section.type] !== false;
+              const sectionLabel =
+                section.type === "warmup"
+                  ? "WARMUP"
+                  : section.type === "cooldown"
+                    ? "COOLDOWN"
+                    : section.label.toUpperCase();
 
               return (
-                <View
-                  key={section.key}
-                  style={{
-                    borderRadius: 16,
-                    borderWidth: 1,
-                    borderColor: sectionTheme.border,
-                    overflow: "hidden",
-                  }}
-                >
-                  {/* Section header */}
-                  <Pressable
-                    onPress={() =>
-                      setOpenSections((prev) => ({
-                        ...prev,
-                        [section.type]: !isOpen,
-                      }))
-                    }
-                    style={{ backgroundColor: sectionTheme.bg }}
-                    className="flex-row items-center justify-between px-4 py-3"
+                <View key={section.key} className="mb-1">
+                  <View
+                    className="self-start rounded-full px-3 py-1 border mb-2"
+                    style={{
+                      backgroundColor: sectionTheme.bg,
+                      borderColor: sectionTheme.border,
+                    }}
                   >
-                    <View className="flex-row items-center gap-2">
-                      {section.type === "warmup" && (
-                        <Flame size={16} color={sectionTheme.label} />
-                      )}
-                      {section.type === "round" && (
-                        <Dumbbell size={16} color={sectionTheme.label} />
-                      )}
-                      {section.type === "cooldown" && (
-                        <Timer size={16} color={sectionTheme.label} />
-                      )}
-                      <Text
-                        className="text-sm font-bold uppercase tracking-wider"
-                        style={{ color: sectionTheme.label }}
-                      >
-                        {section.label}
-                      </Text>
-                      <Text
-                        className="text-xs font-medium"
-                        style={{ color: sectionTheme.label, opacity: 0.7 }}
-                      >
-                        {section.exercises.length > 0
-                          ? `${section.exercises.length} exercise${section.exercises.length > 1 ? "s" : ""}`
-                          : "Empty"}
-                      </Text>
-                    </View>
-                    {isOpen ? (
-                      <ChevronDown size={18} color={sectionTheme.label} />
-                    ) : (
-                      <ChevronRight size={18} color={sectionTheme.label} />
-                    )}
-                  </Pressable>
-
-                  {/* Exercise rows */}
-                  {isOpen && (
-                    <View
-                      className={cn(isDark ? "bg-dark-card" : "bg-light-card")}
+                    <Text
+                      className="text-xs font-bold uppercase tracking-wider"
+                      style={{ color: sectionTheme.label }}
                     >
-                      {section.exercises.length === 0 ? (
-                        <View className="px-4 py-3">
-                          <Text className="text-sm text-gray-400 dark:text-gray-500 italic">
-                            No exercises in this section
-                          </Text>
-                        </View>
-                      ) : (
-                        section.exercises.map((exercise, index) => {
-                          const official =
-                            catalogLookup[exercise.id] ??
-                            catalogLookup[normalizeExerciseKey(exercise.id)] ??
-                            catalogLookup[normalizeExerciseKey(exercise.name)];
-                          const thumb =
-                            official?.remote_image_urls?.[0] ?? null;
-                          const isLast = index === section.exercises.length - 1;
+                      {sectionLabel}
+                    </Text>
+                  </View>
 
-                          return (
-                            <Pressable
-                              key={`${exercise.id}-${index}`}
-                              onPress={() => openInspect(exercise.id)}
-                              className={cn(
-                                "flex-row items-center gap-3 px-3 py-3",
-                                !isLast &&
-                                  (isDark
-                                    ? "border-b border-dark-border"
-                                    : "border-b border-light-border"),
-                              )}
-                            >
-                              {/* Thumbnail */}
-                              <View
-                                className="h-12 w-12 rounded-xl overflow-hidden"
-                                style={{
-                                  backgroundColor: isDark
-                                    ? "#2a2d3a"
-                                    : "#e2e8f0",
-                                }}
-                              >
-                                {thumb ? (
-                                  <Image
-                                    source={{ uri: thumb }}
-                                    className="h-full w-full"
-                                    resizeMode="cover"
-                                  />
-                                ) : (
-                                  <View className="h-full w-full items-center justify-center">
-                                    <Dumbbell size={16} color={colors.muted} />
-                                  </View>
-                                )}
-                              </View>
-
-                              {/* Info */}
-                              <View className="flex-1">
-                                <Text
-                                  className="text-sm font-semibold text-gray-900 dark:text-gray-100"
-                                  numberOfLines={1}
-                                >
-                                  {exercise.name}
-                                </Text>
-                                <Text className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                  {exercise.sets > 1
-                                    ? `${exercise.sets} sets × ${exercise.prescription || "-"}`
-                                    : exercise.prescription
-                                      ? exercise.prescription
-                                      : "—"}
-                                </Text>
-                              </View>
-
-                              {/* Chevron hint */}
-                              <ChevronRight size={16} color={colors.muted} />
-                            </Pressable>
-                          );
-                        })
-                      )}
+                  {section.rows.length === 0 ? (
+                    <View className="rounded-2xl px-4 py-3 bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border">
+                      <Text className="text-sm text-gray-400 dark:text-gray-500 italic">
+                        No exercises in this section
+                      </Text>
                     </View>
+                  ) : (
+                    section.rows.map((row, rowIndex) => {
+                      if (row.type === "rest_group") {
+                        return (
+                          <View
+                            key={`${section.key}-rest-${rowIndex}`}
+                            className="flex-row items-center gap-2 py-2"
+                          >
+                            <View className="flex-1 h-px bg-light-border dark:bg-dark-border" />
+                            <Text className="text-[10px] font-semibold uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400">
+                              {`${row.label} ${row.rest_seconds}s`}
+                            </Text>
+                            <View className="flex-1 h-px bg-light-border dark:bg-dark-border" />
+                          </View>
+                        );
+                      }
+
+                      const official =
+                        catalogLookup[row.exercise_id] ??
+                        catalogLookup[normalizeExerciseKey(row.exercise_id)] ??
+                        catalogLookup[normalizeExerciseKey(row.name)];
+                      const thumb = official?.remote_image_urls?.[0] ?? null;
+                      const isSuperset = (row.superset_pair?.length ?? 0) === 2;
+                      const prescriptionText =
+                        row.execution_mode === "time"
+                          ? `${row.exercise_seconds ?? 30}s`
+                          : (row.reps ?? "-");
+
+                      return (
+                        <Pressable
+                          key={`${section.key}-${row.exercise_id}-${rowIndex}`}
+                          onPress={() => openInspect(row.exercise_id)}
+                          className="rounded-2xl border px-3 py-3 mb-2 bg-light-card dark:bg-dark-card border-light-border dark:border-dark-border"
+                        >
+                          <View className="flex-row items-start gap-3">
+                            <View
+                              className="h-12 w-12 rounded-xl overflow-hidden items-center justify-center"
+                              style={{
+                                backgroundColor: isDark ? "#2a2d3a" : "#e2e8f0",
+                              }}
+                            >
+                              {thumb ? (
+                                <Image
+                                  source={{ uri: thumb }}
+                                  className="h-full w-full"
+                                  resizeMode="cover"
+                                />
+                              ) : (
+                                <Dumbbell size={16} color={colors.muted} />
+                              )}
+                            </View>
+
+                            <View className="flex-1">
+                              {isSuperset ? (
+                                <>
+                                  <View className="self-start rounded-full px-2 py-0.5 mb-1 bg-cyan-100 dark:bg-cyan-900/35">
+                                    <Text className="text-[10px] font-semibold uppercase tracking-wide text-cyan-700 dark:text-cyan-300">
+                                      Superset
+                                    </Text>
+                                  </View>
+                                  <Text className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                                    {row.superset_pair?.[0]?.name ?? row.name}
+                                  </Text>
+                                  <Text className="text-sm text-gray-500 dark:text-gray-400 py-0.5">
+                                    ⇄
+                                  </Text>
+                                  <Text className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                                    {row.superset_pair?.[1]?.name ?? row.name}
+                                  </Text>
+                                </>
+                              ) : (
+                                <Text className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                                  {row.name}
+                                </Text>
+                              )}
+
+                              <Text className="text-xs text-gray-600 dark:text-gray-300 mt-1">
+                                {isSuperset
+                                  ? `${row.rounds ?? row.sets} rounds × ${prescriptionText}${row.execution_mode === "reps" ? " reps each" : " each"}`
+                                  : `${row.sets} sets × ${prescriptionText}${row.weight_kg ? ` • ${row.weight_kg} kg` : ""}`}
+                              </Text>
+
+                              {row.rest_seconds ? (
+                                <Text className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                                  {`Rest ${row.rest_seconds}s between sets`}
+                                </Text>
+                              ) : null}
+
+                              <View className="flex-row flex-wrap gap-1 mt-2">
+                                {(row.primary_muscles ?? [])
+                                  .slice(0, 2)
+                                  .map((muscle) => (
+                                    <View
+                                      key={`${row.exercise_id}-${muscle}`}
+                                      className="px-2 py-1 rounded-full bg-gray-200 dark:bg-gray-700"
+                                    >
+                                      <Text className="text-[10px] font-semibold text-gray-700 dark:text-gray-300">
+                                        {muscle.replace(/_/g, " ")}
+                                      </Text>
+                                    </View>
+                                  ))}
+                              </View>
+                            </View>
+                          </View>
+                        </Pressable>
+                      );
+                    })
                   )}
                 </View>
               );

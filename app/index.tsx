@@ -26,6 +26,7 @@ export default function Index() {
   }, []);
 
   if (isInitializing || isLoading) {
+    console.log("[index] Waiting — isInitializing:", isInitializing, "isLoading:", isLoading);
     return (
       <View
         style={{
@@ -41,8 +42,10 @@ export default function Index() {
   }
 
   if (!isAuthenticated) {
-    return <Redirect href="/(auth)/login" />;
+    console.log("[index] Not authenticated — redirecting to /(auth)/auth");
+    return <Redirect href="/(auth)/auth" />;
   }
 
+  console.log("[index] Authenticated — redirecting to /(tabs)/home");
   return <Redirect href="/(tabs)/home" />;
 }

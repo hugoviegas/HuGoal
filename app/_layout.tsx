@@ -23,14 +23,35 @@ export default function RootLayout() {
   const lastAppliedMode = useRef<string | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
 
+  // Register global JS error handler after mount (ErrorUtils is a RN global, not an import)
+  useEffect(() => {
+    try {
+      const EU = (global as any).ErrorUtils;
+      if (EU) {
+        const prev = EU.getGlobalHandler();
+        EU.setGlobalHandler((error: Error, isFatal?: boolean) => {
+          console.error("[GlobalErrorHandler] isFatal:", isFatal, "message:", error?.message ?? String(error));
+          console.error("[GlobalErrorHandler] stack:", error?.stack);
+          prev?.(error, isFatal);
+        });
+        console.log("[RootLayout] Global error handler registered.");
+      }
+    } catch (e) {
+      console.warn("[RootLayout] Could not register global error handler:", e);
+    }
+  }, []);
+
   useEffect(() => {
     let unsubscribe: (() => void) | void;
     let isMounted = true;
 
     const start = async () => {
       try {
+        console.log("[RootLayout] Starting Firebase import...");
         const { isFirebaseReady, firebaseInitError } =
           await import("@/lib/firebase");
+
+        console.log("[RootLayout] Firebase ready:", isFirebaseReady, "error:", firebaseInitError ?? "none");
 
         if (!isFirebaseReady) {
           throw new Error(
@@ -39,8 +60,10 @@ export default function RootLayout() {
           );
         }
 
+        console.log("[RootLayout] Calling auth.initialize()...");
         unsubscribe = initialize();
         bootstrapApp(); // background: reads SecureStore API keys
+        console.log("[RootLayout] Init complete.");
       } catch (error) {
         if (!isMounted) return;
         const errorMessage =

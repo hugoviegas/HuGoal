@@ -42,6 +42,8 @@ export default function AuthLayout() {
     };
   }, [isAuthenticated, profile, profileError, isLoading, isInitializing]);
 
+  console.log("[AuthLayout] render —", { isInitializing, isLoading, isAuthenticated, hasProfile: !!profile, segments });
+
   if (isInitializing || isLoading) {
     return (
       <View
@@ -59,6 +61,7 @@ export default function AuthLayout() {
 
   if (isAuthenticated && user && !profile && !profileError) {
     if (profileTimedOut) {
+      console.log("[AuthLayout] Profile timed out — redirecting to auth");
       return <Redirect href="/(auth)/auth" />;
     }
     return (
@@ -76,14 +79,15 @@ export default function AuthLayout() {
   }
 
   if (!isAuthenticated && (isOnboardingRoute || isVerifyEmailRoute)) {
+    console.log("[AuthLayout] Unauthenticated on protected route — redirecting to auth");
     return <Redirect href="/(auth)/auth" />;
   }
 
   if (isAuthenticated && user && !user.emailVerified && !isVerifyEmailRoute) {
+    console.log("[AuthLayout] Email not verified — redirecting to verify-email");
     return <Redirect href="/(auth)/verify-email" />;
   }
 
-  // Verified users should not stay on the verify email screen.
   if (isAuthenticated && user?.emailVerified && isVerifyEmailRoute) {
     if (profile?.onboarding_complete) {
       return <Redirect href="/(tabs)/home" />;
@@ -91,12 +95,10 @@ export default function AuthLayout() {
     return <Redirect href="/(auth)/onboarding/gender" />;
   }
 
-  // Already fully onboarded → go to tabs
   if (isAuthenticated && profile?.onboarding_complete) {
     return <Redirect href="/(tabs)/home" />;
   }
 
-  // Authenticated but onboarding not complete → continue onboarding flow.
   if (
     isAuthenticated &&
     profile &&
@@ -106,6 +108,7 @@ export default function AuthLayout() {
     return <Redirect href="/(auth)/onboarding/gender" />;
   }
 
+  console.log("[AuthLayout] Rendering Stack — unauthenticated login flow");
   return (
     <Stack
       screenOptions={{
