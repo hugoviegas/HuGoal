@@ -19,7 +19,9 @@
       "Bash(node -e \"const r = require\\(''''./node_modules/expo-router/build/routes-manifest.js''''\\); console.log\\(Object.keys\\(r\\)\\)\")",
       "Bash(ls \"/c/Users/hugov/OneDrive/Documentos/GitHub/BetterU/app/\\(tabs\\)/\")",
       "Bash(git clone:*)",
-      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -Command \"& './install-agents.ps1' -Scope global\")"
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -Command \"& './install-agents.ps1' -Scope global\")",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(node -e \"const fs = require\\('fs'\\); ['lib/home-coach-limit.ts','lib/ai/homeChatAI.ts','components/HomeCoach.tsx','components/EditProfileModal.tsx','app/\\(tabs\\)/home.tsx'].forEach\\(f => console.log\\(f, fs.existsSync\\(f\\) ? 'OK' : 'MISSING'\\)\\)\")"
     ]
   }
 }
