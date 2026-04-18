@@ -24,16 +24,40 @@ export default function RootLayout() {
   const [initError, setInitError] = useState<string | null>(null);
 
   useEffect(() => {
-    try {
-      const unsubscribe = initialize();
-      bootstrapApp(); // background: reads SecureStore API keys
-      return unsubscribe;
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      console.error("[RootLayout Init Error]", errorMessage);
-      setInitError(errorMessage);
-    }
+    let unsubscribe: (() => void) | void;
+    let isMounted = true;
+
+    const start = async () => {
+      try {
+        const { isFirebaseReady, firebaseInitError } =
+          await import("@/lib/firebase");
+
+        if (!isFirebaseReady) {
+          throw new Error(
+            firebaseInitError ??
+              "Firebase is not ready. Check EXPO_PUBLIC_FIREBASE_* values.",
+          );
+        }
+
+        unsubscribe = initialize();
+        bootstrapApp(); // background: reads SecureStore API keys
+      } catch (error) {
+        if (!isMounted) return;
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        console.error("[RootLayout Init Error]", errorMessage);
+        setInitError(errorMessage);
+      }
+    };
+
+    void start();
+
+    return () => {
+      isMounted = false;
+      if (typeof unsubscribe === "function") {
+        unsubscribe();
+      }
+    };
   }, [initialize]);
 
   useEffect(() => {

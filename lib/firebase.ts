@@ -29,31 +29,58 @@ const requiredConfigKeys = [
   "appId",
 ] as const;
 
-for (const key of requiredConfigKeys) {
-  if (!firebaseConfig[key as keyof typeof firebaseConfig]) {
-    const errorMsg = `[Firebase Init Error] Missing required environment variable: EXPO_PUBLIC_FIREBASE_${key.toUpperCase()}. This is required for EAS builds. Please ensure all EXPO_PUBLIC_FIREBASE_* secrets are registered in EAS dashboard and referenced in eas.json env blocks.`;
-    console.error(errorMsg);
-    throw new Error(errorMsg);
-  }
+const missingConfigKeys = requiredConfigKeys.filter(
+  (key) => !firebaseConfig[key as keyof typeof firebaseConfig],
+);
+
+const firebaseInitError =
+  missingConfigKeys.length > 0
+    ? `[Firebase Init Error] Missing required environment variable(s): ${missingConfigKeys
+        .map((key) => `EXPO_PUBLIC_FIREBASE_${key.toUpperCase()}`)
+        .join(
+          ", ",
+        )}. This is required for EAS builds. Please ensure all EXPO_PUBLIC_FIREBASE_* secrets are registered in EAS dashboard and referenced in eas.json env blocks.`
+    : null;
+
+const isFirebaseReady = firebaseInitError === null;
+
+if (!isFirebaseReady && firebaseInitError) {
+  console.error(firebaseInitError);
 }
 
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+type FirebaseAppType = ReturnType<typeof getApp>;
+type FirestoreType = ReturnType<typeof getFirestore>;
+type StorageType = ReturnType<typeof getStorage>;
 
+let app: FirebaseAppType;
 let auth: Auth;
-try {
-  if (Platform.OS !== "web") {
-    auth = initializeAuth(app, {
-      persistence: getReactNativePersistence(AsyncStorage),
-    });
-  } else {
+let db: FirestoreType;
+let storage: StorageType;
+
+if (isFirebaseReady) {
+  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+
+  try {
+    if (Platform.OS !== "web") {
+      auth = initializeAuth(app, {
+        persistence: getReactNativePersistence(AsyncStorage),
+      });
+    } else {
+      auth = getAuth(app);
+    }
+  } catch {
+    // Auth already initialized (e.g. fast refresh).
     auth = getAuth(app);
   }
-} catch {
-  // Auth already initialized (e.g. fast refresh).
-  auth = getAuth(app);
+
+  db = getFirestore(app);
+  storage = getStorage(app);
+} else {
+  // Keep exports stable so callers can gate usage through isFirebaseReady.
+  app = null as unknown as FirebaseAppType;
+  auth = null as unknown as Auth;
+  db = null as unknown as FirestoreType;
+  storage = null as unknown as StorageType;
 }
 
-const db = getFirestore(app);
-const storage = getStorage(app);
-
-export { app, auth, db, storage };
+export { app, auth, db, storage, isFirebaseReady, firebaseInitError };

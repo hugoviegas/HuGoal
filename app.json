@@ -28,7 +28,7 @@
         "backgroundColor": "#0a0a0a"
       },
       "package": "com.hugoviegas.betteru",
-      "edgeToEdgeEnabled": true,
+      "edgeToEdgeEnabled": false,
       "predictiveBackGestureEnabled": false
     },
     "web": {

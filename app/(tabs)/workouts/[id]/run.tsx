@@ -85,6 +85,8 @@ interface ExerciseStep {
   targetWeightKg?: number;
   durationSeconds?: number;
   prepSeconds?: number;
+  sectionType?: "warmup" | "round" | "cooldown";
+  sectionName?: string;
 }
 
 interface RestStep {
@@ -92,6 +94,8 @@ interface RestStep {
   type: "rest";
   afterExerciseStepId: string;
   restSeconds: number;
+  sectionType?: "warmup" | "round" | "cooldown";
+  sectionName?: string;
 }
 
 type SessionStep = ExerciseStep | RestStep;
@@ -250,6 +254,104 @@ function buildSteps(exercises: RunningExercise[]): SessionStep[] {
   return output;
 }
 
+function templateToSteps(
+  template: WorkoutTemplateRecord,
+  catalogLookup: Record<
+    string,
+    {
+      instructions?: string[];
+      instructions_en?: string;
+      primary_muscles?: string[];
+    }
+  >,
+): SessionStep[] {
+  if (!template.sections || template.sections.length === 0) {
+    return buildSteps(templateToRunningExercises(template, catalogLookup));
+  }
+
+  const output: SessionStep[] = [];
+  let globalExerciseIndex = 0;
+
+  const sortedSections = [...template.sections].sort((a, b) => a.order - b.order);
+
+  for (const section of sortedSections) {
+    const sortedBlocks = [...section.blocks].sort((a, b) => a.order - b.order);
+
+    for (const block of sortedBlocks) {
+      if (block.type === "rest") {
+        const restSeconds = block.rest_seconds ?? block.duration_seconds ?? 45;
+        let prevExerciseStepId = "unknown";
+        for (let i = output.length - 1; i >= 0; i--) {
+          if (output[i].type === "exercise") {
+            prevExerciseStepId = output[i].id;
+            break;
+          }
+        }
+        output.push({
+          id: `rest-${block.id}`,
+          type: "rest",
+          afterExerciseStepId: prevExerciseStepId,
+          restSeconds,
+          sectionType: section.type,
+          sectionName: section.name,
+        });
+        continue;
+      }
+
+      if (block.type !== "exercise" || !block.exercise_id) continue;
+
+      const exId = block.exercise_id;
+      const official =
+        catalogLookup[exId] ??
+        catalogLookup[normalizeKey(exId)] ??
+        catalogLookup[normalizeKey(block.name ?? "")] ??
+        null;
+
+      const execMode: "reps" | "time" =
+        block.execution_mode ??
+        ((block.exercise_seconds ?? block.duration_seconds ?? 0) > 0 ? "time" : "reps");
+
+      const stepId = `${section.id}-${block.id}-ex`;
+
+      output.push({
+        id: stepId,
+        type: "exercise",
+        exerciseIndex: globalExerciseIndex,
+        setNumber: 1,
+        totalSets: 1,
+        sectionType: section.type,
+        sectionName: section.name,
+        exercise: {
+          id: exId,
+          name: block.name ?? exId,
+          muscleGroups: block.primary_muscles ?? official?.primary_muscles ?? [],
+          instructions: official?.instructions?.join("\n") ?? official?.instructions_en,
+          setsPlan: [
+            {
+              id: `${stepId}-set-1`,
+              setNumber: 1,
+              reps: block.reps ?? "",
+              executionMode: execMode,
+              weightKg: block.weight_kg,
+              durationSeconds: block.exercise_seconds ?? block.duration_seconds,
+              prepSeconds: block.prep_seconds ?? 0,
+            },
+          ],
+        },
+        targetReps: block.reps ?? "",
+        executionMode: execMode,
+        targetWeightKg: block.weight_kg,
+        durationSeconds: block.exercise_seconds ?? block.duration_seconds,
+        prepSeconds: block.prep_seconds ?? 0,
+      });
+
+      globalExerciseIndex++;
+    }
+  }
+
+  return output;
+}
+
 // ─── Screen ───────────────────────────────────────────────────────────────
 
 export default function RunWorkoutScreen() {
@@ -266,10 +368,17 @@ export default function RunWorkoutScreen() {
 
   const [template, setTemplate] = useState<WorkoutTemplateRecord | null>(null);
   const [catalogById, setCatalogById] = useState<Record<string, any>>({});
-  const [exercises, setExercises] = useState<RunningExercise[]>([]);
   const [loadingTemplate, setLoadingTemplate] = useState(true);
 
-  const steps = useMemo(() => buildSteps(exercises), [exercises]);
+  const steps = useMemo(
+    () => (template ? templateToSteps(template, catalogById) : []),
+    [template, catalogById],
+  );
+
+  const exercisesFromSteps = useMemo(
+    () => steps.filter((s): s is ExerciseStep => s.type === "exercise"),
+    [steps],
+  );
 
   const [sessionStartedAt, setSessionStartedAt] = useState(() =>
     new Date().toISOString(),
@@ -354,13 +463,8 @@ export default function RunWorkoutScreen() {
           }
         }
 
-        const runningExercises = templateToRunningExercises(
-          workoutRecord,
-          byId,
-        );
         setTemplate(workoutRecord);
         setCatalogById(byId);
-        setExercises(runningExercises);
       } catch (err) {
         console.error("[runWorkout] template load failed", err);
         if (!mounted) return;
@@ -911,9 +1015,9 @@ export default function RunWorkoutScreen() {
     [currentRoundIndex, currentStepIndex, steps],
   );
 
-  const stepperRounds = exercises.map((exercise, index) => ({
-    id: `${exercise.id}-${index}`,
-    label: exercise.name,
+  const stepperRounds = exercisesFromSteps.map((step, index) => ({
+    id: `${step.exercise.id}-${index}`,
+    label: step.exercise.name,
   }));
 
   const displayRestSeconds =
@@ -1217,6 +1321,28 @@ export default function RunWorkoutScreen() {
         </Pressable>
       </View>
 
+      {currentStep.sectionName ? (
+        <View style={{ alignItems: "center", paddingBottom: 6 }}>
+          <View
+            style={{
+              paddingHorizontal: 12,
+              paddingVertical: 4,
+              borderRadius: 999,
+              backgroundColor:
+                currentStep.sectionType === "warmup"
+                  ? "#d97706"
+                  : currentStep.sectionType === "cooldown"
+                    ? "#2563eb"
+                    : "#0891b2",
+            }}
+          >
+            <Text style={{ color: "#fff", fontSize: 11, fontWeight: "700", letterSpacing: 0.8 }}>
+              {currentStep.sectionName.toUpperCase()}
+            </Text>
+          </View>
+        </View>
+      ) : null}
+
       <View
         style={{
           flex: 1,
@@ -1301,7 +1427,7 @@ export default function RunWorkoutScreen() {
                 </Text>
                 <Text className="mt-2 text-base text-gray-600 dark:text-gray-400">
                   Set {currentStep.setNumber}/{currentStep.totalSets} •{" "}
-                  {currentStep.exerciseIndex + 1}/{exercises.length}
+                  {currentStep.exerciseIndex + 1}/{exercisesFromSteps.length}
                 </Text>
                 {currentStep.executionMode === "time" ? (
                   <Text className="mt-1 text-sm text-gray-600 dark:text-gray-400">

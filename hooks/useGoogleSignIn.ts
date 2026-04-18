@@ -39,19 +39,18 @@ export interface GoogleSignInResult {
 export function useGoogleSignIn() {
   const [isLoading, setIsLoading] = useState(false);
 
-  const redirectUri = AuthSession.makeRedirectUri();
+  const redirectUri = AuthSession.makeRedirectUri({ useProxy: true } as any);
 
   useEffect(() => {
-    if (process.env.NODE_ENV !== "production") {
+    if (__DEV__) {
       // Log exact redirect URI used by the app so you can add it to Google Cloud Console
       // Remove this log if you don't want it in dev output.
       // Example value: https://auth.expo.io/@hviegas/betteru
-      // eslint-disable-next-line no-console
       console.log("[useGoogleSignIn] redirectUri:", redirectUri);
     }
   }, [redirectUri]);
 
-  const [request, _response, promptAsync] = Google.useIdTokenAuthRequest({
+  const [request, , promptAsync] = Google.useIdTokenAuthRequest({
     scopes: ["openid", "profile", "email"],
     androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
     iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
@@ -122,9 +121,11 @@ export function useGoogleSignIn() {
       }
     }, [promptAsync, request]);
 
+  const isReady = !!request;
+
   return {
-    isReady: !!request,
-    isLoading,
+    isReady,
+    isLoading: isLoading || !isReady,
     signInWithGoogle,
   };
 }
