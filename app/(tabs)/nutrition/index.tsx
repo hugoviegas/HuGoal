@@ -205,7 +205,6 @@ export default function NutritionScreen() {
   const isViewingToday = selectedDate === todayDateKey;
 
   const {
-    COLLAPSED_H,
     EXPANDED_H,
     panelHeight,
     keyboardOffset,
@@ -234,7 +233,13 @@ export default function NutritionScreen() {
       duration: 280,
       useNativeDriver: true,
     }).start();
-  }, [panelHeight, composerBottomPadding, insets.bottom, topBarAnim, windowHeight]);
+  }, [
+    panelHeight,
+    composerBottomPadding,
+    insets.bottom,
+    topBarAnim,
+    windowHeight,
+  ]);
 
   const exitFullscreen = useCallback(() => {
     setIsFullscreen(false);
@@ -254,6 +259,7 @@ export default function NutritionScreen() {
       setNavbarVisible(false);
       return () => setNavbarVisible(true);
     }
+    setNavbarVisible(true);
   }, [isFullscreen, setNavbarVisible]);
 
   const selectedDateLabel = useMemo(() => {
@@ -856,7 +862,9 @@ export default function NutritionScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Animated.View
-        onLayout={(e) => { headerHeightRef.current = e.nativeEvent.layout.height; }}
+        onLayout={(e) => {
+          headerHeightRef.current = e.nativeEvent.layout.height;
+        }}
         style={{ transform: [{ translateY: topBarAnim }], zIndex: 10 }}
       >
         <PageHeader
@@ -1090,6 +1098,11 @@ export default function NutritionScreen() {
           isFullscreen={isFullscreen}
           onEnterFullscreen={enterFullscreen}
           onExitFullscreen={exitFullscreen}
+          onInputFocus={() => {
+            if (!panelExpanded) {
+              openPanel();
+            }
+          }}
         />
       </Animated.View>
     </View>

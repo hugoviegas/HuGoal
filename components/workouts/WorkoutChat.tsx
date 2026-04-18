@@ -1,15 +1,17 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import { Animated, FlatList, Pressable, Text, View } from "react-native";
 import {
-  Animated,
-  FlatList,
-  Pressable,
-  Text,
-  View,
-} from "react-native";
-import { useRouter } from "expo-router";
-import { Lock, Maximize2, Minimize2, Play, Sparkles } from "lucide-react-native";
+  Maximize2,
+  Minimize2,
+  Sparkles,
+  X,
+} from "lucide-react-native";
 import { format } from "date-fns";
 
+import {
+  ChatInputBar,
+  type AudioRecordedPayload,
+} from "@/components/nutrition/ChatInputBar";
 import { spacing } from "@/constants/spacing";
 import { typography } from "@/constants/typography";
 import { useAuthStore } from "@/stores/auth.store";
@@ -17,18 +19,19 @@ import { useThemeStore } from "@/stores/theme.store";
 import { TypingIndicator } from "@/components/shared/TypingIndicator";
 import type { WorkoutSessionContext } from "@/lib/workouts/workout-session-context";
 import type { WorkoutChatMessage } from "@/stores/workout.store";
-import {
-  WorkoutChatInputBar,
-  type WorkoutChatAttachment,
-} from "./WorkoutChatInputBar";
+import type { WorkoutChatAttachment } from "./WorkoutChatInputBar";
 
 // SHARED BOTTOM BAR STYLE — sync across: home, workouts, nutrition, community
 
 export interface WorkoutChatProps {
   messages: WorkoutChatMessage[];
   isLoading: boolean;
-  onSendText: (text: string, attachments?: WorkoutChatAttachment[]) => Promise<void>;
-  onFileAttached?: (file: WorkoutChatAttachment) => void;
+  onSendText: (
+    text: string,
+    attachments?: WorkoutChatAttachment[],
+  ) => Promise<void>;
+  onAudioRecorded: (payload: AudioRecordedPayload) => void;
+  onImageSelected: (uri: string) => void;
   sessionContext: WorkoutSessionContext | null;
   expanded: boolean;
   onTogglePanel: () => void;
@@ -42,13 +45,15 @@ export interface WorkoutChatProps {
   isFullscreen?: boolean;
   onEnterFullscreen?: () => void;
   onExitFullscreen?: () => void;
+  onInputFocus?: () => void;
 }
 
 export function WorkoutChat({
   messages,
   isLoading,
   onSendText,
-  onFileAttached,
+  onAudioRecorded,
+  onImageSelected,
   sessionContext,
   expanded,
   onTogglePanel,
@@ -56,14 +61,14 @@ export function WorkoutChat({
   composerBottomOffset,
   disabled,
   disabledReason,
-  isViewingToday,
-  sessionTargetId,
-  startActionLabel,
+  isViewingToday: _isViewingToday,
+  sessionTargetId: _sessionTargetId,
+  startActionLabel: _startActionLabel,
   isFullscreen,
   onEnterFullscreen,
   onExitFullscreen,
+  onInputFocus,
 }: WorkoutChatProps) {
-  const router = useRouter();
   const colors = useThemeStore((s) => s.colors);
   const userInitial =
     useAuthStore((s) => s.user?.displayName?.trim()?.[0])?.toUpperCase() ?? "U";
@@ -80,21 +85,14 @@ export function WorkoutChat({
     listRef.current?.scrollToEnd({ animated: true });
   }, [messages.length]);
 
-  const handleStartPress = useCallback(() => {
-    if (!isViewingToday || !sessionTargetId) return;
-    router.push(`/workouts/${sessionTargetId}/run`);
-  }, [isViewingToday, router, sessionTargetId]);
-
-  const canStart = isViewingToday && Boolean(sessionTargetId);
-
   return (
     <View style={{ flex: 1, backgroundColor: colors.surface }}>
       <Pressable
         onPress={isFullscreen ? onExitFullscreen : onTogglePanel}
         style={{
           alignItems: "center",
-          paddingTop: 8,
-          paddingBottom: expanded ? 6 : 0,
+          paddingTop: 6,
+          paddingBottom: expanded ? 6 : 4,
         }}
         accessibilityRole="button"
         accessibilityLabel={
@@ -130,12 +128,17 @@ export function WorkoutChat({
           >
             <Sparkles size={16} color={colors.primary} />
             <View style={{ flex: 1 }}>
-              <Text style={[typography.smallMedium, { color: colors.foreground }]}>
+              <Text
+                style={[typography.smallMedium, { color: colors.foreground }]}
+              >
                 Workout Coach
               </Text>
               {sessionContext?.template_name ? (
                 <Text
-                  style={[typography.caption, { color: colors.mutedForeground }]}
+                  style={[
+                    typography.caption,
+                    { color: colors.mutedForeground },
+                  ]}
                   numberOfLines={1}
                 >
                   {sessionContext.template_name}
@@ -145,7 +148,9 @@ export function WorkoutChat({
             <Pressable
               onPress={isFullscreen ? onExitFullscreen : onEnterFullscreen}
               hitSlop={12}
-              accessibilityLabel={isFullscreen ? "Exit fullscreen chat" : "Fullscreen chat"}
+              accessibilityLabel={
+                isFullscreen ? "Exit fullscreen chat" : "Fullscreen chat"
+              }
               style={{ padding: 4 }}
             >
               {isFullscreen ? (
@@ -153,6 +158,19 @@ export function WorkoutChat({
               ) : (
                 <Maximize2 size={18} color={colors.mutedForeground} />
               )}
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                if (isFullscreen) {
+                  onExitFullscreen?.();
+                }
+                onTogglePanel();
+              }}
+              hitSlop={12}
+              accessibilityLabel="Close workout chat"
+              style={{ padding: 4 }}
+            >
+              <X size={18} color={colors.mutedForeground} />
             </Pressable>
           </View>
 
@@ -170,8 +188,14 @@ export function WorkoutChat({
               justifyContent: messages.length === 0 ? "center" : "flex-start",
             }}
             ListEmptyComponent={
-              <Text style={[typography.small, { color: colors.mutedForeground, textAlign: "center" }]}>
-                Ask me to adjust today&apos;s workout, substitute exercises, or create a new template.
+              <Text
+                style={[
+                  typography.small,
+                  { color: colors.mutedForeground, textAlign: "center" },
+                ]}
+              >
+                Ask me to adjust today&apos;s workout, substitute exercises, or
+                create a new template.
               </Text>
             }
             ListFooterComponent={
@@ -182,7 +206,8 @@ export function WorkoutChat({
               ) : null
             }
             renderItem={({ item }) => {
-              const isUser = item.type === "user_text" || item.type === "user_file";
+              const isUser =
+                item.type === "user_text" || item.type === "user_file";
               const messageTime = format(new Date(item.createdAt), "HH:mm");
 
               return (
@@ -218,13 +243,17 @@ export function WorkoutChat({
                       borderRadius: 12,
                       borderWidth: 1,
                       borderColor: isUser ? colors.primary : colors.cardBorder,
-                      backgroundColor: isUser ? colors.primary : colors.background,
+                      backgroundColor: isUser
+                        ? colors.primary
+                        : colors.background,
                     }}
                   >
                     <Text
                       style={{
                         ...typography.small,
-                        color: isUser ? colors.primaryForeground : colors.foreground,
+                        color: isUser
+                          ? colors.primaryForeground
+                          : colors.foreground,
                       }}
                     >
                       {item.text ?? ""}
@@ -255,7 +284,12 @@ export function WorkoutChat({
                         justifyContent: "center",
                       }}
                     >
-                      <Text style={[typography.caption, { color: colors.primaryForeground }]}>
+                      <Text
+                        style={[
+                          typography.caption,
+                          { color: colors.primaryForeground },
+                        ]}
+                      >
                         {userInitial}
                       </Text>
                     </View>
@@ -268,58 +302,20 @@ export function WorkoutChat({
       ) : null}
 
       <Animated.View style={{ paddingBottom: composerBottomOffset }}>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "flex-end",
+        <ChatInputBar
+          onSendText={(text) => {
+            void onSendText(text);
           }}
-        >
-          <View style={{ flex: 1 }}>
-            <WorkoutChatInputBar
-              onSendText={onSendText}
-              onFileAttached={onFileAttached}
-              disabled={disabled || !sessionContext}
-              disabledReason={disabledReason ?? (!sessionContext ? "No workout loaded" : undefined)}
-            />
-          </View>
-
-          <Pressable
-            onPress={handleStartPress}
-            disabled={!canStart}
-            accessibilityRole="button"
-            accessibilityLabel={canStart ? `${startActionLabel} workout` : "Workout start is only available for today"}
-            style={{
-              minHeight: 40,
-              paddingHorizontal: 12,
-              marginRight: spacing.sm,
-              marginBottom: spacing.sm,
-              borderRadius: 13,
-              alignItems: "center",
-              justifyContent: "center",
-              flexDirection: "row",
-              gap: 5,
-              backgroundColor: canStart ? colors.primary : (colors.card),
-              borderWidth: 1,
-              borderColor: canStart ? colors.primary : colors.cardBorder,
-              opacity: canStart ? 1 : 0.6,
-            }}
-          >
-            {canStart ? (
-              <Play size={13} color={colors.primaryForeground} />
-            ) : (
-              <Lock size={13} color={colors.mutedForeground} />
-            )}
-            <Text
-              style={{
-                fontSize: 13,
-                fontWeight: "700",
-                color: canStart ? colors.primaryForeground : colors.mutedForeground,
-              }}
-            >
-              {canStart ? startActionLabel : "Today only"}
-            </Text>
-          </Pressable>
-        </View>
+          onAudioRecorded={onAudioRecorded}
+          onImageSelected={onImageSelected}
+          disabled={disabled || !sessionContext}
+          placeholder={
+            disabled
+              ? (disabledReason ?? (!sessionContext ? "No workout loaded" : ""))
+              : "Ask your coach..."
+          }
+          onInputFocus={onInputFocus}
+        />
       </Animated.View>
     </View>
   );

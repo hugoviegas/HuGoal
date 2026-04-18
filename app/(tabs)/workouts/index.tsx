@@ -47,9 +47,7 @@ import {
   type WorkoutTemplateRecord,
 } from "@/lib/firestore/workouts";
 import { applyDailyOverride } from "@/lib/workouts/workout-daily-override";
-import {
-  buildWorkoutSessionContext,
-} from "@/lib/workouts/workout-session-context";
+import { buildWorkoutSessionContext } from "@/lib/workouts/workout-session-context";
 import { analyzeWorkoutChatMessage } from "@/lib/ai/workoutChatAI";
 import {
   loadTodayWorkoutChatMessages,
@@ -63,6 +61,7 @@ import type { OfficialExerciseRecord } from "@/lib/workouts/generated/official-e
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { PageHeader } from "@/components/shared/PageHeader";
+import type { AudioRecordedPayload } from "@/components/nutrition/ChatInputBar";
 import { WorkoutChat } from "@/components/workouts/WorkoutChat";
 import { useWorkoutChatPanel } from "@/hooks/useWorkoutChatPanel";
 import { useAuthStore } from "@/stores/auth.store";
@@ -313,7 +312,6 @@ export default function WorkoutsScreen() {
   const todayDateKey = formatLocalDateKey(new Date());
 
   const {
-    COLLAPSED_H,
     EXPANDED_H,
     panelHeight,
     keyboardOffset,
@@ -342,7 +340,13 @@ export default function WorkoutsScreen() {
       duration: 280,
       useNativeDriver: true,
     }).start();
-  }, [panelHeight, composerBottomPadding, insets.bottom, topBarAnim, windowHeight]);
+  }, [
+    panelHeight,
+    composerBottomPadding,
+    insets.bottom,
+    topBarAnim,
+    windowHeight,
+  ]);
 
   const exitFullscreen = useCallback(() => {
     setIsFullscreen(false);
@@ -362,6 +366,7 @@ export default function WorkoutsScreen() {
       setNavbarVisible(false);
       return () => setNavbarVisible(true);
     }
+    setNavbarVisible(true);
   }, [isFullscreen, setNavbarVisible]);
 
   const weekPagerWidth = Math.max(280, windowWidth - 32);
@@ -717,7 +722,9 @@ export default function WorkoutsScreen() {
       setSendingChat(true);
 
       try {
-        const memories = await listMemories(user.uid, "workout").catch(() => []);
+        const memories = await listMemories(user.uid, "workout").catch(
+          () => [],
+        );
         const memoryContext = memories.slice(0, 5).map((m) => ({
           category: m.category,
           content: m.content,
@@ -731,7 +738,11 @@ export default function WorkoutsScreen() {
           userMemories: memoryContext,
         });
 
-        if (response.action === "patch_workout" && response.patch && todayWorkout) {
+        if (
+          response.action === "patch_workout" &&
+          response.patch &&
+          todayWorkout
+        ) {
           await updateWorkoutTemplate(todayWorkout.id, response.patch);
           await applyDailyOverride(user.uid, formatLocalDateKey(new Date()), {
             template_id: todayWorkout.id,
@@ -742,7 +753,10 @@ export default function WorkoutsScreen() {
           setTodayAssignedTemplateId(todayWorkout.id);
           await loadData();
           showToast("Workout updated", "success");
-        } else if (response.action === "create_workout" && response.newTemplate) {
+        } else if (
+          response.action === "create_workout" &&
+          response.newTemplate
+        ) {
           const created = await createWorkoutTemplate(user.uid, {
             name: response.newTemplate.name ?? "New Workout",
             difficulty: response.newTemplate.difficulty ?? "intermediate",
@@ -759,7 +773,11 @@ export default function WorkoutsScreen() {
           });
           setWorkouts((prev) => [created, ...prev]);
           showToast("New workout created", "success");
-        } else if (response.action === "substitute_exercise" && response.patch && todayWorkout) {
+        } else if (
+          response.action === "substitute_exercise" &&
+          response.patch &&
+          todayWorkout
+        ) {
           await updateWorkoutTemplate(todayWorkout.id, response.patch);
           await applyDailyOverride(user.uid, formatLocalDateKey(new Date()), {
             template_id: todayWorkout.id,
@@ -807,6 +825,28 @@ export default function WorkoutsScreen() {
       user?.uid,
       workoutSessionContext,
     ],
+  );
+
+  const handleWorkoutAudioRecorded = useCallback(
+    (payload: AudioRecordedPayload) => {
+      const transcript = payload.transcript?.trim() ?? "";
+      if (!transcript) {
+        showToast("Transcript is empty. Try recording again.", "error");
+        return;
+      }
+      void handleSendWorkoutMessage(transcript);
+    },
+    [handleSendWorkoutMessage, showToast],
+  );
+
+  const handleWorkoutImageSelected = useCallback(
+    (_uri: string) => {
+      showToast(
+        "Image attached. Describe what adjustment you want for this workout.",
+        "info",
+      );
+    },
+    [showToast],
   );
 
   useFocusEffect(
@@ -966,171 +1006,176 @@ export default function WorkoutsScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Animated.View
-        onLayout={(e) => { headerHeightRef.current = e.nativeEvent.layout.height; }}
+        onLayout={(e) => {
+          headerHeightRef.current = e.nativeEvent.layout.height;
+        }}
         style={{ transform: [{ translateY: topBarAnim }], zIndex: 10 }}
       >
-      <PageHeader
-        title="Workouts"
-        streakCount={profile?.streak_current ?? 0}
-        onSettingsPress={() => router.push("/(tabs)/workouts/settings")}
-        onTodayPress={
-          !isViewingToday
-            ? () => {
-                setSelectedDateKey(todayDateKey);
-                weekScrollRef.current?.scrollToIndex({
-                  index: 1,
-                  animated: true,
+        <PageHeader
+          title="Workouts"
+          streakCount={profile?.streak_current ?? 0}
+          onSettingsPress={() => router.push("/(tabs)/workouts/settings")}
+          onTodayPress={
+            !isViewingToday
+              ? () => {
+                  setSelectedDateKey(todayDateKey);
+                  weekScrollRef.current?.scrollToIndex({
+                    index: 1,
+                    animated: true,
+                  });
+                }
+              : undefined
+          }
+          calendarSlot={
+            <FlatList
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              decelerationRate="fast"
+              data={weekPages}
+              initialScrollIndex={1}
+              getItemLayout={(_, index) => ({
+                length: weekPagerWidth,
+                offset: weekPagerWidth * index,
+                index,
+              })}
+              ref={weekScrollRef}
+              keyExtractor={(_, idx) => `week-${idx}`}
+              onMomentumScrollEnd={(event) => {
+                const page = Math.round(
+                  event.nativeEvent.contentOffset.x / weekPagerWidth,
+                );
+                setWeekOffset(
+                  Math.max(0, Math.min(weekPages.length - 1, page)),
+                );
+              }}
+              onScrollToIndexFailed={(info) => {
+                weekScrollRef.current?.scrollToOffset({
+                  offset: info.index * weekPagerWidth,
+                  animated: false,
                 });
-              }
-            : undefined
-        }
-        calendarSlot={
-          <FlatList
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            decelerationRate="fast"
-            data={weekPages}
-            initialScrollIndex={1}
-            getItemLayout={(_, index) => ({
-              length: weekPagerWidth,
-              offset: weekPagerWidth * index,
-              index,
-            })}
-            ref={weekScrollRef}
-            keyExtractor={(_, idx) => `week-${idx}`}
-            onMomentumScrollEnd={(event) => {
-              const page = Math.round(
-                event.nativeEvent.contentOffset.x / weekPagerWidth,
-              );
-              setWeekOffset(Math.max(0, Math.min(weekPages.length - 1, page)));
-            }}
-            onScrollToIndexFailed={(info) => {
-              weekScrollRef.current?.scrollToOffset({
-                offset: info.index * weekPagerWidth,
-                animated: false,
-              });
-            }}
-            renderItem={({ item: days, index: pageIndex }) => (
-              <View
-                key={`week-${pageIndex}`}
-                style={{ width: weekPagerWidth, paddingHorizontal: 2 }}
-              >
+              }}
+              renderItem={({ item: days, index: pageIndex }) => (
                 <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                  }}
+                  key={`week-${pageIndex}`}
+                  style={{ width: weekPagerWidth, paddingHorizontal: 2 }}
                 >
-                  {days.map((item) => {
-                    const filled = item.isDone;
-                    const today = item.isToday;
-                    const isSelected = item.dateKey === selectedDateKey;
-                    const isActive = today || isSelected;
-                    return (
-                      <Pressable
-                        key={item.key}
-                        onPress={() => setSelectedDateKey(item.dateKey)}
-                        accessibilityRole="button"
-                        accessibilityLabel={`${item.dayLabel} ${item.dayNumber}${today ? ", today" : ""}${filled ? ", completed" : ""}${item.isScheduled ? ", workout scheduled" : ", rest day"}`}
-                        style={{
-                          alignItems: "center",
-                          minWidth: 40,
-                          paddingVertical: 4,
-                        }}
-                      >
-                        <Text
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    {days.map((item) => {
+                      const filled = item.isDone;
+                      const today = item.isToday;
+                      const isSelected = item.dateKey === selectedDateKey;
+                      const isActive = today || isSelected;
+                      return (
+                        <Pressable
+                          key={item.key}
+                          onPress={() => setSelectedDateKey(item.dateKey)}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${item.dayLabel} ${item.dayNumber}${today ? ", today" : ""}${filled ? ", completed" : ""}${item.isScheduled ? ", workout scheduled" : ", rest day"}`}
                           style={{
-                            ...typography.caption,
-                            marginBottom: 5,
-                            color: isActive
-                              ? colors.primary
-                              : isDark
-                                ? "#4b5563"
-                                : "#9ca3af",
+                            alignItems: "center",
+                            minWidth: 40,
+                            paddingVertical: 4,
                           }}
                         >
-                          {item.dayLabel}
-                        </Text>
-
-                        <View
-                          style={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: 16,
-                            alignItems: "center",
-                            justifyContent: "center",
-                            backgroundColor: filled
-                              ? today
+                          <Text
+                            style={{
+                              ...typography.caption,
+                              marginBottom: 5,
+                              color: isActive
                                 ? colors.primary
                                 : isDark
-                                  ? "rgba(34,196,213,0.22)"
-                                  : "rgba(14,165,176,0.14)"
-                              : "transparent",
-                            borderWidth:
-                              isSelected || (!filled && isActive) ? 1.5 : 0,
-                            borderColor: today
-                              ? colors.primary
-                              : "rgba(14,165,176,0.45)",
-                          }}
-                        >
-                          {filled && today ? (
-                            <Check size={14} color="#fff" strokeWidth={3} />
-                          ) : (
-                            <Text
-                              style={{
-                                ...typography.smallMedium,
-                                fontWeight: isActive || filled ? "700" : "400",
-                                color: filled
-                                  ? today
-                                    ? "#fff"
-                                    : colors.primary
-                                  : isActive
-                                    ? colors.primary
-                                    : isDark
-                                      ? "#d1d5db"
-                                      : "#374151",
-                              }}
-                            >
-                              {item.dayNumber}
-                            </Text>
-                          )}
-                        </View>
+                                  ? "#4b5563"
+                                  : "#9ca3af",
+                            }}
+                          >
+                            {item.dayLabel}
+                          </Text>
 
-                        <View
-                          style={{
-                            height: 12,
-                            marginTop: 3,
-                            alignItems: "center",
-                            justifyContent: "center",
-                            flexDirection: "row",
-                            gap: 3,
-                          }}
-                        >
-                          {item.isDone ? (
-                            <View
-                              style={{
-                                width: 4,
-                                height: 4,
-                                borderRadius: 2,
-                                backgroundColor: isActive
+                          <View
+                            style={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: 16,
+                              alignItems: "center",
+                              justifyContent: "center",
+                              backgroundColor: filled
+                                ? today
                                   ? colors.primary
                                   : isDark
-                                    ? "#4b5563"
-                                    : "#cbd5e1",
-                              }}
-                            />
-                          ) : null}
-                        </View>
-                      </Pressable>
-                    );
-                  })}
+                                    ? "rgba(34,196,213,0.22)"
+                                    : "rgba(14,165,176,0.14)"
+                                : "transparent",
+                              borderWidth:
+                                isSelected || (!filled && isActive) ? 1.5 : 0,
+                              borderColor: today
+                                ? colors.primary
+                                : "rgba(14,165,176,0.45)",
+                            }}
+                          >
+                            {filled && today ? (
+                              <Check size={14} color="#fff" strokeWidth={3} />
+                            ) : (
+                              <Text
+                                style={{
+                                  ...typography.smallMedium,
+                                  fontWeight:
+                                    isActive || filled ? "700" : "400",
+                                  color: filled
+                                    ? today
+                                      ? "#fff"
+                                      : colors.primary
+                                    : isActive
+                                      ? colors.primary
+                                      : isDark
+                                        ? "#d1d5db"
+                                        : "#374151",
+                                }}
+                              >
+                                {item.dayNumber}
+                              </Text>
+                            )}
+                          </View>
+
+                          <View
+                            style={{
+                              height: 12,
+                              marginTop: 3,
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexDirection: "row",
+                              gap: 3,
+                            }}
+                          >
+                            {item.isDone ? (
+                              <View
+                                style={{
+                                  width: 4,
+                                  height: 4,
+                                  borderRadius: 2,
+                                  backgroundColor: isActive
+                                    ? colors.primary
+                                    : isDark
+                                      ? "#4b5563"
+                                      : "#cbd5e1",
+                                }}
+                              />
+                            ) : null}
+                          </View>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
                 </View>
-              </View>
-            )}
-          />
-        }
-      />
+              )}
+            />
+          }
+        />
       </Animated.View>
 
       <ScrollView
@@ -1907,6 +1952,8 @@ export default function WorkoutsScreen() {
             messages={chatMessages}
             isLoading={sendingChat}
             onSendText={handleSendWorkoutMessage}
+            onAudioRecorded={handleWorkoutAudioRecorded}
+            onImageSelected={handleWorkoutImageSelected}
             sessionContext={workoutSessionContext}
             expanded={panelExpanded}
             onTogglePanel={() => {
@@ -1924,6 +1971,11 @@ export default function WorkoutsScreen() {
             isFullscreen={isFullscreen}
             onEnterFullscreen={enterFullscreen}
             onExitFullscreen={exitFullscreen}
+            onInputFocus={() => {
+              if (!panelExpanded) {
+                openPanel();
+              }
+            }}
           />
         </Animated.View>
       ) : null}

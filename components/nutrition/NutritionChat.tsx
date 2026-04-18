@@ -12,7 +12,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { Maximize2, Mic, Minimize2, Sparkles } from "lucide-react-native";
+import { Maximize2, Mic, Minimize2, Sparkles, X } from "lucide-react-native";
 import { format } from "date-fns";
 
 import { ChatInputBar } from "@/components/nutrition/ChatInputBar";
@@ -54,6 +54,7 @@ interface NutritionChatProps {
   isFullscreen?: boolean;
   onEnterFullscreen?: () => void;
   onExitFullscreen?: () => void;
+  onInputFocus?: () => void;
 }
 
 interface UseNutritionChatPanelParams {
@@ -254,7 +255,6 @@ export function useNutritionChatPanel({
   };
 }
 
-
 function toNumber(value: string, fallback: number): number {
   const parsed = Number(value.replace(",", "."));
   if (Number.isFinite(parsed) && parsed >= 0) {
@@ -294,6 +294,7 @@ export function NutritionChat({
   isFullscreen,
   onEnterFullscreen,
   onExitFullscreen,
+  onInputFocus,
 }: NutritionChatProps) {
   const colors = useThemeStore((s) => s.colors);
   const userInitial =
@@ -366,14 +367,19 @@ export function NutritionChat({
           >
             <Sparkles size={16} color={colors.primary} />
             <Text
-              style={[typography.smallMedium, { color: colors.foreground, flex: 1 }]}
+              style={[
+                typography.smallMedium,
+                { color: colors.foreground, flex: 1 },
+              ]}
             >
               Nutrition Coach Chat
             </Text>
             <Pressable
               onPress={isFullscreen ? onExitFullscreen : onEnterFullscreen}
               hitSlop={12}
-              accessibilityLabel={isFullscreen ? "Exit fullscreen chat" : "Fullscreen chat"}
+              accessibilityLabel={
+                isFullscreen ? "Exit fullscreen chat" : "Fullscreen chat"
+              }
               style={{ padding: 4 }}
             >
               {isFullscreen ? (
@@ -381,6 +387,19 @@ export function NutritionChat({
               ) : (
                 <Maximize2 size={18} color={colors.mutedForeground} />
               )}
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                if (isFullscreen) {
+                  onExitFullscreen?.();
+                }
+                onTogglePanel();
+              }}
+              hitSlop={12}
+              accessibilityLabel="Close nutrition chat"
+              style={{ padding: 4 }}
+            >
+              <X size={18} color={colors.mutedForeground} />
             </Pressable>
           </View>
 
@@ -888,6 +907,7 @@ export function NutritionChat({
           onAudioRecorded={onAudioRecorded}
           onImageSelected={onImageSelected}
           disabled={disabled}
+          onInputFocus={onInputFocus}
         />
       </Animated.View>
     </View>

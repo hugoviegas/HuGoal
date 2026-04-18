@@ -21,17 +21,30 @@ export interface WorkoutChatAttachment {
 }
 
 export interface WorkoutChatInputBarProps {
-  onSendText: (text: string, attachments?: WorkoutChatAttachment[]) => Promise<void>;
+  onSendText: (
+    text: string,
+    attachments?: WorkoutChatAttachment[],
+  ) => Promise<void>;
   onFileAttached?: (file: WorkoutChatAttachment) => void;
   disabled?: boolean;
   disabledReason?: string;
+  onInputFocus?: () => void;
 }
 
 const SLASH_COMMANDS = [
-  { command: "/change-workout-time", description: "Shorten or lengthen today's session" },
-  { command: "/substitute-exercise", description: "Replace an exercise with an alternative" },
+  {
+    command: "/change-workout-time",
+    description: "Shorten or lengthen today's session",
+  },
+  {
+    command: "/substitute-exercise",
+    description: "Replace an exercise with an alternative",
+  },
   { command: "/change-difficulty", description: "Make today easier or harder" },
-  { command: "/change-location", description: "Switch equipment/location for today" },
+  {
+    command: "/change-location",
+    description: "Switch equipment/location for today",
+  },
   { command: "/create-workout", description: "Build a new workout template" },
   { command: "/reset-today", description: "Reset today's adaptations" },
 ];
@@ -41,6 +54,7 @@ export function WorkoutChatInputBar({
   onFileAttached,
   disabled,
   disabledReason,
+  onInputFocus,
 }: WorkoutChatInputBarProps) {
   const colors = useThemeStore((s) => s.colors);
   const showToast = useToastStore((s) => s.show);
@@ -78,8 +92,17 @@ export function WorkoutChatInputBar({
     setSending(true);
 
     Animated.sequence([
-      Animated.timing(sendButtonScale, { toValue: 0.85, duration: 80, useNativeDriver: true }),
-      Animated.spring(sendButtonScale, { toValue: 1, useNativeDriver: true, damping: 15, stiffness: 200 }),
+      Animated.timing(sendButtonScale, {
+        toValue: 0.85,
+        duration: 80,
+        useNativeDriver: true,
+      }),
+      Animated.spring(sendButtonScale, {
+        toValue: 1,
+        useNativeDriver: true,
+        damping: 15,
+        stiffness: 200,
+      }),
     ]).start();
 
     try {
@@ -148,13 +171,19 @@ export function WorkoutChatInputBar({
                 </View>
                 <View style={{ flex: 1, gap: 1 }}>
                   <Text
-                    style={{ ...typography.smallMedium, color: colors.foreground }}
+                    style={{
+                      ...typography.smallMedium,
+                      color: colors.foreground,
+                    }}
                     numberOfLines={1}
                   >
                     {item.command}
                   </Text>
                   <Text
-                    style={{ ...typography.caption, color: colors.mutedForeground }}
+                    style={{
+                      ...typography.caption,
+                      color: colors.mutedForeground,
+                    }}
                     numberOfLines={1}
                   >
                     {item.description}
@@ -202,7 +231,12 @@ export function WorkoutChatInputBar({
           ref={inputRef}
           value={inputValue}
           onChangeText={handleChangeText}
-          placeholder={disabled ? (disabledReason ?? "No workout loaded") : "Ask your coach…"}
+          onFocus={onInputFocus}
+          placeholder={
+            disabled
+              ? (disabledReason ?? "No workout loaded")
+              : "Ask your coach…"
+          }
           placeholderTextColor={colors.mutedForeground}
           editable={!disabled}
           multiline
@@ -243,7 +277,9 @@ export function WorkoutChatInputBar({
           >
             <ArrowUp
               size={20}
-              color={canSend ? colors.primaryForeground : colors.mutedForeground}
+              color={
+                canSend ? colors.primaryForeground : colors.mutedForeground
+              }
             />
           </Pressable>
         </Animated.View>

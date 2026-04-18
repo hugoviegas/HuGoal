@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   FlatList,
@@ -12,25 +6,28 @@ import {
   Platform,
   Pressable,
   Text,
-  TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useWindowDimensions } from "react-native";
-import { Maximize2, Minimize2, Send, Sparkles, X } from "lucide-react-native";
+import { Maximize2, Minimize2, Sparkles, X } from "lucide-react-native";
 import { format } from "date-fns";
 
 import { spacing } from "@/constants/spacing";
 import { typography } from "@/constants/typography";
 import { radius } from "@/constants/radius";
 import {
-  FLOATING_TAB_BAR_CLEARANCE,
-} from "@/constants/layout";
+  ChatInputBar,
+  type AudioRecordedPayload,
+} from "@/components/nutrition/ChatInputBar";
 import { useAuthStore } from "@/stores/auth.store";
 import { useNavigationStore } from "@/stores/navigation.store";
 import { useThemeStore } from "@/stores/theme.store";
 import { TypingIndicator } from "@/components/shared/TypingIndicator";
-import { sendHomeChatMessage, type HomeChatHistoryItem } from "@/lib/ai/homeChatAI";
+import {
+  sendHomeChatMessage,
+  type HomeChatHistoryItem,
+} from "@/lib/ai/homeChatAI";
 import {
   getHomeChatUsed,
   getRemainingMessages,
@@ -38,6 +35,7 @@ import {
   incrementHomeChatUsed,
 } from "@/lib/home-coach-limit";
 import { getResolvedApiKey } from "@/lib/api-key-store";
+import { useToastStore } from "@/stores/toast.store";
 
 interface HomeChatMessage {
   id: string;
@@ -65,31 +63,30 @@ export function HomeCoach({
   const user = useAuthStore((s) => s.user);
   const profile = useAuthStore((s) => s.profile);
   const setNavbarVisible = useNavigationStore((s) => s.setNavbarVisible);
+  const showToast = useToastStore((s) => s.show);
 
-  // Match the same height formula as useWorkoutChatPanel / useNutritionChatPanel.
-  // COLLAPSED_H must clear the floating tab bar so the input bar is visible.
-  const COLLAPSED_H = insets.bottom + FLOATING_TAB_BAR_CLEARANCE + 60;
-  const EXPAND_CONTENT_H = Math.min(440, Math.max(320, windowHeight * 0.5));
+  // Mirror Nutrition chat panel geometry.
+  const COLLAPSED_H = insets.bottom + 160;
+  const EXPAND_CONTENT_H = Math.min(420, Math.max(300, windowHeight * 0.48));
   const EXPANDED_H = COLLAPSED_H + EXPAND_CONTENT_H;
 
-  // composerBottomPad starts above the floating tab bar clearance so
-  // the input row appears above the tab bar pill in collapsed state.
-  const COMPOSER_BASE_PAD = insets.bottom + FLOATING_TAB_BAR_CLEARANCE;
+  const COMPOSER_BASE_PAD = 80;
 
   const panelHeight = useRef(new Animated.Value(COLLAPSED_H)).current;
-  const composerBottomPad = useRef(new Animated.Value(COMPOSER_BASE_PAD)).current;
+  const keyboardOffset = useRef(new Animated.Value(0)).current;
+  const composerBottomPad = useRef(
+    new Animated.Value(COMPOSER_BASE_PAD),
+  ).current;
   const [panelExpanded, setPanelExpanded] = useState(false);
   const panelExpandedRef = useRef(false);
 
   const [messages, setMessages] = useState<HomeChatMessage[]>([]);
-  const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [usedToday, setUsedToday] = useState(0);
   const [hasProvider, setHasProvider] = useState(true);
   const listRef = useRef<FlatList<HomeChatMessage>>(null);
 
   const remaining = getRemainingMessages(usedToday);
-  const canSend = remaining > 0 && !isLoading && input.trim().length > 0 && hasProvider;
   const userInitial = user?.displayName?.trim()?.[0]?.toUpperCase() ?? "U";
 
   useEffect(() => {
@@ -119,7 +116,8 @@ export function HomeCoach({
         setPanelExpanded(false);
       };
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    setNavbarVisible(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFullscreen]);
 
   useEffect(() => {
@@ -127,8 +125,16 @@ export function HomeCoach({
       Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
       (e) => {
         const kh = e.endCoordinates?.height ?? 0;
+        const nextOffset = Math.max(0, kh - insets.bottom);
+
+        Animated.timing(keyboardOffset, {
+          toValue: nextOffset,
+          duration: Platform.OS === "ios" ? (e.duration ?? 250) : 220,
+          useNativeDriver: false,
+        }).start();
+
         Animated.timing(composerBottomPad, {
-          toValue: kh + 8,
+          toValue: insets.bottom + 10,
           duration: Platform.OS === "ios" ? (e.duration ?? 250) : 220,
           useNativeDriver: false,
         }).start();
@@ -138,6 +144,12 @@ export function HomeCoach({
     const hide = Keyboard.addListener(
       Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
       () => {
+        Animated.timing(keyboardOffset, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: false,
+        }).start();
+
         Animated.timing(composerBottomPad, {
           toValue: COMPOSER_BASE_PAD,
           duration: 200,
@@ -149,7 +161,7 @@ export function HomeCoach({
       show.remove();
       hide.remove();
     };
-  }, [COMPOSER_BASE_PAD, composerBottomPad]);
+  }, [COMPOSER_BASE_PAD, composerBottomPad, insets.bottom, keyboardOffset]);
 
   const openPanel = useCallback(() => {
     panelExpandedRef.current = true;
@@ -180,8 +192,18 @@ export function HomeCoach({
   }, [openPanel, closePanel]);
 
   const panelContentOpacity = panelHeight.interpolate({
-    inputRange: [COLLAPSED_H, COLLAPSED_H + EXPAND_CONTENT_H * 0.4, EXPANDED_H],
+    inputRange: [
+      COLLAPSED_H,
+      COLLAPSED_H + EXPAND_CONTENT_H * 0.25,
+      COLLAPSED_H + EXPAND_CONTENT_H * 0.65,
+    ],
     outputRange: [0, 0, 1],
+    extrapolate: "clamp",
+  });
+
+  const backdropOpacity = panelHeight.interpolate({
+    inputRange: [COLLAPSED_H, EXPANDED_H],
+    outputRange: [0, 0.5],
     extrapolate: "clamp",
   });
 
@@ -191,72 +213,122 @@ export function HomeCoach({
     }
   }, [messages.length]);
 
-  const handleSend = useCallback(async () => {
-    const text = input.trim();
-    if (!text || !canSend || !user?.uid) return;
+  const handleSendText = useCallback(
+    async (text: string) => {
+      const normalized = text.trim();
+      if (
+        !normalized ||
+        !user?.uid ||
+        isLoading ||
+        !hasProvider ||
+        remaining <= 0
+      ) {
+        return;
+      }
 
-    const userMsg: HomeChatMessage = {
-      id: `user-${Date.now()}`,
-      role: "user",
-      text,
-      createdAt: new Date().toISOString(),
-    };
+      const userMsg: HomeChatMessage = {
+        id: `user-${Date.now()}`,
+        role: "user",
+        text: normalized,
+        createdAt: new Date().toISOString(),
+      };
 
-    setMessages((prev) => [...prev, userMsg]);
-    setInput("");
-    setIsLoading(true);
+      setMessages((prev) => [...prev, userMsg]);
+      setIsLoading(true);
 
-    const used = await incrementHomeChatUsed(user.uid);
-    setUsedToday(used);
+      const used = await incrementHomeChatUsed(user.uid);
+      setUsedToday(used);
 
-    const history: HomeChatHistoryItem[] = messages.map((m) => ({
-      role: m.role,
-      text: m.text,
-    }));
+      const history: HomeChatHistoryItem[] = messages.map((m) => ({
+        role: m.role,
+        text: m.text,
+      }));
 
-    try {
-      const reply = await sendHomeChatMessage({
-        preferredProvider: profile?.preferred_ai_provider ?? "gemini",
-        userMessage: text,
-        profile,
-        history,
-      });
+      try {
+        const reply = await sendHomeChatMessage({
+          preferredProvider: profile?.preferred_ai_provider ?? "gemini",
+          userMessage: normalized,
+          profile,
+          history,
+        });
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `ai-${Date.now()}`,
-          role: "assistant",
-          text: reply,
-          createdAt: new Date().toISOString(),
-        },
-      ]);
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `err-${Date.now()}`,
-          role: "assistant",
-          text: "Sorry, could not process that. Check your AI provider in Settings.",
-          createdAt: new Date().toISOString(),
-        },
-      ]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [input, canSend, user?.uid, messages, profile]);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `ai-${Date.now()}`,
+            role: "assistant",
+            text: reply,
+            createdAt: new Date().toISOString(),
+          },
+        ]);
+      } catch {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `err-${Date.now()}`,
+            role: "assistant",
+            text: "Sorry, could not process that. Check your AI provider in Settings.",
+            createdAt: new Date().toISOString(),
+          },
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [user?.uid, isLoading, hasProvider, remaining, messages, profile],
+  );
 
-  const loadingKey = useMemo(() => `typing-${messages.length}`, [messages.length]);
+  const handleAudioRecorded = useCallback(
+    async (payload: AudioRecordedPayload) => {
+      const transcript = payload.transcript?.trim() ?? "";
+
+      if (!transcript) {
+        showToast("Audio recebido, mas sem transcricao neste modulo.", "info");
+        return;
+      }
+
+      await handleSendText(transcript);
+    },
+    [handleSendText, showToast],
+  );
+
+  const handleImageSelected = useCallback(
+    (_uri: string) => {
+      showToast("Imagem ainda nao suportada no Home Coach.", "info");
+    },
+    [showToast],
+  );
+
+  const loadingKey = useMemo(
+    () => `typing-${messages.length}`,
+    [messages.length],
+  );
 
   return (
-    <Animated.View
+    <>
+      <Animated.View
+        pointerEvents={panelExpanded && !isFullscreen ? "box-none" : "none"}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "#000",
+          opacity: backdropOpacity,
+        }}
+      >
+        <Pressable style={{ flex: 1 }} onPress={closePanel} />
+      </Animated.View>
+
+      <Animated.View
       style={{
         position: "absolute",
-        bottom: 0,
+        bottom: keyboardOffset,
         left: 0,
         right: 0,
         height: panelHeight,
-        backgroundColor: colors.card,
+        backgroundColor: colors.surface,
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
         borderTopWidth: 1,
@@ -267,8 +339,8 @@ export function HomeCoach({
         // iOS shadow for the top edge
         shadowColor: "#000",
         shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: isDark ? 0.3 : 0.07,
-        shadowRadius: 8,
+        shadowOpacity: isDark ? 0.35 : 0.08,
+        shadowRadius: 10,
       }}
     >
       {/* Drag handle / header row */}
@@ -276,21 +348,21 @@ export function HomeCoach({
         onPress={isFullscreen ? onExitFullscreen : togglePanel}
         style={{
           alignItems: "center",
-          paddingTop: 8,
-          paddingBottom: 4,
+          paddingTop: 6,
+          paddingBottom: panelExpanded ? 6 : 4,
         }}
         accessibilityRole="button"
         accessibilityLabel={
           isFullscreen
             ? "Exit fullscreen coach"
             : panelExpanded
-            ? "Collapse coach"
-            : "Expand coach"
+              ? "Collapse coach"
+              : "Expand coach"
         }
       >
         <View
           style={{
-            width: 36,
+            width: 40,
             height: 4,
             borderRadius: 2,
             backgroundColor: colors.muted,
@@ -305,19 +377,23 @@ export function HomeCoach({
             style={{
               flexDirection: "row",
               alignItems: "center",
-              paddingHorizontal: spacing.md,
-              paddingBottom: spacing.xs,
-              gap: spacing.xs,
+              paddingHorizontal: spacing.sm,
+              paddingVertical: spacing.xs,
+              gap: 8,
               borderBottomWidth: 1,
               borderBottomColor: colors.cardBorder,
             }}
           >
-            <Sparkles size={15} color={colors.primary} />
+            <Sparkles size={16} color={colors.primary} />
             <View style={{ flex: 1 }}>
-              <Text style={[typography.smallMedium, { color: colors.foreground }]}>
+              <Text
+                style={[typography.smallMedium, { color: colors.foreground }]}
+              >
                 Coach
               </Text>
-              <Text style={[typography.caption, { color: colors.mutedForeground }]}>
+              <Text
+                style={[typography.caption, { color: colors.mutedForeground }]}
+              >
                 {remaining}/{HOME_COACH_DAILY_LIMIT} messages today
               </Text>
             </View>
@@ -325,21 +401,28 @@ export function HomeCoach({
               onPress={isFullscreen ? onExitFullscreen : onEnterFullscreen}
               hitSlop={12}
               style={{ padding: 4 }}
-              accessibilityLabel={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+              accessibilityLabel={
+                isFullscreen ? "Exit fullscreen" : "Fullscreen"
+              }
             >
               {isFullscreen ? (
-                <Minimize2 size={17} color={colors.mutedForeground} />
+                <Minimize2 size={18} color={colors.mutedForeground} />
               ) : (
-                <Maximize2 size={17} color={colors.mutedForeground} />
+                <Maximize2 size={18} color={colors.mutedForeground} />
               )}
             </Pressable>
             <Pressable
-              onPress={closePanel}
+              onPress={() => {
+                if (isFullscreen) {
+                  onExitFullscreen?.();
+                }
+                closePanel();
+              }}
               hitSlop={12}
               style={{ padding: 4 }}
               accessibilityLabel="Close coach"
             >
-              <X size={17} color={colors.mutedForeground} />
+              <X size={18} color={colors.mutedForeground} />
             </Pressable>
           </View>
         </Animated.View>
@@ -415,13 +498,17 @@ export function HomeCoach({
                       borderRadius: radius.lg,
                       borderWidth: 1,
                       borderColor: isUser ? colors.primary : colors.cardBorder,
-                      backgroundColor: isUser ? colors.primary : colors.background,
+                      backgroundColor: isUser
+                        ? colors.primary
+                        : colors.background,
                     }}
                   >
                     <Text
                       style={{
                         ...typography.small,
-                        color: isUser ? colors.primaryForeground : colors.foreground,
+                        color: isUser
+                          ? colors.primaryForeground
+                          : colors.foreground,
                       }}
                     >
                       {item.text}
@@ -455,7 +542,10 @@ export function HomeCoach({
                       <Text
                         style={[
                           typography.caption,
-                          { color: colors.primaryForeground, fontWeight: "700" },
+                          {
+                            color: colors.primaryForeground,
+                            fontWeight: "700",
+                          },
                         ]}
                       >
                         {userInitial}
@@ -469,71 +559,26 @@ export function HomeCoach({
         </Animated.View>
       ) : null}
 
-      {/* Composer — paddingBottom lifts the input above the floating tab bar */}
+      {/* Composer aligned with Nutrition ChatInputBar */}
       <Animated.View style={{ paddingBottom: composerBottomPad }}>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: spacing.xs,
-            paddingHorizontal: spacing.sm,
-            paddingTop: spacing.xs,
+        <ChatInputBar
+          onSendText={(text) => {
+            void handleSendText(text);
           }}
-        >
-          <TextInput
-            value={input}
-            onChangeText={setInput}
-            placeholder={
-              remaining === 0
-                ? "Daily limit reached"
-                : !hasProvider
-                ? "No AI provider configured"
-                : "Ask your coach..."
+          onAudioRecorded={(payload) => {
+            void handleAudioRecorded(payload);
+          }}
+          onImageSelected={handleImageSelected}
+          disabled={isLoading || !hasProvider || remaining <= 0}
+          placeholder="Talk with your coach today"
+          onInputFocus={() => {
+            if (!panelExpandedRef.current) {
+              openPanel();
             }
-            placeholderTextColor={colors.mutedForeground}
-            editable={remaining > 0 && hasProvider}
-            onFocus={() => {
-              if (!panelExpandedRef.current) openPanel();
-            }}
-            onSubmitEditing={handleSend}
-            returnKeyType="send"
-            style={{
-              flex: 1,
-              height: 40,
-              borderRadius: radius.lg,
-              paddingHorizontal: spacing.sm,
-              backgroundColor: colors.surface,
-              color: colors.foreground,
-              fontSize: 14,
-              borderWidth: 1,
-              borderColor: colors.cardBorder,
-            }}
-            accessibilityLabel="Coach message input"
-          />
-          <Pressable
-            onPress={handleSend}
-            disabled={!canSend}
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: radius.lg,
-              backgroundColor: canSend ? colors.primary : colors.surface,
-              borderWidth: 1,
-              borderColor: canSend ? colors.primary : colors.cardBorder,
-              alignItems: "center",
-              justifyContent: "center",
-              opacity: canSend ? 1 : 0.5,
-            }}
-            accessibilityRole="button"
-            accessibilityLabel="Send message"
-          >
-            <Send
-              size={16}
-              color={canSend ? colors.primaryForeground : colors.mutedForeground}
-            />
-          </Pressable>
-        </View>
+          }}
+        />
       </Animated.View>
-    </Animated.View>
+      </Animated.View>
+    </>
   );
 }

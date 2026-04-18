@@ -50,6 +50,8 @@ export interface ChatInputBarProps {
   onAudioRecorded: (payload: AudioRecordedPayload) => void;
   onImageSelected: (uri: string) => void;
   disabled?: boolean;
+  placeholder?: string;
+  onInputFocus?: () => void;
 }
 
 function formatDuration(seconds: number): string {
@@ -63,6 +65,8 @@ export function ChatInputBar({
   onAudioRecorded,
   onImageSelected,
   disabled = false,
+  placeholder = "O que comeste?",
+  onInputFocus,
 }: ChatInputBarProps) {
   const colors = useThemeStore((s) => s.colors);
   const showToast = useToastStore((s) => s.show);
@@ -698,8 +702,9 @@ export function ChatInputBar({
         <TextInput
           value={text}
           onChangeText={setText}
+          onFocus={onInputFocus}
           editable={!disabled && !isRecording}
-          placeholder="O que comeste?"
+          placeholder={placeholder}
           placeholderTextColor={colors.mutedForeground}
           multiline
           numberOfLines={1}

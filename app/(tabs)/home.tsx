@@ -32,7 +32,6 @@ import { useThemeStore } from "@/stores/theme.store";
 import { spacing } from "@/constants/spacing";
 import { radius } from "@/constants/radius";
 import { typography } from "@/constants/typography";
-import { FLOATING_TAB_BAR_CLEARANCE } from "@/constants/layout";
 import { withOpacity } from "@/lib/color";
 
 // ─── Helpers ──────────────────────────────────────────────────────
@@ -237,8 +236,8 @@ export default function HomeScreen() {
         contentContainerStyle={{
           paddingTop: insets.top + spacing.md,
           paddingHorizontal: spacing.md,
-          // Clear the collapsed HomeCoach panel (same formula as COLLAPSED_H in HomeCoach.tsx)
-          paddingBottom: insets.bottom + FLOATING_TAB_BAR_CLEARANCE + 60 + spacing.md,
+          // Clear the collapsed chat panel consistently with nutrition/workouts.
+          paddingBottom: insets.bottom + 160,
           gap: spacing.md,
         }}
         showsVerticalScrollIndicator={false}
