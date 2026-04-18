@@ -1,0 +1,103 @@
+🚀 GUIA RÁPIDO: EXPO GO NO ANDROID - SOLUÇÃO FINAL
+
+================================================================================
+1️⃣ PRÉ-REQUISITOS (60 SEGUNDOS)
+================================================================================
+
+✅ Desative sua VPN (NordLynx):
+   - Abra NordLynx e clique "Disconnect"
+   - Aguarde 5 segundos
+   
+✅ Verifique que PC e Android estão na MESMA rede Wi-Fi:
+   - PC: Conectado em "Wi-Fi 2" (192.168.1.54)
+   - Android: Abra Configurações > Wi-Fi e conecte na MESMA rede
+
+✅ Abra Expo Go no Android (já deve estar instalado):
+   - Google Play Store > busque "Expo Go"
+   - Se não tiver, instale
+
+
+================================================================================
+2️⃣ INICIAR O SERVIDOR (ESCOLHA UMA OPÇÃO)
+================================================================================
+
+OPÇÃO A: Script PowerShell (RECOMENDADO - mais seguro):
+   PS> .\start-expo-go-fix.ps1
+
+OPÇÃO B: Comando direto:
+   PS> npm run start:go:fix
+
+OPÇÃO C: Manual com variável de ambiente:
+   PS> $env:REACT_NATIVE_PACKAGER_HOSTNAME='192.168.1.54'; npx expo start --go --lan --clear
+
+
+================================================================================
+3️⃣ APÓS INICIAR (AGUARDE BUNDLE)
+================================================================================
+
+📝 Você verá algo assim no terminal:
+   › Using Expo Go
+   › Metro waiting on exp://192.168.1.54:8081
+   › Scan the QR code above with Expo Go (Android)
+
+✅ IMPORTANTE - No seu Android Expo Go:
+   1. Abra o app Expo Go
+   2. Pressione ➕ (botão para adicionar)
+   3. Use câmera para escanear o QR code branco
+
+⏳ AGUARDE:
+   - Metro Bundle está compilando (~60 segundos)
+   - Você verá: "Android Bundled 60000ms"
+   - Depois o app deve abrir no seu Android
+
+
+================================================================================
+4️⃣ SE AINDA TRAVAR
+================================================================================
+
+❌ Se ficar esperando para sempre:
+
+A. Verifique a rede:
+   - Android mostra mensagem "Failed to connect"?
+   - Volte para Wi-Fi > desconecte e reconecte na rede
+
+B. Força porta diferente:
+   PS> $env:REACT_NATIVE_PACKAGER_HOSTNAME='192.168.1.54'; npx expo start --go --lan --clear --port 8086
+
+C. Volte para TUNNEL (mais lento, mas sempre funciona):
+   PS> npm run start:go:tunnel
+
+
+================================================================================
+5️⃣ LOGS DE ERRO - O QUE PROCURAR
+================================================================================
+
+✅ CORRETO - você deve ver:
+   › Using Expo Go
+   › Metro waiting on exp://192.168.1.54:8081
+   › Android Bundled 60000ms
+
+❌ ERRADO (não comece a escanear):
+   › Using development build
+   › Metro waiting on exp+betteru://
+   (isto significa Dev Client mode — pressione "s" no terminal para voltar)
+
+
+================================================================================
+6️⃣ PORTAS ABERTAS (Windows Firewall)
+================================================================================
+
+Se seu Firewall bloquear, execute NO PowerShell ADMIN:
+
+New-NetFirewallRule -DisplayName "Expo Metro" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8081-8090
+
+================================================================================
+
+ℹ️ RESUMO FINAL:
+1. Desative NordLynx
+2. Rodê: npm run start:go:fix (ou script PowerShell)
+3. Escaneie QR no Expo Go do Android
+4. Aguarde ~60 segundos o bundler compilar
+5. App deve abrir!
+
+Qualquer dúvida, roda com --port 8086 ou use tunnel.

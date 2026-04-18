@@ -30,6 +30,7 @@ import { SocialAuthSection } from "@/components/auth/SocialAuthSection";
 import { useRef, useState } from "react";
 import { Moon, Smartphone, Sun } from "lucide-react-native";
 import type { UserProfile } from "@/types";
+import { useAuthStore } from "@/stores/auth.store";
 
 const loginSchema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -69,6 +70,7 @@ export default function AuthScreen() {
   const [loginCooldown, setLoginCooldown] = useState(false);
   const [signupCooldown, setSignupCooldown] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+  const setUser = useAuthStore((s) => s.setUser);
 
   const {
     isLoading: isGoogleLoading,
@@ -116,11 +118,13 @@ export default function AuthScreen() {
   const onLoginSubmit = async (data: LoginForm) => {
     setLoginLoading(true);
     try {
-      await signInWithEmailAndPassword(
+      const cred = await signInWithEmailAndPassword(
         auth,
         data.email.trim().toLowerCase(),
         data.password,
       );
+      setUser(cred.user);
+      router.replace("/(tabs)/home");
     } catch (e: any) {
       const code = e?.code as string | undefined;
       const msg =
@@ -145,7 +149,12 @@ export default function AuthScreen() {
     try {
       const email = data.email.trim().toLowerCase();
       const name = data.name.trim();
-      const cred = await createUserWithEmailAndPassword(auth, email, data.password);
+      const cred = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        data.password,
+      );
+      setUser(cred.user);
       await updateProfile(cred.user, { displayName: name });
       await sendEmailVerification(cred.user);
 
@@ -184,7 +193,10 @@ export default function AuthScreen() {
 
   const handleGoogleLogin = async () => {
     try {
-      await signInWithGoogle();
+      const result = await signInWithGoogle();
+      router.replace(
+        result.isNewProfile ? "/(auth)/onboarding/gender" : "/(tabs)/home",
+      );
     } catch (e: any) {
       if (e?.message === "Google sign-in was cancelled.") return;
       showToast(e?.message || "Google sign-in failed.", "error");
@@ -195,8 +207,14 @@ export default function AuthScreen() {
     try {
       const result = await signInWithGoogle();
       if (result.isNewProfile) {
-        showToast("Google account connected. Let's finish your profile.", "success");
+        showToast(
+          "Google account connected. Let's finish your profile.",
+          "success",
+        );
+        router.replace("/(auth)/onboarding/gender");
+        return;
       }
+      router.replace("/(tabs)/home");
     } catch (e: any) {
       if (e?.message === "Google sign-in was cancelled.") return;
       showToast(e?.message ?? "Failed to sign up with Google.", "error");
@@ -264,7 +282,8 @@ export default function AuthScreen() {
               maxWidth: 320,
             }}
           >
-            Create an account or log in to explore your personalized fitness app.
+            Create an account or log in to explore your personalized fitness
+            app.
           </Text>
         </View>
 
@@ -524,7 +543,9 @@ export default function AuthScreen() {
                         returnKeyType="next"
                         blurOnSubmit={false}
                         onFocus={() => ensureInputVisible("password")}
-                        onSubmitEditing={() => signupConfirmRef.current?.focus()}
+                        onSubmitEditing={() =>
+                          signupConfirmRef.current?.focus()
+                        }
                         onBlur={onBlur}
                         onChangeText={onChange}
                         value={value}
@@ -540,7 +561,10 @@ export default function AuthScreen() {
                   render={({ field: { onChange, onBlur, value } }) => (
                     <View
                       onLayout={(e) =>
-                        setInputOffset("confirmPassword", e.nativeEvent.layout.y)
+                        setInputOffset(
+                          "confirmPassword",
+                          e.nativeEvent.layout.y,
+                        )
                       }
                     >
                       <Input
@@ -665,8 +689,7 @@ export default function AuthScreen() {
                 style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
               >
                 {(["pt", "en"] as const).map((lang) => {
-                  const isActive =
-                    lang === "pt" ? isPortuguese : !isPortuguese;
+                  const isActive = lang === "pt" ? isPortuguese : !isPortuguese;
                   return (
                     <Pressable
                       key={lang}

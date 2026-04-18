@@ -3,6 +3,7 @@ import { ActivityIndicator, View } from "react-native";
 import { Redirect, Stack, useSegments } from "expo-router";
 import { useAuthStore } from "@/stores/auth.store";
 import { useThemeStore } from "@/stores/theme.store";
+import { AUTH_ROUTE_GUARDS_DISABLED } from "@/lib/auth-flow-flags";
 
 const PROFILE_WAIT_MS = 5000;
 
@@ -20,17 +21,33 @@ export default function AuthLayout() {
   const isOnboardingRoute = segments.includes("onboarding");
   const isVerifyEmailRoute = segments.includes("verify-email");
 
+  if (AUTH_ROUTE_GUARDS_DISABLED) {
+    return (
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: colors.background },
+          animation: "slide_from_right",
+        }}
+      />
+    );
+  }
+
   const [profileTimedOut, setProfileTimedOut] = useState(false);
   const profileTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const shouldWait =
-      isAuthenticated && !profile && !profileError && !isLoading && !isInitializing;
+      isAuthenticated &&
+      !profile &&
+      !profileError &&
+      !isLoading &&
+      !isInitializing;
 
     if (shouldWait) {
       profileTimeoutRef.current = setTimeout(
         () => setProfileTimedOut(true),
-        PROFILE_WAIT_MS
+        PROFILE_WAIT_MS,
       );
     }
 
@@ -42,7 +59,13 @@ export default function AuthLayout() {
     };
   }, [isAuthenticated, profile, profileError, isLoading, isInitializing]);
 
-  console.log("[AuthLayout] render —", { isInitializing, isLoading, isAuthenticated, hasProfile: !!profile, segments });
+  console.log("[AuthLayout] render —", {
+    isInitializing,
+    isLoading,
+    isAuthenticated,
+    hasProfile: !!profile,
+    segments,
+  });
 
   if (isInitializing || isLoading) {
     return (
@@ -79,12 +102,16 @@ export default function AuthLayout() {
   }
 
   if (!isAuthenticated && (isOnboardingRoute || isVerifyEmailRoute)) {
-    console.log("[AuthLayout] Unauthenticated on protected route — redirecting to auth");
+    console.log(
+      "[AuthLayout] Unauthenticated on protected route — redirecting to auth",
+    );
     return <Redirect href="/(auth)/auth" />;
   }
 
   if (isAuthenticated && user && !user.emailVerified && !isVerifyEmailRoute) {
-    console.log("[AuthLayout] Email not verified — redirecting to verify-email");
+    console.log(
+      "[AuthLayout] Email not verified — redirecting to verify-email",
+    );
     return <Redirect href="/(auth)/verify-email" />;
   }
 

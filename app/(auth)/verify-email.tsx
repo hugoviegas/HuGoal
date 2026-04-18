@@ -54,6 +54,7 @@ export default function VerifyEmailScreen() {
 
       if (auth.currentUser?.emailVerified) {
         showToast("Email verified successfully.", "success");
+        router.replace("/(auth)/onboarding/gender");
         return;
       }
 

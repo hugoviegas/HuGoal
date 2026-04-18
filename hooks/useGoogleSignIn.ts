@@ -10,14 +10,21 @@ import {
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { getDocument, setDocument } from "@/lib/firestore";
+import { useAuthStore } from "@/stores/auth.store";
+import { GOOGLE_SIGN_IN_DISABLED } from "../lib/auth-flow-flags";
 import type { UserProfile } from "@/types";
 
-console.log("[useGoogleSignIn] module loaded — calling maybeCompleteAuthSession");
+console.log(
+  "[useGoogleSignIn] module loaded — calling maybeCompleteAuthSession",
+);
 try {
   WebBrowser.maybeCompleteAuthSession();
   console.log("[useGoogleSignIn] maybeCompleteAuthSession OK");
 } catch (e: any) {
-  console.error("[useGoogleSignIn] maybeCompleteAuthSession THREW:", e?.message ?? e);
+  console.error(
+    "[useGoogleSignIn] maybeCompleteAuthSession THREW:",
+    e?.message ?? e,
+  );
 }
 
 function buildDefaultProfile(
@@ -43,7 +50,17 @@ export interface GoogleSignInResult {
   isNewProfile: boolean;
 }
 
-export function useGoogleSignIn() {
+function useGoogleSignInDisabled() {
+  return {
+    isReady: false,
+    isLoading: false,
+    signInWithGoogle: async (): Promise<GoogleSignInResult> => {
+      throw new Error("Google sign-in is temporarily disabled for safe boot.");
+    },
+  };
+}
+
+function useGoogleSignInEnabled() {
   const [isLoading, setIsLoading] = useState(false);
 
   // On web, makeRedirectUri() returns the current page URL (required for Google OAuth web flow).
@@ -53,10 +70,24 @@ export function useGoogleSignIn() {
   const redirectUri =
     Platform.OS === "web" ? AuthSession.makeRedirectUri() : undefined;
 
-  console.log("[useGoogleSignIn] hook mount — platform:", Platform.OS, "redirectUri:", redirectUri);
-  console.log("[useGoogleSignIn] androidClientId:", process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ?? "MISSING");
-  console.log("[useGoogleSignIn] iosClientId:", process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? "MISSING");
-  console.log("[useGoogleSignIn] webClientId:", process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? "MISSING");
+  console.log(
+    "[useGoogleSignIn] hook mount — platform:",
+    Platform.OS,
+    "redirectUri:",
+    redirectUri,
+  );
+  console.log(
+    "[useGoogleSignIn] androidClientId:",
+    process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ?? "MISSING",
+  );
+  console.log(
+    "[useGoogleSignIn] iosClientId:",
+    process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? "MISSING",
+  );
+  console.log(
+    "[useGoogleSignIn] webClientId:",
+    process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? "MISSING",
+  );
 
   useEffect(() => {
     console.log("[useGoogleSignIn] redirectUri (effect):", redirectUri);
@@ -70,7 +101,10 @@ export function useGoogleSignIn() {
     webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
     ...(redirectUri !== undefined && { redirectUri }),
   });
-  console.log("[useGoogleSignIn] useIdTokenAuthRequest returned — request ready:", !!request);
+  console.log(
+    "[useGoogleSignIn] useIdTokenAuthRequest returned — request ready:",
+    !!request,
+  );
 
   const signInWithGoogle =
     useCallback(async (): Promise<GoogleSignInResult> => {
@@ -93,6 +127,7 @@ export function useGoogleSignIn() {
 
         const credential = GoogleAuthProvider.credential(idToken);
         const userCredential = await signInWithCredential(auth, credential);
+        useAuthStore.getState().setUser(userCredential.user);
 
         const currentUser = userCredential.user;
         const existingProfile = await getDocument<UserProfile>(
@@ -142,4 +177,12 @@ export function useGoogleSignIn() {
     isLoading: isLoading || !isReady,
     signInWithGoogle,
   };
+}
+
+const useGoogleSignInImpl = GOOGLE_SIGN_IN_DISABLED
+  ? useGoogleSignInDisabled
+  : useGoogleSignInEnabled;
+
+export function useGoogleSignIn() {
+  return useGoogleSignInImpl();
 }
