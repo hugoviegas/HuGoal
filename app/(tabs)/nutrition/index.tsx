@@ -56,6 +56,7 @@ import { calculateDailyGoal } from "@/lib/macro-calculator";
 import { generateId } from "@/lib/utils";
 import { formatLocalDateKey } from "@/lib/workouts/weekly-schedule";
 import { useAuthStore } from "@/stores/auth.store";
+import { useNavigationStore } from "@/stores/navigation.store";
 import { useNutritionStore } from "@/stores/nutrition.store";
 import { useThemeStore } from "@/stores/theme.store";
 import { useToastStore } from "@/stores/toast.store";
@@ -204,6 +205,8 @@ export default function NutritionScreen() {
   const isViewingToday = selectedDate === todayDateKey;
 
   const {
+    COLLAPSED_H,
+    EXPANDED_H,
     panelHeight,
     keyboardOffset,
     composerBottomPadding,
@@ -217,6 +220,41 @@ export default function NutritionScreen() {
     insetsBottom: insets.bottom,
     windowHeight,
   });
+
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const topBarAnim = useRef(new Animated.Value(0)).current;
+  const headerHeightRef = useRef(100);
+
+  const enterFullscreen = useCallback(() => {
+    setIsFullscreen(true);
+    panelHeight.setValue(windowHeight);
+    composerBottomPadding.setValue(insets.bottom);
+    Animated.timing(topBarAnim, {
+      toValue: -headerHeightRef.current,
+      duration: 280,
+      useNativeDriver: true,
+    }).start();
+  }, [panelHeight, composerBottomPadding, insets.bottom, topBarAnim, windowHeight]);
+
+  const exitFullscreen = useCallback(() => {
+    setIsFullscreen(false);
+    panelHeight.setValue(EXPANDED_H);
+    composerBottomPadding.setValue(80);
+    Animated.timing(topBarAnim, {
+      toValue: 0,
+      duration: 280,
+      useNativeDriver: true,
+    }).start();
+  }, [panelHeight, composerBottomPadding, EXPANDED_H, topBarAnim]);
+
+  const setNavbarVisible = useNavigationStore((s) => s.setNavbarVisible);
+
+  useEffect(() => {
+    if (isFullscreen) {
+      setNavbarVisible(false);
+      return () => setNavbarVisible(true);
+    }
+  }, [isFullscreen, setNavbarVisible]);
 
   const selectedDateLabel = useMemo(() => {
     const parsed = new Date(`${selectedDate}T00:00:00`);
@@ -817,22 +855,27 @@ export default function NutritionScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <PageHeader
-        title="Nutrition"
-        streakCount={streakDays.length}
-        onSettingsPress={() => router.push("/(tabs)/nutrition/settings")}
-        onTodayPress={
-          !isViewingToday ? () => setSelectedDate(todayDateKey) : undefined
-        }
-        calendarSlot={
-          <NutritionWeekCalendar
-            selectedDate={selectedDate}
-            onSelectDate={setSelectedDate}
-            loggedDateKeys={loggedDateKeys}
-            streakDateKeys={streakDays}
-          />
-        }
-      />
+      <Animated.View
+        onLayout={(e) => { headerHeightRef.current = e.nativeEvent.layout.height; }}
+        style={{ transform: [{ translateY: topBarAnim }], zIndex: 10 }}
+      >
+        <PageHeader
+          title="Nutrition"
+          streakCount={streakDays.length}
+          onSettingsPress={() => router.push("/(tabs)/nutrition/settings")}
+          onTodayPress={
+            !isViewingToday ? () => setSelectedDate(todayDateKey) : undefined
+          }
+          calendarSlot={
+            <NutritionWeekCalendar
+              selectedDate={selectedDate}
+              onSelectDate={setSelectedDate}
+              loggedDateKeys={loggedDateKeys}
+              streakDateKeys={streakDays}
+            />
+          }
+        />
+      </Animated.View>
 
       <ScrollView
         style={{ flex: 1 }}
@@ -1044,6 +1087,9 @@ export default function NutritionScreen() {
           }}
           panelContentOpacity={panelContentOpacity}
           composerBottomOffset={composerBottomPadding}
+          isFullscreen={isFullscreen}
+          onEnterFullscreen={enterFullscreen}
+          onExitFullscreen={exitFullscreen}
         />
       </Animated.View>
     </View>

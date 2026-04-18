@@ -355,7 +355,7 @@ export default function AuthScreen() {
                       onSubmitEditing={() => loginPasswordRef.current?.focus()}
                       onBlur={onBlur}
                       onChangeText={onChange}
-                      value={value}
+                      value={value ?? ""}
                       error={loginErrors.email?.message}
                     />
                   )}
@@ -378,7 +378,7 @@ export default function AuthScreen() {
                       ref={loginPasswordRef}
                       onBlur={onBlur}
                       onChangeText={onChange}
-                      value={value}
+                      value={value ?? ""}
                       error={loginErrors.password?.message}
                     />
                   )}
@@ -475,14 +475,25 @@ export default function AuthScreen() {
                       <Input
                         label={t("onboarding.name")}
                         placeholder="Your full name"
-                        autoComplete="name"
+                        autoComplete={Platform.select({
+                          ios: "name",
+                          android: "off",
+                          default: "name",
+                        })}
+                        textContentType={
+                          Platform.OS === "ios" ? "name" : "none"
+                        }
+                        importantForAutofill="no"
+                        autoCorrect={false}
+                        spellCheck={false}
+                        autoCapitalize="words"
                         returnKeyType="next"
                         blurOnSubmit={false}
                         onFocus={() => ensureInputVisible("name")}
                         onSubmitEditing={() => signupEmailRef.current?.focus()}
                         onBlur={onBlur}
                         onChangeText={onChange}
-                        value={value}
+                        value={value ?? ""}
                         error={signupErrors.name?.message}
                       />
                     </View>
@@ -515,7 +526,7 @@ export default function AuthScreen() {
                         }
                         onBlur={onBlur}
                         onChangeText={onChange}
-                        value={value}
+                        value={value ?? ""}
                         error={signupErrors.email?.message}
                       />
                     </View>
@@ -548,7 +559,7 @@ export default function AuthScreen() {
                         }
                         onBlur={onBlur}
                         onChangeText={onChange}
-                        value={value}
+                        value={value ?? ""}
                         error={signupErrors.password?.message}
                       />
                     </View>
@@ -581,7 +592,7 @@ export default function AuthScreen() {
                         onSubmitEditing={handleSignupSubmit}
                         onBlur={onBlur}
                         onChangeText={onChange}
-                        value={value}
+                        value={value ?? ""}
                         error={signupErrors.confirmPassword?.message}
                       />
                     </View>

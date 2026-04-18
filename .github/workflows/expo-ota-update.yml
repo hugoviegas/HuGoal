@@ -147,7 +147,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "eas_branch=preview" >> "$GITHUB_OUTPUT"
-          echo "eas_platform=android" >> "$GITHUB_OUTPUT"
+          echo "eas_platform=all" >> "$GITHUB_OUTPUT"
 
       - name: Ensure channel is linked to branch
         shell: bash

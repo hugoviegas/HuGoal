@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   Animated,
   FlatList,
@@ -7,13 +7,14 @@ import {
   View,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { Bot, Lock, Play, Sparkles } from "lucide-react-native";
+import { Lock, Maximize2, Minimize2, Play, Sparkles } from "lucide-react-native";
 import { format } from "date-fns";
 
 import { spacing } from "@/constants/spacing";
 import { typography } from "@/constants/typography";
 import { useAuthStore } from "@/stores/auth.store";
 import { useThemeStore } from "@/stores/theme.store";
+import { TypingIndicator } from "@/components/shared/TypingIndicator";
 import type { WorkoutSessionContext } from "@/lib/workouts/workout-session-context";
 import type { WorkoutChatMessage } from "@/stores/workout.store";
 import {
@@ -38,67 +39,9 @@ export interface WorkoutChatProps {
   isViewingToday: boolean;
   sessionTargetId: string | null;
   startActionLabel: string;
-}
-
-function TypingIndicator() {
-  const colors = useThemeStore((s) => s.colors);
-  const dot1 = useRef(new Animated.Value(0)).current;
-  const dot2 = useRef(new Animated.Value(0)).current;
-  const dot3 = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const pulse = (dot: Animated.Value, delay: number) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.delay(delay),
-          Animated.timing(dot, { toValue: 1, duration: 300, useNativeDriver: true }),
-          Animated.timing(dot, { toValue: 0, duration: 300, useNativeDriver: true }),
-          Animated.delay(600),
-        ]),
-      );
-
-    const a1 = pulse(dot1, 0);
-    const a2 = pulse(dot2, 150);
-    const a3 = pulse(dot3, 300);
-    a1.start();
-    a2.start();
-    a3.start();
-    return () => {
-      a1.stop();
-      a2.stop();
-      a3.stop();
-    };
-  }, [dot1, dot2, dot3]);
-
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 4,
-        paddingHorizontal: spacing.sm,
-        paddingVertical: spacing.xs,
-        backgroundColor: colors.background,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: colors.cardBorder,
-        alignSelf: "flex-start",
-      }}
-    >
-      {[dot1, dot2, dot3].map((dot, i) => (
-        <Animated.View
-          key={i}
-          style={{
-            width: 6,
-            height: 6,
-            borderRadius: 3,
-            backgroundColor: colors.mutedForeground,
-            opacity: dot,
-          }}
-        />
-      ))}
-    </View>
-  );
+  isFullscreen?: boolean;
+  onEnterFullscreen?: () => void;
+  onExitFullscreen?: () => void;
 }
 
 export function WorkoutChat({
@@ -116,6 +59,9 @@ export function WorkoutChat({
   isViewingToday,
   sessionTargetId,
   startActionLabel,
+  isFullscreen,
+  onEnterFullscreen,
+  onExitFullscreen,
 }: WorkoutChatProps) {
   const router = useRouter();
   const colors = useThemeStore((s) => s.colors);
@@ -123,6 +69,11 @@ export function WorkoutChat({
     useAuthStore((s) => s.user?.displayName?.trim()?.[0])?.toUpperCase() ?? "U";
 
   const listRef = useRef<FlatList<WorkoutChatMessage> | null>(null);
+
+  const loadingKey = useMemo(
+    () => `typing-${messages.length}`,
+    [messages.length],
+  );
 
   useEffect(() => {
     if (!messages.length) return;
@@ -139,14 +90,20 @@ export function WorkoutChat({
   return (
     <View style={{ flex: 1, backgroundColor: colors.surface }}>
       <Pressable
-        onPress={onTogglePanel}
+        onPress={isFullscreen ? onExitFullscreen : onTogglePanel}
         style={{
           alignItems: "center",
           paddingTop: 8,
           paddingBottom: expanded ? 6 : 0,
         }}
         accessibilityRole="button"
-        accessibilityLabel={expanded ? "Collapse workout chat" : "Expand workout chat"}
+        accessibilityLabel={
+          isFullscreen
+            ? "Exit fullscreen"
+            : expanded
+              ? "Collapse workout chat"
+              : "Expand workout chat"
+        }
       >
         <View
           style={{
@@ -157,28 +114,6 @@ export function WorkoutChat({
           }}
         />
       </Pressable>
-
-      {!expanded ? (
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: spacing.sm,
-            paddingBottom: 2,
-            gap: 6,
-          }}
-        >
-          <Bot size={13} color={colors.primary} />
-          <Text
-            style={{ ...typography.caption, color: colors.mutedForeground }}
-            numberOfLines={1}
-          >
-            {sessionContext?.template_name
-              ? `Coach · ${sessionContext.template_name}`
-              : "Workout Coach"}
-          </Text>
-        </View>
-      ) : null}
 
       {expanded ? (
         <Animated.View style={{ flex: 1, opacity: panelContentOpacity }}>
@@ -207,6 +142,18 @@ export function WorkoutChat({
                 </Text>
               ) : null}
             </View>
+            <Pressable
+              onPress={isFullscreen ? onExitFullscreen : onEnterFullscreen}
+              hitSlop={12}
+              accessibilityLabel={isFullscreen ? "Exit fullscreen chat" : "Fullscreen chat"}
+              style={{ padding: 4 }}
+            >
+              {isFullscreen ? (
+                <Minimize2 size={18} color={colors.mutedForeground} />
+              ) : (
+                <Maximize2 size={18} color={colors.mutedForeground} />
+              )}
+            </Pressable>
           </View>
 
           <FlatList
@@ -227,7 +174,13 @@ export function WorkoutChat({
                 Ask me to adjust today&apos;s workout, substitute exercises, or create a new template.
               </Text>
             }
-            ListFooterComponent={isLoading ? <TypingIndicator /> : null}
+            ListFooterComponent={
+              isLoading ? (
+                <View key={loadingKey} style={{ marginTop: spacing.xs }}>
+                  <TypingIndicator />
+                </View>
+              ) : null
+            }
             renderItem={({ item }) => {
               const isUser = item.type === "user_text" || item.type === "user_file";
               const messageTime = format(new Date(item.createdAt), "HH:mm");

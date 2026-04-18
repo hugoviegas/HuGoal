@@ -65,7 +65,9 @@
       "checkAutomatically": "ON_LOAD",
       "url": "https://u.expo.dev/211cd445-e6d4-48c8-a1ee-c58716ec6a26"
     },
-    "runtimeVersion": "1.0.0",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
     "extra": {
       "router": {},
       "eas": {

@@ -66,6 +66,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { WorkoutChat } from "@/components/workouts/WorkoutChat";
 import { useWorkoutChatPanel } from "@/hooks/useWorkoutChatPanel";
 import { useAuthStore } from "@/stores/auth.store";
+import { useNavigationStore } from "@/stores/navigation.store";
 import { useThemeStore } from "@/stores/theme.store";
 import { useToastStore } from "@/stores/toast.store";
 import { useWorkoutStore } from "@/stores/workout.store";
@@ -312,6 +313,8 @@ export default function WorkoutsScreen() {
   const todayDateKey = formatLocalDateKey(new Date());
 
   const {
+    COLLAPSED_H,
+    EXPANDED_H,
     panelHeight,
     keyboardOffset,
     composerBottomPadding,
@@ -325,6 +328,41 @@ export default function WorkoutsScreen() {
     insetsBottom: insets.bottom,
     windowHeight,
   });
+
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const topBarAnim = useRef(new Animated.Value(0)).current;
+  const headerHeightRef = useRef(100);
+
+  const enterFullscreen = useCallback(() => {
+    setIsFullscreen(true);
+    panelHeight.setValue(windowHeight);
+    composerBottomPadding.setValue(insets.bottom);
+    Animated.timing(topBarAnim, {
+      toValue: -headerHeightRef.current,
+      duration: 280,
+      useNativeDriver: true,
+    }).start();
+  }, [panelHeight, composerBottomPadding, insets.bottom, topBarAnim, windowHeight]);
+
+  const exitFullscreen = useCallback(() => {
+    setIsFullscreen(false);
+    panelHeight.setValue(EXPANDED_H);
+    composerBottomPadding.setValue(80);
+    Animated.timing(topBarAnim, {
+      toValue: 0,
+      duration: 280,
+      useNativeDriver: true,
+    }).start();
+  }, [panelHeight, composerBottomPadding, EXPANDED_H, topBarAnim]);
+
+  const setNavbarVisible = useNavigationStore((s) => s.setNavbarVisible);
+
+  useEffect(() => {
+    if (isFullscreen) {
+      setNavbarVisible(false);
+      return () => setNavbarVisible(true);
+    }
+  }, [isFullscreen, setNavbarVisible]);
 
   const weekPagerWidth = Math.max(280, windowWidth - 32);
   const weekScrollRef = useRef<FlatList<(typeof weekPages)[number]> | null>(
@@ -927,6 +965,10 @@ export default function WorkoutsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <Animated.View
+        onLayout={(e) => { headerHeightRef.current = e.nativeEvent.layout.height; }}
+        style={{ transform: [{ translateY: topBarAnim }], zIndex: 10 }}
+      >
       <PageHeader
         title="Workouts"
         streakCount={profile?.streak_current ?? 0}
@@ -1089,6 +1131,7 @@ export default function WorkoutsScreen() {
           />
         }
       />
+      </Animated.View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -1878,6 +1921,9 @@ export default function WorkoutsScreen() {
             isViewingToday={isViewingToday}
             sessionTargetId={sessionTargetId ?? null}
             startActionLabel={startActionLabel}
+            isFullscreen={isFullscreen}
+            onEnterFullscreen={enterFullscreen}
+            onExitFullscreen={exitFullscreen}
           />
         </Animated.View>
       ) : null}

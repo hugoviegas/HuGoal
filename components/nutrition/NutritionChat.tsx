@@ -12,11 +12,12 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { Sparkles, Mic } from "lucide-react-native";
+import { Maximize2, Mic, Minimize2, Sparkles } from "lucide-react-native";
 import { format } from "date-fns";
 
 import { ChatInputBar } from "@/components/nutrition/ChatInputBar";
 import type { AudioRecordedPayload } from "@/components/nutrition/ChatInputBar";
+import { TypingIndicator } from "@/components/shared/TypingIndicator";
 import { spacing } from "@/constants/spacing";
 import { typography } from "@/constants/typography";
 import type { NutritionChatItem } from "@/lib/ai/nutritionChatAI";
@@ -50,6 +51,9 @@ interface NutritionChatProps {
   onTogglePanel: () => void;
   panelContentOpacity: Animated.AnimatedInterpolation<number>;
   composerBottomOffset: Animated.Value;
+  isFullscreen?: boolean;
+  onEnterFullscreen?: () => void;
+  onExitFullscreen?: () => void;
 }
 
 interface UseNutritionChatPanelParams {
@@ -250,100 +254,6 @@ export function useNutritionChatPanel({
   };
 }
 
-// MODIFIED: AI typing indicator for loading state.
-function TypingIndicator() {
-  const colors = useThemeStore((s) => s.colors);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const dotAnims = useRef([
-    new Animated.Value(0),
-    new Animated.Value(0),
-    new Animated.Value(0),
-  ]).current;
-
-  useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-
-    const loops = dotAnims.map((anim, index) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.delay(index * 150),
-          Animated.timing(anim, {
-            toValue: -6,
-            duration: 300,
-            useNativeDriver: true,
-          }),
-          Animated.timing(anim, {
-            toValue: 0,
-            duration: 300,
-            useNativeDriver: true,
-          }),
-        ]),
-      ),
-    );
-
-    loops.forEach((loop) => loop.start());
-
-    return () => {
-      loops.forEach((loop) => loop.stop());
-    };
-  }, [dotAnims, fadeAnim]);
-
-  return (
-    <Animated.View
-      style={{
-        opacity: fadeAnim,
-        flexDirection: "row",
-        alignItems: "flex-end",
-        gap: spacing.xs,
-      }}
-    >
-      <View
-        style={{
-          width: 28,
-          height: 28,
-          borderRadius: 14,
-          backgroundColor: `${colors.primary}22`,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Sparkles size={14} color={colors.primary} />
-      </View>
-
-      <View
-        style={{
-          backgroundColor: colors.card,
-          borderRadius: 18,
-          borderBottomLeftRadius: 4,
-          paddingHorizontal: 14,
-          paddingVertical: 10,
-          borderWidth: 1,
-          borderColor: colors.cardBorder,
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 4,
-        }}
-      >
-        {dotAnims.map((anim, idx) => (
-          <Animated.View
-            key={`typing-dot-${idx}`}
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: 3.5,
-              backgroundColor: colors.mutedForeground,
-              transform: [{ translateY: anim }],
-            }}
-          />
-        ))}
-      </View>
-    </Animated.View>
-  );
-}
 
 function toNumber(value: string, fallback: number): number {
   const parsed = Number(value.replace(",", "."));
@@ -381,6 +291,9 @@ export function NutritionChat({
   onTogglePanel,
   panelContentOpacity,
   composerBottomOffset,
+  isFullscreen,
+  onEnterFullscreen,
+  onExitFullscreen,
 }: NutritionChatProps) {
   const colors = useThemeStore((s) => s.colors);
   const userInitial =
@@ -408,7 +321,7 @@ export function NutritionChat({
       }}
     >
       <Pressable
-        onPress={onTogglePanel}
+        onPress={isFullscreen ? onExitFullscreen : onTogglePanel}
         style={{
           alignItems: "center",
           paddingTop: 6,
@@ -416,7 +329,11 @@ export function NutritionChat({
         }}
         accessibilityRole="button"
         accessibilityLabel={
-          expanded ? "Collapse nutrition chat" : "Expand nutrition chat"
+          isFullscreen
+            ? "Exit fullscreen"
+            : expanded
+              ? "Collapse nutrition chat"
+              : "Expand nutrition chat"
         }
       >
         <View
@@ -449,10 +366,22 @@ export function NutritionChat({
           >
             <Sparkles size={16} color={colors.primary} />
             <Text
-              style={[typography.smallMedium, { color: colors.foreground }]}
+              style={[typography.smallMedium, { color: colors.foreground, flex: 1 }]}
             >
               Nutrition Coach Chat
             </Text>
+            <Pressable
+              onPress={isFullscreen ? onExitFullscreen : onEnterFullscreen}
+              hitSlop={12}
+              accessibilityLabel={isFullscreen ? "Exit fullscreen chat" : "Fullscreen chat"}
+              style={{ padding: 4 }}
+            >
+              {isFullscreen ? (
+                <Minimize2 size={18} color={colors.mutedForeground} />
+              ) : (
+                <Maximize2 size={18} color={colors.mutedForeground} />
+              )}
+            </Pressable>
           </View>
 
           <FlatList
