@@ -70,6 +70,7 @@ export default function AuthScreen() {
   const [loginCooldown, setLoginCooldown] = useState(false);
   const [signupCooldown, setSignupCooldown] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+  const [signupName, setSignupName] = useState("");
   const setUser = useAuthStore((s) => s.setUser);
 
   const {
@@ -104,6 +105,7 @@ export default function AuthScreen() {
   const {
     control: signupControl,
     handleSubmit: signupHandleSubmit,
+    setValue: signupSetValue,
     formState: { errors: signupErrors },
   } = useForm<SignupForm>({
     resolver: zodResolver(signupSchema),
@@ -466,7 +468,7 @@ export default function AuthScreen() {
                 <Controller
                   control={signupControl}
                   name="name"
-                  render={({ field: { onChange, onBlur, value } }) => (
+                  render={({ field: { onChange, onBlur } }) => (
                     <View
                       onLayout={(e) =>
                         setInputOffset("name", e.nativeEvent.layout.y)
@@ -475,14 +477,8 @@ export default function AuthScreen() {
                       <Input
                         label={t("onboarding.name")}
                         placeholder="Your full name"
-                        autoComplete={Platform.select({
-                          ios: "name",
-                          android: "off",
-                          default: "name",
-                        })}
-                        textContentType={
-                          Platform.OS === "ios" ? "name" : "none"
-                        }
+                        autoComplete="off"
+                        textContentType="none"
                         importantForAutofill="no"
                         autoCorrect={false}
                         spellCheck={false}
@@ -492,8 +488,15 @@ export default function AuthScreen() {
                         onFocus={() => ensureInputVisible("name")}
                         onSubmitEditing={() => signupEmailRef.current?.focus()}
                         onBlur={onBlur}
-                        onChangeText={onChange}
-                        value={value ?? ""}
+                        onChangeText={(text) => {
+                          setSignupName(text);
+                          signupSetValue("name", text, {
+                            shouldDirty: true,
+                            shouldTouch: true,
+                            shouldValidate: true,
+                          });
+                        }}
+                        value={signupName}
                         error={signupErrors.name?.message}
                       />
                     </View>
