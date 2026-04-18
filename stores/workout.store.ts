@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import type { WorkoutExercise, CompletedSet } from '@/types';
-import type { WorkoutTemplateRecord } from '@/lib/firestore/workouts';
+import { create } from "zustand";
+import type { WorkoutExercise, CompletedSet } from "@/types";
+import type { WorkoutTemplateRecord } from "@/lib/firestore/workouts";
 
 export type WorkoutChatMessageType =
   | "user_text"
@@ -32,12 +32,18 @@ interface WorkoutState {
   isResting: boolean;
   templateId: string | null;
   templateName: string | null;
+  todayWorkout: WorkoutTemplateRecord | null;
 
   chatMessages: WorkoutChatMessage[];
   setChatMessages: (messages: WorkoutChatMessage[]) => void;
   addChatMessage: (message: WorkoutChatMessage) => void;
+  setTodayWorkout: (template: WorkoutTemplateRecord | null) => void;
 
-  start: (templateId: string, templateName: string, exercises: WorkoutExercise[]) => void;
+  start: (
+    templateId: string,
+    templateName: string,
+    exercises: WorkoutExercise[],
+  ) => void;
   nextExercise: () => void;
   prevExercise: () => void;
   completeSet: (set: CompletedSet) => void;
@@ -59,6 +65,7 @@ const initialState = {
   isResting: false,
   templateId: null as string | null,
   templateName: null as string | null,
+  todayWorkout: null as WorkoutTemplateRecord | null,
   chatMessages: [] as WorkoutChatMessage[],
 };
 
@@ -66,6 +73,8 @@ export const useWorkoutStore = create<WorkoutState>((set) => ({
   ...initialState,
 
   setChatMessages: (messages) => set({ chatMessages: messages }),
+
+  setTodayWorkout: (template) => set({ todayWorkout: template }),
 
   addChatMessage: (message) =>
     set((state) => ({ chatMessages: [...state.chatMessages, message] })),

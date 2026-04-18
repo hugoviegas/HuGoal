@@ -1,4 +1,5 @@
 import { generateText } from "@/lib/ai-provider";
+import { getResolvedApiKey } from "@/lib/api-key-store";
 import type { AIProvider } from "@/types";
 
 export type NutritionChatConfidence = "high" | "medium" | "low";
@@ -250,15 +251,32 @@ function parseResponseToItems(rawText: string): NutritionChatItem[] {
   return items;
 }
 
-function providerOrder(preferredProvider: AIProvider): AIProvider[] {
-  const chain = [preferredProvider, ...FALLBACK_PROVIDER_CHAIN];
-  return Array.from(new Set(chain));
+async function providerOrder(
+  preferredProvider: AIProvider,
+): Promise<AIProvider[]> {
+  const chain: AIProvider[] = Array.from(
+    new Set<AIProvider>([
+      "gemini",
+      preferredProvider,
+      ...FALLBACK_PROVIDER_CHAIN,
+    ]),
+  );
+  const resolved = await Promise.all(
+    chain.map(async (provider) => {
+      const key = await getResolvedApiKey(provider);
+      return key.key ? provider : null;
+    }),
+  );
+
+  return resolved.filter(
+    (provider): provider is AIProvider => provider !== null,
+  );
 }
 
 export async function analyzeNutritionChatText(
   params: AnalyzeNutritionChatParams,
 ): Promise<{ provider: AIProvider; items: NutritionChatItem[] }> {
-  const order = providerOrder(params.preferredProvider);
+  const order = await providerOrder(params.preferredProvider);
   const pantryPreview = params.pantryItems.slice(0, 300);
   const previousItems = params.previousItems ?? [];
 
@@ -272,8 +290,11 @@ Current pending items (update these when user asks for corrections): ${JSON.stri
     try {
       const response = await generateText(provider, SYSTEM_PROMPT, userPrompt);
       const items = parseResponseToItems(response.text);
-        const withPantryPriority = applyPantryOverrides(items, params.pantryItems);
-        return { provider, items: withPantryPriority };
+      const withPantryPriority = applyPantryOverrides(
+        items,
+        params.pantryItems,
+      );
+      return { provider, items: withPantryPriority };
     } catch (error) {
       lastError = error;
     }

@@ -26,6 +26,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { ChatInputBar } from "@/components/nutrition/ChatInputBar";
+import { MessageRenderer } from "@/components/chat/MessageRenderer";
 import { TypingIndicator } from "@/components/shared/TypingIndicator";
 import {
   FLOATING_TAB_BAR_BOTTOM_OFFSET,
@@ -34,14 +35,25 @@ import {
 import { spacing } from "@/constants/spacing";
 import { typography } from "@/constants/typography";
 import { sendMessage } from "@/lib/chat/chatService";
+import { createNutritionLog } from "@/lib/firestore/nutrition";
+import {
+  createWorkoutTemplate,
+  getWorkoutTemplate,
+  updateWorkoutTemplate,
+  type WorkoutTemplateRecord,
+} from "@/lib/firestore/workouts";
 import { generateId } from "@/lib/utils";
+import type { NutritionItem, MealType } from "@/types";
 import {
   useChatStore,
   type ChatContext,
   type ChatState,
 } from "@/stores/chat.store";
+import { useAuthStore } from "@/stores/auth.store";
 import { useNavigationStore } from "@/stores/navigation.store";
 import { useThemeStore } from "@/stores/theme.store";
+import { useToastStore } from "@/stores/toast.store";
+import { useWorkoutStore } from "@/stores/workout.store";
 
 type ContextMeta = {
   label: string;
@@ -81,6 +93,8 @@ export function GlobalChatOverlay() {
   const colors = useThemeStore((state) => state.colors);
   const isDark = useThemeStore((state) => state.isDark);
   const navbarVisible = useNavigationStore((state) => state.navbarVisible);
+  const showToast = useToastStore((state) => state.show);
+  const userId = useAuthStore((state) => state.user?.uid);
 
   const chatState = useChatStore((state) => state.state);
   const activeContext = useChatStore((state) => state.activeContext);
@@ -193,6 +207,36 @@ export function GlobalChatOverlay() {
     chatState === "hidden" || !navbarVisible ? "none" : "box-none";
   const ContextIcon = contextMeta.icon;
 
+  const toNutritionItem = (
+    item: import("@/lib/ai/nutritionChatAI").NutritionChatItem,
+  ): NutritionItem => ({
+    food_name: item.name,
+    serving_size_g: item.unit === "g" ? Math.max(1, item.quantity) : 100,
+    calories: item.calories,
+    protein_g: item.protein_g,
+    carbs_g: item.carbs_g,
+    fat_g: item.fat_g,
+    source: "ai_generated",
+  });
+
+  const resolveMealType = (): MealType => {
+    const hour = new Date().getHours();
+    if (hour < 11) return "breakfast";
+    if (hour < 15) return "lunch";
+    if (hour < 18) return "snack";
+    return "dinner";
+  };
+
+  const appendAssistantText = (text: string) => {
+    appendMessage(activeContext, {
+      id: generateId(),
+      role: "assistant",
+      type: "text",
+      text,
+      createdAt: new Date().toISOString(),
+    });
+  };
+
   const sendTextMessage = async (text: string) => {
     const trimmed = text.trim();
 
@@ -203,6 +247,7 @@ export function GlobalChatOverlay() {
     const userMessage = {
       id: generateId(),
       role: "user" as const,
+      type: "text" as const,
       text: trimmed,
       createdAt: new Date().toISOString(),
     };
@@ -216,23 +261,104 @@ export function GlobalChatOverlay() {
         activeContext,
         trimmed,
         contextHistory,
+        { userId },
       );
 
-      appendMessage(activeContext, {
-        id: generateId(),
-        role: "assistant",
-        text: response.text,
-        createdAt: new Date().toISOString(),
-      });
+      if (response.kind === "text") {
+        appendAssistantText(response.text);
+        return;
+      }
+
+      if (response.kind === "nutrition") {
+        if (!userId) {
+          throw new Error("Missing user session");
+        }
+
+        try {
+          await createNutritionLog(userId, {
+            meal_type: resolveMealType(),
+            items: response.items.map(toNutritionItem),
+            notes: "Saved from global coach chat",
+          });
+        } catch (error) {
+          throw error instanceof Error
+            ? error
+            : new Error("Failed to save nutrition log");
+        }
+
+        appendMessage(activeContext, {
+          id: generateId(),
+          role: "assistant",
+          type: "nutrition_card",
+          payload: response.items,
+          createdAt: new Date().toISOString(),
+        });
+        return;
+      }
+
+      if (response.kind === "workout") {
+        let template: WorkoutTemplateRecord | null = null;
+        const workoutStore = useWorkoutStore.getState();
+
+        if (response.action === "create_workout" && response.newTemplate) {
+          if (!userId) {
+            throw new Error("Missing user session");
+          }
+
+          template = await createWorkoutTemplate(userId, {
+            name: response.newTemplate.name ?? "New Workout",
+            description: response.newTemplate.description,
+            cover_image_url: response.newTemplate.cover_image_url,
+            difficulty: response.newTemplate.difficulty ?? "intermediate",
+            is_ai_generated: true,
+            source_prompt: response.newTemplate.source_prompt,
+            exercises: response.newTemplate.exercises ?? [],
+            sections: response.newTemplate.sections,
+            target_muscles: response.newTemplate.target_muscles,
+            is_active: true,
+            is_public: false,
+            is_draft: false,
+            location: response.newTemplate.location,
+            estimated_duration_minutes:
+              response.newTemplate.estimated_duration_minutes ?? 45,
+            tags: response.newTemplate.tags ?? [],
+          });
+        }
+
+        if (response.action === "patch_workout" && response.patch) {
+          const templateId =
+            workoutStore.todayWorkout?.id ?? workoutStore.templateId;
+          if (!templateId) {
+            throw new Error("No workout template available to patch");
+          }
+
+          await updateWorkoutTemplate(templateId, response.patch);
+          template = await getWorkoutTemplate(templateId);
+        }
+
+        if (!template) {
+          appendAssistantText(response.text);
+          return;
+        }
+
+        useWorkoutStore.getState().setTodayWorkout(template);
+        appendMessage(activeContext, {
+          id: generateId(),
+          role: "assistant",
+          type: "workout_card",
+          payload: template,
+          createdAt: new Date().toISOString(),
+        });
+        if (response.text) {
+          appendAssistantText(response.text);
+        }
+        return;
+      }
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Could not send message";
-      appendMessage(activeContext, {
-        id: generateId(),
-        role: "assistant",
-        text: message,
-        createdAt: new Date().toISOString(),
-      });
+      appendAssistantText(message);
+      showToast(message, "error");
     } finally {
       setSending(false);
     }
@@ -446,37 +572,7 @@ export function GlobalChatOverlay() {
                   </View>
                 ) : null
               }
-              renderItem={({ item }) => {
-                const isUser = item.role === "user";
-
-                return (
-                  <View
-                    style={{
-                      maxWidth: "88%",
-                      alignSelf: isUser ? "flex-end" : "flex-start",
-                      borderRadius: 12,
-                      paddingHorizontal: spacing.sm,
-                      paddingVertical: spacing.xs,
-                      borderWidth: 1,
-                      borderColor: isUser ? colors.primary : colors.cardBorder,
-                      backgroundColor: isUser
-                        ? colors.primary
-                        : colors.background,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        ...typography.small,
-                        color: isUser
-                          ? colors.primaryForeground
-                          : colors.foreground,
-                      }}
-                    >
-                      {item.text}
-                    </Text>
-                  </View>
-                );
-              }}
+              renderItem={({ item }) => <MessageRenderer message={item} />}
             />
 
             <View style={{ paddingBottom: insets.bottom + 8 }}>

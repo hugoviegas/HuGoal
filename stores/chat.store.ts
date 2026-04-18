@@ -2,13 +2,37 @@ import { create } from "zustand";
 
 export type ChatState = "hidden" | "collapsed" | "expanded" | "fullscreen";
 export type ChatContext = "home" | "workouts" | "nutrition" | "community";
+export type ChatMessageType = "text" | "nutrition_card" | "workout_card";
 
-export interface ChatMessage {
+export interface ChatBaseMessage {
   id: string;
   role: "user" | "assistant";
-  text: string;
+  type: ChatMessageType;
   createdAt: string;
+  text?: string;
 }
+
+export interface ChatTextMessage extends ChatBaseMessage {
+  type: "text";
+  text: string;
+}
+
+export interface ChatNutritionCardMessage extends ChatBaseMessage {
+  role: "assistant";
+  type: "nutrition_card";
+  payload: import("@/lib/ai/nutritionChatAI").NutritionChatItem[];
+}
+
+export interface ChatWorkoutCardMessage extends ChatBaseMessage {
+  role: "assistant";
+  type: "workout_card";
+  payload: import("@/lib/firestore/workouts").WorkoutTemplateRecord;
+}
+
+export type ChatMessage =
+  | ChatTextMessage
+  | ChatNutritionCardMessage
+  | ChatWorkoutCardMessage;
 
 interface ChatStore {
   state: ChatState;

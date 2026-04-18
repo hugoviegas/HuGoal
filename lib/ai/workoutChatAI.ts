@@ -1,4 +1,5 @@
 import { generateText } from "@/lib/ai-provider";
+import { getResolvedApiKey } from "@/lib/api-key-store";
 import type { WorkoutTemplateRecord } from "@/lib/firestore/workouts";
 import {
   getAICatalogIndex,
@@ -30,8 +31,20 @@ export interface WorkoutChatAIResponse {
 
 const FALLBACK_PROVIDER_CHAIN: AIProvider[] = ["gemini", "claude", "openai"];
 
-function providerOrder(preferred: AIProvider): AIProvider[] {
-  return Array.from(new Set([preferred, ...FALLBACK_PROVIDER_CHAIN]));
+async function providerOrder(preferred: AIProvider): Promise<AIProvider[]> {
+  const chain: AIProvider[] = Array.from(
+    new Set<AIProvider>(["gemini", preferred, ...FALLBACK_PROVIDER_CHAIN]),
+  );
+  const resolved = await Promise.all(
+    chain.map(async (provider) => {
+      const key = await getResolvedApiKey(provider);
+      return key.key ? provider : null;
+    }),
+  );
+
+  return resolved.filter(
+    (provider): provider is AIProvider => provider !== null,
+  );
 }
 
 const EXAMPLE_TEMPLATE = `{
@@ -238,7 +251,7 @@ export async function analyzeWorkoutChatMessage(
     previousMessages,
     userMemories = [],
   } = input;
-  const order = providerOrder(preferredProvider);
+  const order = await providerOrder(preferredProvider);
 
   const catalogIndex = await getAICatalogIndex();
   const subset = buildAIExerciseSubset(

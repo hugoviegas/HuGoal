@@ -5,179 +5,312 @@ import {
   type NutritionChatPantryItem,
 } from "@/lib/ai/nutritionChatAI";
 import { analyzeWorkoutChatMessage } from "@/lib/ai/workoutChatAI";
+import {
+  formatAppContextSnapshot,
+  getAppContextSnapshotWithTimeout,
+} from "@/lib/chat/appContextQuery";
 import { listPantryItems } from "@/lib/firestore/pantry";
 import { useAuthStore } from "@/stores/auth.store";
-import { useWorkoutStore } from "@/stores/workout.store";
+import type { ChatContext, ChatMessage } from "@/stores/chat.store";
+import type { WorkoutTemplateRecord } from "@/lib/firestore/workouts";
 import type { WorkoutChatMessage } from "@/stores/workout.store";
 import type { AIProvider } from "@/types";
-import type { ChatContext, ChatMessage } from "@/stores/chat.store";
-import type { WorkoutSessionContext } from "@/lib/workouts/workout-session-context";
+
+export type ChatServiceResponse =
+  | { kind: "text"; text: string }
+  | { kind: "nutrition"; items: NutritionChatItem[]; text: string }
+  | {
+      kind: "workout";
+      action:
+        | "patch_workout"
+        | "create_workout"
+        | "substitute_exercise"
+        | "none";
+      text: string;
+      patch?: Partial<WorkoutTemplateRecord>;
+      newTemplate?: Omit<
+        WorkoutTemplateRecord,
+        "id" | "created_at" | "updated_at"
+      >;
+    }
+  | { kind: "app_data"; text: string; payload?: unknown };
 
 interface ChatRouteDefinition {
   endpoint: string;
   systemPromptTag: string;
-  handler: (args: HandlerArgs) => Promise<string>;
 }
 
 interface HandlerArgs {
   message: string;
   history: ChatMessage[];
   preferredProvider: AIProvider;
+  userId?: string;
 }
 
 const CONTEXT_ROUTES: Record<ChatContext, ChatRouteDefinition> = {
-  home: {
-    endpoint: "/ai/home-chat",
-    systemPromptTag: "home_coach",
-    handler: sendHomeContext,
-  },
-  workouts: {
-    endpoint: "/ai/workouts-chat",
-    systemPromptTag: "workout_coach",
-    handler: sendWorkoutsContext,
-  },
+  home: { endpoint: "/ai/home-chat", systemPromptTag: "home_coach" },
+  workouts: { endpoint: "/ai/workouts-chat", systemPromptTag: "workout_coach" },
   nutrition: {
     endpoint: "/ai/nutrition-chat",
     systemPromptTag: "nutrition_coach",
-    handler: sendNutritionContext,
   },
   community: {
     endpoint: "/ai/community-chat",
     systemPromptTag: "community_coach",
-    handler: sendCommunityContext,
   },
 };
 
-export interface ChatServiceResult {
-  text: string;
-  endpoint: string;
+export interface ChatRouteDeps {
+  userId?: string;
 }
 
 function getPreferredProvider(): AIProvider {
   return useAuthStore.getState().profile?.preferred_ai_provider ?? "gemini";
 }
 
-function summarizeNutritionItems(items: NutritionChatItem[]): string {
-  const lines = items.slice(0, 6).map((item) => {
-    const macros = `${item.calories} kcal | P ${item.protein_g}g | C ${item.carbs_g}g | F ${item.fat_g}g`;
-    return `- ${item.quantity} ${item.unit} ${item.name} (${macros})`;
+function toHomeHistory(
+  history: ChatMessage[],
+): Array<{ role: "user" | "assistant"; text: string }> {
+  return history.flatMap((message) => {
+    if (message.type !== "text" || typeof message.text !== "string") {
+      return [];
+    }
+
+    return [
+      {
+        role: message.role,
+        text: message.text,
+      },
+    ];
   });
+}
 
-  if (lines.length === 0) {
-    return "I could not identify valid nutrition items from that message.";
-  }
+function toNutritionHistoryItems(history: ChatMessage[]): NutritionChatItem[] {
+  return history.flatMap((message) => {
+    if (message.type !== "nutrition_card") {
+      return [];
+    }
 
-  return `I parsed these items:\n${lines.join("\n")}`;
+    return message.payload;
+  });
 }
 
 function toWorkoutHistory(history: ChatMessage[]): WorkoutChatMessage[] {
-  return history.slice(-10).map((message) => ({
+  return history.slice(-12).map((message) => ({
     id: message.id,
     createdAt: message.createdAt,
-    text: message.text,
-    type: message.role === "user" ? "user_text" : "ai_response",
+    text: message.text ?? "",
+    type:
+      message.type === "text" && message.role === "user"
+        ? "user_text"
+        : "ai_response",
   }));
 }
 
-function buildFallbackWorkoutContext(): WorkoutSessionContext {
-  const workoutStore = useWorkoutStore.getState();
-  const authStore = useAuthStore.getState();
-
-  return {
-    template_id: workoutStore.templateId ?? "global-chat-template",
-    template_name: workoutStore.templateName ?? "Global Workout Context",
-    difficulty: "beginner",
-    estimated_duration_minutes: 45,
-    location: "home",
-    target_muscles: [],
-    sections: [],
-    user_equipment: ["bodyweight"],
-    user_locations: [],
-    user_training_days: [],
-    user_fitness_goal: authStore.profile?.goal ?? "general_fitness",
-    today_override: null,
-  };
+function mapPantryItems(
+  items: Awaited<ReturnType<typeof listPantryItems>>,
+): NutritionChatPantryItem[] {
+  return items.map((item) => ({
+    id: item.id,
+    name: item.name,
+    calories: item.calories_per_100g,
+    protein_g: item.protein_per_100g,
+    carbs_g: item.carbs_per_100g,
+    fat_g: item.fat_per_100g,
+    serving_size_g: item.serving_size_g,
+  }));
 }
 
-async function sendHomeContext(args: HandlerArgs): Promise<string> {
-  const authState = useAuthStore.getState();
+async function getAppContextText(userId?: string): Promise<string | null> {
+  if (!userId) {
+    return null;
+  }
 
-  return sendHomeChatMessage({
+  const snapshot = await getAppContextSnapshotWithTimeout(userId, 3000).catch(
+    () => null,
+  );
+  return snapshot ? formatAppContextSnapshot(snapshot) : null;
+}
+
+async function sendHomeContext(
+  args: HandlerArgs,
+): Promise<ChatServiceResponse> {
+  const authState = useAuthStore.getState();
+  const appContext = await getAppContextText(args.userId);
+
+  const text = await sendHomeChatMessage({
     preferredProvider: args.preferredProvider,
     userMessage: args.message,
     profile: authState.profile,
-    history: args.history.map((item) => ({
-      role: item.role,
-      text: item.text,
-    })),
+    history: toHomeHistory(args.history),
+    appContext: appContext ?? undefined,
   });
+
+  return { kind: "text", text };
 }
 
-async function sendNutritionContext(args: HandlerArgs): Promise<string> {
+async function sendNutritionContext(
+  args: HandlerArgs,
+): Promise<ChatServiceResponse> {
   const authState = useAuthStore.getState();
+  const appContext = await getAppContextText(args.userId);
 
   let pantryItems: NutritionChatPantryItem[] = [];
   if (authState.user?.uid) {
     try {
-      const pantryDocs = await listPantryItems(authState.user.uid);
-      pantryItems = pantryDocs.map((item) => ({
-        id: item.id,
-        name: item.name,
-        calories: item.calories_per_100g,
-        protein_g: item.protein_per_100g,
-        carbs_g: item.carbs_per_100g,
-        fat_g: item.fat_per_100g,
-        serving_size_g: item.serving_size_g,
-      }));
+      pantryItems = mapPantryItems(await listPantryItems(authState.user.uid));
     } catch {
       pantryItems = [];
     }
   }
 
-  const response = await analyzeNutritionChatText({
+  let response;
+  try {
+    response = await analyzeNutritionChatText({
+      preferredProvider: args.preferredProvider,
+      userMessage: args.message,
+      pantryItems,
+      previousItems: toNutritionHistoryItems(args.history),
+    });
+  } catch {
+    const fallbackText = await sendHomeChatMessage({
+      preferredProvider: args.preferredProvider,
+      userMessage: args.message,
+      profile: authState.profile,
+      history: toHomeHistory(args.history),
+      appContext: appContext ?? undefined,
+    });
+
+    return { kind: "text", text: fallbackText };
+  }
+
+  if (response.items.length > 0) {
+    return {
+      kind: "nutrition",
+      items: response.items,
+      text: appContext
+        ? `Nutrition parsed with app context available.\n${appContext}`
+        : `Nutrition parsed: ${response.items.length} item${response.items.length === 1 ? "" : "s"}.`,
+    };
+  }
+
+  const fallbackText = await sendHomeChatMessage({
     preferredProvider: args.preferredProvider,
     userMessage: args.message,
-    pantryItems,
-    previousItems: [],
+    profile: authState.profile,
+    history: toHomeHistory(args.history),
+    appContext: appContext ?? undefined,
   });
 
-  return summarizeNutritionItems(response.items);
+  return { kind: "text", text: fallbackText };
 }
 
-async function sendWorkoutsContext(args: HandlerArgs): Promise<string> {
+async function sendWorkoutsContext(
+  args: HandlerArgs,
+): Promise<ChatServiceResponse> {
+  const authState = useAuthStore.getState();
+  const appContext = await getAppContextText(args.userId);
+
   const response = await analyzeWorkoutChatMessage({
     preferredProvider: args.preferredProvider,
     userMessage: args.message,
-    sessionContext: buildFallbackWorkoutContext(),
+    sessionContext: {
+      template_id: "global-chat-template",
+      template_name:
+        useAuthStore.getState().profile?.name ?? "Global Workout Context",
+      difficulty: "beginner",
+      estimated_duration_minutes: 45,
+      location: "home",
+      target_muscles: [],
+      sections: [],
+      user_equipment: ["bodyweight"],
+      user_locations: [],
+      user_training_days: [],
+      user_fitness_goal: authState.profile?.goal ?? "general_fitness",
+      today_override: null,
+    },
     previousMessages: toWorkoutHistory(args.history),
     userMemories: [],
   });
 
-  return response.text || "Updated workout guidance ready.";
+  if (response.action !== "none") {
+    return {
+      kind: "workout",
+      action: response.action,
+      text: response.text || "Workout update ready.",
+      patch: response.patch,
+      newTemplate: response.newTemplate,
+    };
+  }
+
+  const fallbackText = await sendHomeChatMessage({
+    preferredProvider: args.preferredProvider,
+    userMessage: args.message,
+    profile: authState.profile,
+    history: toHomeHistory(args.history),
+    appContext: appContext ?? undefined,
+  });
+
+  return { kind: "text", text: fallbackText };
 }
 
-async function sendCommunityContext(args: HandlerArgs): Promise<string> {
+async function sendCommunityContext(
+  args: HandlerArgs,
+): Promise<ChatServiceResponse> {
   return sendHomeContext(args);
+}
+
+export async function routeMessage(
+  context: ChatContext,
+  message: string,
+  history: ChatMessage[],
+  deps: ChatRouteDeps = {},
+): Promise<ChatServiceResponse> {
+  const route = CONTEXT_ROUTES[context];
+  const preferredProvider = getPreferredProvider();
+
+  if (context === "nutrition") {
+    return sendNutritionContext({
+      message,
+      history,
+      preferredProvider,
+      userId: deps.userId,
+    });
+  }
+
+  if (context === "workouts") {
+    return sendWorkoutsContext({
+      message,
+      history,
+      preferredProvider,
+      userId: deps.userId,
+    });
+  }
+
+  if (context === "community") {
+    return sendCommunityContext({
+      message,
+      history,
+      preferredProvider,
+      userId: deps.userId,
+    });
+  }
+
+  return sendHomeContext({
+    message,
+    history,
+    preferredProvider,
+    userId: deps.userId,
+  });
 }
 
 export async function sendMessage(
   context: ChatContext,
   message: string,
   history: ChatMessage[],
-): Promise<ChatServiceResult> {
-  const route = CONTEXT_ROUTES[context];
-  const preferredProvider = getPreferredProvider();
-
-  const text = await route.handler({
-    message,
-    history,
-    preferredProvider,
-  });
-
-  return {
-    text,
-    endpoint: route.endpoint,
-  };
+  deps: ChatRouteDeps = {},
+): Promise<ChatServiceResponse> {
+  return routeMessage(context, message, history, deps);
 }
 
 export function getChatRouteMap(): Record<ChatContext, ChatRouteDefinition> {

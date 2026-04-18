@@ -76,12 +76,45 @@ async function callGemini(
   options?: AIRequestOptions,
 ): Promise<AIResponse> {
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({
-    model: options?.model ?? "gemini-2.5-flash",
-    systemInstruction: systemPrompt,
-  });
-  const result = await model.generateContent(userPrompt);
-  return { text: result.response.text() };
+
+  function buildCandidates(): string[] {
+    if (options?.model) return [options.model];
+
+    const combinedLength =
+      (systemPrompt ?? "").length + (userPrompt ?? "").length;
+    const simplePreferred = combinedLength < 800;
+
+    const primary = simplePreferred
+      ? ["gemini-3.1-flash-lite", "gemini-3-flash"]
+      : ["gemini-3-flash", "gemini-3.1-flash-lite"];
+
+    const fallbacks = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+
+    return [...primary, ...fallbacks];
+  }
+
+  const candidates = buildCandidates();
+  let lastError: unknown = null;
+
+  for (const candidate of candidates) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: candidate,
+        systemInstruction: systemPrompt,
+      });
+      const result = await model.generateContent(userPrompt);
+      return { text: result.response.text() };
+    } catch (err) {
+      lastError = err;
+      const status = categorizeProviderError(err);
+      if (status === "quota_exceeded" || status === "rate_limited") {
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  throw lastError ?? new Error("Gemini: all model candidates failed");
 }
 
 async function callClaude(
@@ -134,7 +167,7 @@ export async function generateText(
 
   const started = Date.now();
   try {
-    let result: AIResponse;
+    let result: AIResponse | undefined;
     switch (provider) {
       case "gemini":
         result = await callGemini(apiKey, systemPrompt, userPrompt, options);
@@ -187,17 +220,45 @@ export async function analyzeImage(
 
   const started = Date.now();
   try {
-    let result: AIResponse;
+    let result: AIResponse | undefined;
     if (provider === "gemini") {
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({
-        model: options?.model ?? "gemini-2.5-flash",
-      });
-      const r = await model.generateContent([
-        prompt,
-        { inlineData: { mimeType: "image/jpeg", data: base64Image } },
-      ]);
-      result = { text: r.response.text() };
+
+      function buildImageCandidates(): string[] {
+        if (options?.model) return [options.model];
+        const simplePreferred = prompt.length < 400;
+        const primary = simplePreferred
+          ? ["gemini-3.1-flash-lite", "gemini-3-flash"]
+          : ["gemini-3-flash", "gemini-3.1-flash-lite"];
+        const fallbacks = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+        return [...primary, ...fallbacks];
+      }
+
+      const candidates = buildImageCandidates();
+      let lastError: unknown = null;
+
+      for (const candidate of candidates) {
+        try {
+          const model = genAI.getGenerativeModel({ model: candidate });
+          const r = await model.generateContent([
+            prompt,
+            { inlineData: { mimeType: "image/jpeg", data: base64Image } },
+          ]);
+          result = { text: r.response.text() };
+          break;
+        } catch (err) {
+          lastError = err;
+          const status = categorizeProviderError(err);
+          if (status === "quota_exceeded" || status === "rate_limited") {
+            continue;
+          }
+          throw err;
+        }
+      }
+
+      if (!result) {
+        throw lastError ?? new Error("Gemini image models failed");
+      }
     } else if (provider === "claude") {
       const client = new Anthropic({ apiKey });
       const response = await client.messages.create({
@@ -246,7 +307,7 @@ export async function analyzeImage(
     try {
       const overheadTokens = 100; // image processing overhead estimate
       const tokens =
-        estimateTokensFromText(prompt + " " + (result.text ?? "")) +
+        estimateTokensFromText(prompt + " " + (result?.text ?? "")) +
         overheadTokens;
       const cost = calculateCost(provider, tokens);
       void logUsage(provider, duration, true, null, cost);
@@ -256,7 +317,7 @@ export async function analyzeImage(
       console.warn("[ai-provider] cost/log failed", e);
     }
 
-    return result;
+    return result!;
   } catch (err: unknown) {
     const duration = Date.now() - started;
     const errMsg = err instanceof Error ? err.message : String(err);
