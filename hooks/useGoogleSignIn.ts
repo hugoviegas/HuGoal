@@ -2,6 +2,7 @@ import { useCallback, useState, useEffect } from "react";
 import * as Google from "expo-auth-session/providers/google";
 import * as AuthSession from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
+import { Platform } from "react-native";
 import {
   GoogleAuthProvider,
   fetchSignInMethodsForEmail,
@@ -39,13 +40,15 @@ export interface GoogleSignInResult {
 export function useGoogleSignIn() {
   const [isLoading, setIsLoading] = useState(false);
 
-  const redirectUri = AuthSession.makeRedirectUri({ useProxy: true } as any);
+  // On web, makeRedirectUri() returns the current page URL (required for Google OAuth web flow).
+  // On native (iOS/Android standalone/preview builds), we omit redirectUri so expo-auth-session
+  // uses the reverse-DNS scheme derived from the client ID — compliant with Google's OAuth 2.0 policy.
+  // useProxy was removed: Google blocks the Expo auth proxy on non-Expo-Go builds.
+  const redirectUri =
+    Platform.OS === "web" ? AuthSession.makeRedirectUri() : undefined;
 
   useEffect(() => {
     if (__DEV__) {
-      // Log exact redirect URI used by the app so you can add it to Google Cloud Console
-      // Remove this log if you don't want it in dev output.
-      // Example value: https://auth.expo.io/@hviegas/betteru
       console.log("[useGoogleSignIn] redirectUri:", redirectUri);
     }
   }, [redirectUri]);
@@ -55,7 +58,7 @@ export function useGoogleSignIn() {
     androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
     iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
     webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-    redirectUri,
+    ...(redirectUri !== undefined && { redirectUri }),
   });
 
   const signInWithGoogle =
