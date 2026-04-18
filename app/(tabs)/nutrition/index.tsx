@@ -10,7 +10,6 @@ Phase 4 Test Checklist
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
-  Pressable,
   ScrollView,
   Text,
   View,
@@ -22,11 +21,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { format } from "date-fns";
 import { PageHeader } from "@/components/shared/PageHeader";
-
-import {
-  NutritionChat,
-  useNutritionChatPanel,
-} from "@/components/nutrition/NutritionChat";
+import { useNutritionChatPanel } from "@/components/nutrition/NutritionChat";
 import { MacroWidget } from "@/components/nutrition/MacroWidget";
 import { NutritionWeekCalendar } from "@/components/nutrition/NutritionWeekCalendar";
 import { Button } from "@/components/ui/Button";
@@ -844,6 +839,26 @@ export default function NutritionScreen() {
     user?.uid,
   ]);
 
+  // Retained temporarily while tab-level chat logic is being migrated to the global overlay.
+  void isDark;
+  void savingPendingItems;
+  void keyboardOffset;
+  void panelExpanded;
+  void backdropOpacity;
+  void panelContentOpacity;
+  void panelPanHandlers;
+  void openPanel;
+  void closePanel;
+  void enterFullscreen;
+  void exitFullscreen;
+  void handleSendChatMessage;
+  void handleAudioRecorded;
+  void handleImageSelected;
+  void handleChangeEditableTranscript;
+  void handleSubmitEditableTranscript;
+  void handlePendingItemChange;
+  void handleSaveAllPending;
+
   if (isLoading && todayLogs.length === 0) {
     return (
       <View
@@ -1034,77 +1049,6 @@ export default function NutritionScreen() {
           </View>
         ) : null}
       </ScrollView>
-
-      <Animated.View
-        pointerEvents={panelExpanded ? "box-none" : "none"}
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: "#000",
-          opacity: backdropOpacity,
-        }}
-      >
-        <Pressable style={{ flex: 1 }} onPress={closePanel} />
-      </Animated.View>
-
-      <Animated.View
-        style={{
-          position: "absolute",
-          bottom: keyboardOffset,
-          left: 0,
-          right: 0,
-          height: panelHeight,
-          overflow: "hidden",
-          backgroundColor: colors.surface,
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: isDark ? 0.35 : 0.08,
-          shadowRadius: 10,
-          elevation: 10,
-        }}
-        {...panelPanHandlers}
-      >
-        <NutritionChat
-          messages={chatMessages}
-          isLoading={sendingChat}
-          onSendText={handleSendChatMessage}
-          onAudioRecorded={handleAudioRecorded}
-          onImageSelected={handleImageSelected}
-          pendingItems={pendingAiItems}
-          onChangePendingItem={handlePendingItemChange}
-          onSaveAll={handleSaveAllPending}
-          savingAll={savingPendingItems}
-          disabled={!isViewingToday}
-          disabledReason="Chat is available only for today. Tap Today above to continue."
-          editableTranscript={editableTranscript}
-          onChangeEditableTranscript={handleChangeEditableTranscript}
-          onSubmitEditableTranscript={handleSubmitEditableTranscript}
-          submittingTranscript={sendingChat}
-          expanded={panelExpanded}
-          onTogglePanel={() => {
-            if (panelExpanded) {
-              closePanel();
-            } else {
-              openPanel();
-            }
-          }}
-          panelContentOpacity={panelContentOpacity}
-          composerBottomOffset={composerBottomPadding}
-          isFullscreen={isFullscreen}
-          onEnterFullscreen={enterFullscreen}
-          onExitFullscreen={exitFullscreen}
-          onInputFocus={() => {
-            if (!panelExpanded) {
-              openPanel();
-            }
-          }}
-        />
-      </Animated.View>
     </View>
   );
 }

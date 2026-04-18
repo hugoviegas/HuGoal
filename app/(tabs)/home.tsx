@@ -18,7 +18,6 @@ import { ptBR } from "date-fns/locale";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
-import { HomeCoach } from "@/components/HomeCoach";
 import { EditProfileModal } from "@/components/EditProfileModal";
 import { useAuthStore } from "@/stores/auth.store";
 import { useNutritionStore } from "@/stores/nutrition.store";
@@ -213,7 +212,6 @@ export default function HomeScreen() {
   const workoutName = useWorkoutStore((s) => s.templateName);
 
   const [editProfileVisible, setEditProfileVisible] = useState(false);
-  const [coachFullscreen, setCoachFullscreen] = useState(false);
 
   if (isLoading) {
     return (
@@ -537,13 +535,6 @@ export default function HomeScreen() {
           </Button>
         </View>
       </ScrollView>
-
-      {/* ── Home Coach (bottom panel, position: absolute like workout/nutrition) ── */}
-      <HomeCoach
-        isFullscreen={coachFullscreen}
-        onEnterFullscreen={() => setCoachFullscreen(true)}
-        onExitFullscreen={() => setCoachFullscreen(false)}
-      />
 
       {/* ── Edit Profile Modal ── */}
       <EditProfileModal

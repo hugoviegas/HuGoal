@@ -62,7 +62,6 @@ import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { PageHeader } from "@/components/shared/PageHeader";
 import type { AudioRecordedPayload } from "@/components/nutrition/ChatInputBar";
-import { WorkoutChat } from "@/components/workouts/WorkoutChat";
 import { useWorkoutChatPanel } from "@/hooks/useWorkoutChatPanel";
 import { useAuthStore } from "@/stores/auth.store";
 import { useNavigationStore } from "@/stores/navigation.store";
@@ -1003,6 +1002,22 @@ export default function WorkoutsScreen() {
     return null;
   }, [inspectId, displaySections, workouts]);
 
+  // Retained temporarily while tab-level chat logic is being migrated to the global overlay.
+  void sendingChat;
+  void keyboardOffset;
+  void panelExpanded;
+  void backdropOpacity;
+  void panelContentOpacity;
+  void panelPanHandlers;
+  void openPanel;
+  void closePanel;
+  void enterFullscreen;
+  void exitFullscreen;
+  void sessionTargetId;
+  void startActionLabel;
+  void handleWorkoutAudioRecorded;
+  void handleWorkoutImageSelected;
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Animated.View
@@ -1912,73 +1927,6 @@ export default function WorkoutsScreen() {
           </Pressable>
         </View>
       </ScrollView>
-
-      <Animated.View
-        pointerEvents={panelExpanded ? "box-none" : "none"}
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: "#000",
-          opacity: backdropOpacity,
-        }}
-      >
-        <Pressable style={{ flex: 1 }} onPress={closePanel} />
-      </Animated.View>
-
-      {todayWorkout ? (
-        <Animated.View
-          style={{
-            position: "absolute",
-            bottom: keyboardOffset,
-            left: 0,
-            right: 0,
-            height: panelHeight,
-            overflow: "hidden",
-            backgroundColor: colors.surface,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: -2 },
-            shadowOpacity: isDark ? 0.35 : 0.08,
-            shadowRadius: 10,
-            elevation: 10,
-          }}
-          {...panelPanHandlers}
-        >
-          <WorkoutChat
-            messages={chatMessages}
-            isLoading={sendingChat}
-            onSendText={handleSendWorkoutMessage}
-            onAudioRecorded={handleWorkoutAudioRecorded}
-            onImageSelected={handleWorkoutImageSelected}
-            sessionContext={workoutSessionContext}
-            expanded={panelExpanded}
-            onTogglePanel={() => {
-              if (panelExpanded) {
-                closePanel();
-              } else {
-                openPanel();
-              }
-            }}
-            panelContentOpacity={panelContentOpacity}
-            composerBottomOffset={composerBottomPadding}
-            isViewingToday={isViewingToday}
-            sessionTargetId={sessionTargetId ?? null}
-            startActionLabel={startActionLabel}
-            isFullscreen={isFullscreen}
-            onEnterFullscreen={enterFullscreen}
-            onExitFullscreen={exitFullscreen}
-            onInputFocus={() => {
-              if (!panelExpanded) {
-                openPanel();
-              }
-            }}
-          />
-        </Animated.View>
-      ) : null}
 
       {inspectId && inspectExercise ? (
         <ExerciseInspectModal

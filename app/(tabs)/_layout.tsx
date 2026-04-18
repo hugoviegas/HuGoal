@@ -1,12 +1,29 @@
+import { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
-import { Redirect, Tabs } from "expo-router";
+import { Redirect, Tabs, useSegments } from "expo-router";
 import { ModernMobileMenu } from "@/components/ui/modern-mobile-menu";
 import { useAuthStore } from "@/stores/auth.store";
+import { useChatStore, type ChatContext } from "@/stores/chat.store";
 import { useThemeStore } from "@/stores/theme.store";
+
+function resolveContextFromSegments(segments: string[]): ChatContext {
+  const active = segments[1]?.toLowerCase() ?? "home";
+
+  if (active.startsWith("workouts")) return "workouts";
+  if (active.startsWith("nutrition")) return "nutrition";
+  if (active.startsWith("community")) return "community";
+  return "home";
+}
 
 export default function TabsLayout() {
   const { isAuthenticated, isInitializing, isLoading } = useAuthStore();
   const colors = useThemeStore((s) => s.colors);
+  const segments = useSegments();
+  const setContext = useChatStore((state) => state.setContext);
+
+  useEffect(() => {
+    setContext(resolveContextFromSegments(segments));
+  }, [segments, setContext]);
 
   if (isInitializing || isLoading) {
     return (

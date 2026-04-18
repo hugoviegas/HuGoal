@@ -17,6 +17,7 @@ import { useColorScheme } from "nativewind";
 import { useAuthStore } from "@/stores/auth.store";
 import { useThemeStore } from "@/stores/theme.store";
 import { ToastContainer } from "@/components/ui/Toast";
+import { GlobalChatOverlay } from "@/components/chat/GlobalChatOverlay";
 import { bootstrapApp } from "@/lib/bootstrap";
 
 export default function RootLayout() {
@@ -171,6 +172,7 @@ export default function RootLayout() {
             <Stack.Screen name="user" />
           </Stack>
           <ToastContainer />
+          <GlobalChatOverlay />
         </View>
       </SafeAreaProvider>
     </GestureHandlerRootView>

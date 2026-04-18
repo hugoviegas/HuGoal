@@ -12,12 +12,14 @@ import {
   Dumbbell,
   Utensils,
   Users,
+  MessageCircle,
 } from "lucide-react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import { useChatStore } from "@/stores/chat.store";
 
 type IconComponentType = React.ElementType<{ size?: number; color?: string }>;
 
@@ -65,6 +67,8 @@ export function ModernMobileMenu({
   const colors = useThemeStore((s) => s.colors);
   const isDark = useThemeStore((s) => s.isDark);
   const navbarVisible = useNavigationStore((s) => s.navbarVisible);
+  const chatState = useChatStore((state) => state.state);
+  const setChatState = useChatStore((state) => state.setState);
 
   const slideAnim = useSharedValue(navbarVisible ? 0 : 120);
   const opacityAnim = useSharedValue(navbarVisible ? 1 : 0);
@@ -88,10 +92,12 @@ export function ModernMobileMenu({
     0,
     visibleRoutes.findIndex((route) => route.key === activeRouteKey),
   );
+  const activeIndicatorSlot =
+    activeVisibleIndex >= 2 ? activeVisibleIndex + 1 : activeVisibleIndex;
 
   useEffect(() => {
-    indicatorIndex.value = withTiming(activeVisibleIndex, { duration: 220 });
-  }, [activeVisibleIndex, indicatorIndex]);
+    indicatorIndex.value = withTiming(activeIndicatorSlot, { duration: 220 });
+  }, [activeIndicatorSlot, indicatorIndex]);
 
   const handleItemPress = (
     route: BottomTabBarProps["state"]["routes"][number],
@@ -128,7 +134,8 @@ export function ModernMobileMenu({
     containerWidth - containerPaddingHorizontal * 2,
   );
   const tabCount = Math.max(1, visibleRoutes.length);
-  const normalizedTabWidth = contentWidth > 0 ? contentWidth / tabCount : 0;
+  const slotCount = tabCount + 1;
+  const normalizedTabWidth = contentWidth > 0 ? contentWidth / slotCount : 0;
   const indicatorWidth =
     normalizedTabWidth > 0 ? Math.max(28, normalizedTabWidth - 12) : 0;
   const indicatorLeftBase =
@@ -143,9 +150,17 @@ export function ModernMobileMenu({
     transform: [{ translateX: indicatorIndex.value * normalizedTabWidth }],
   }));
 
-  if (!navbarVisible) {
-    return null;
-  }
+  const firstHalfRoutes = visibleRoutes.slice(0, 2);
+  const secondHalfRoutes = visibleRoutes.slice(2);
+
+  const handleChatPress = () => {
+    if (chatState === "hidden" || chatState === "collapsed") {
+      setChatState("expanded");
+      return;
+    }
+
+    setChatState("hidden");
+  };
 
   const shadowStyle =
     Platform.OS === "web"
@@ -191,7 +206,58 @@ export function ModernMobileMenu({
         />
       )}
 
-      {visibleRoutes.map((route, index) => {
+      {firstHalfRoutes.map((route) => {
+        const isFocused = activeRouteKey === route.key;
+        const routeName = route.name.toLowerCase();
+        const routeBase = routeName.split("/")[0];
+        const label = TAB_LABELS[routeBase] ?? routeBase;
+        const IconComponent = TAB_ICONS[routeBase];
+        const itemColor = isFocused ? activeColor : inactiveColor;
+
+        return (
+          <Pressable
+            key={route.key}
+            onPress={() => handleItemPress(route)}
+            onLongPress={() => handleItemLongPress(route)}
+            accessibilityRole="button"
+            accessibilityState={isFocused ? { selected: true } : {}}
+            accessibilityLabel={`${label} tab`}
+            style={styles.tabItem}
+          >
+            {IconComponent && <IconComponent size={24} color={itemColor} />}
+          </Pressable>
+        );
+      })}
+
+      <Pressable
+        onPress={handleChatPress}
+        accessibilityRole="button"
+        accessibilityLabel="Toggle coach chat"
+        style={[
+          styles.chatSlot,
+          {
+            shadowColor: colors.primary,
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: isDark ? 0.35 : 0.26,
+            shadowRadius: 12,
+            elevation: 8,
+          },
+        ]}
+      >
+        <View
+          style={[
+            styles.chatButton,
+            {
+              backgroundColor: colors.primary,
+              borderColor: withOpacity(colors.primaryForeground, 0.2),
+            },
+          ]}
+        >
+          <MessageCircle size={22} color={colors.primaryForeground} />
+        </View>
+      </Pressable>
+
+      {secondHalfRoutes.map((route) => {
         const isFocused = activeRouteKey === route.key;
         const routeName = route.name.toLowerCase();
         const routeBase = routeName.split("/")[0];
@@ -277,6 +343,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     borderRadius: 16,
     zIndex: 1,
+  },
+  chatSlot: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2,
+  },
+  chatButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
 
