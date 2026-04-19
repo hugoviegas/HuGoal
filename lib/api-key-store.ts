@@ -83,7 +83,10 @@ async function currentUserHasProAccess(): Promise<boolean> {
   if (!currentUser) return false;
 
   try {
-    const fetchedProfile = await getDocument<UserProfile>("profiles", currentUser.uid);
+    const fetchedProfile = await getDocument<UserProfile>(
+      "profiles",
+      currentUser.uid,
+    );
     return fetchedProfile?.is_pro === true;
   } catch {
     return false;
