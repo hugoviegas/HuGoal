@@ -370,392 +370,404 @@ export default function AIKeysSettingsScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <Pressable
-          onPress={() => router.back()}
-          style={{ padding: 4, marginLeft: -4 }}
-        >
-          <ArrowLeft size={24} color={colors.foreground} />
-        </Pressable>
-        <Text
-          style={{ fontSize: 22, fontWeight: "800", color: colors.foreground }}
-        >
-          AI Provider Keys
-        </Text>
-      </View>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <Pressable
+            onPress={() => router.back()}
+            style={{ padding: 4, marginLeft: -4 }}
+          >
+            <ArrowLeft size={24} color={colors.foreground} />
+          </Pressable>
+          <Text
+            style={{
+              fontSize: 22,
+              fontWeight: "800",
+              color: colors.foreground,
+            }}
+          >
+            AI Provider Keys
+          </Text>
+        </View>
 
-      {/* Usage summary */}
-      <View
-        style={{
-          borderRadius: 16,
-          borderWidth: 1,
-          borderColor: colors.cardBorder,
-          backgroundColor: colors.card,
-          padding: 14,
-          gap: 10,
-        }}
-      >
-        <Text style={{ color: colors.mutedForeground, fontWeight: "600" }}>
-          Usage (This month)
-        </Text>
-        <Text
-          style={{ color: colors.foreground, fontWeight: "700", fontSize: 18 }}
-        >
-          {usageSummary
-            ? `${usageSummary.requests_count} requests · $${usageSummary.total_cost.toFixed(3)}`
-            : "No usage yet"}
-        </Text>
-
+        {/* Usage summary */}
         <View
           style={{
-            height: 10,
-            backgroundColor: colors.cardBorder,
-            borderRadius: 8,
-            overflow: "hidden",
-            marginTop: 8,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+            backgroundColor: colors.card,
+            padding: 14,
+            gap: 10,
           }}
         >
+          <Text style={{ color: colors.mutedForeground, fontWeight: "600" }}>
+            Usage (This month)
+          </Text>
+          <Text
+            style={{
+              color: colors.foreground,
+              fontWeight: "700",
+              fontSize: 18,
+            }}
+          >
+            {usageSummary
+              ? `${usageSummary.requests_count} requests · $${usageSummary.total_cost.toFixed(3)}`
+              : "No usage yet"}
+          </Text>
+
           <View
             style={{
               height: 10,
-              width: `${Math.min(100, usageSummary ? (usageSummary.total_cost / monthlyBudget) * 100 : 0)}%`,
-              backgroundColor:
-                usageSummary && usageSummary.total_cost / monthlyBudget >= 0.8
-                  ? colors.destructive
-                  : colors.primary,
-            }}
-          />
-        </View>
-
-        {usageSummary && usageSummary.total_cost / monthlyBudget >= 0.8 ? (
-          <View
-            style={{
-              marginTop: 8,
-              padding: 8,
+              backgroundColor: colors.cardBorder,
               borderRadius: 8,
-              backgroundColor: `${colors.destructive}14`,
+              overflow: "hidden",
+              marginTop: 8,
             }}
           >
-            <Text style={{ color: colors.destructive, fontWeight: "700" }}>
-              Approaching monthly budget
-            </Text>
-            <Text style={{ color: colors.mutedForeground }}>
-              You reached{" "}
-              {((usageSummary.total_cost / monthlyBudget) * 100).toFixed(0)}% of
-              your estimated monthly budget (${monthlyBudget}).
-            </Text>
-          </View>
-        ) : null}
-      </View>
-
-      <View
-        style={{
-          borderRadius: 16,
-          borderWidth: 1,
-          borderColor: colors.cardBorder,
-          backgroundColor: colors.card,
-          padding: 14,
-          gap: 10,
-        }}
-      >
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <Shield size={16} color={colors.primary} />
-          <Text style={{ color: colors.foreground, fontWeight: "700" }}>
-            Security policy
-          </Text>
-        </View>
-        <Text style={{ color: colors.mutedForeground, lineHeight: 20 }}>
-          Keys are stored only on this device. They are never uploaded to
-          Firestore. During development, ENV fallback keys can be used if no
-          user key exists.
-        </Text>
-      </View>
-
-      <View
-        style={{
-          borderRadius: 16,
-          borderWidth: 1,
-          borderColor: colors.cardBorder,
-          backgroundColor: colors.card,
-          padding: 14,
-          gap: 10,
-        }}
-      >
-        <Text style={{ color: colors.mutedForeground, fontWeight: "600" }}>
-          Preferred provider
-        </Text>
-        <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
-          {PROVIDERS.map((provider) => {
-            const active = provider === selectedProvider;
-            return (
-              <Pressable
-                key={provider}
-                onPress={() => {
-                  void applyProviderPreference(provider);
-                }}
-                style={{
-                  borderRadius: 999,
-                  borderWidth: 1,
-                  borderColor: active ? colors.primary : colors.cardBorder,
-                  backgroundColor: active
-                    ? `${colors.primary}1A`
-                    : colors.background,
-                  paddingHorizontal: 12,
-                  paddingVertical: 8,
-                  minHeight: 40,
-                  justifyContent: "center",
-                }}
-              >
-                <Text
-                  style={{
-                    color: active ? colors.primary : colors.foreground,
-                    fontWeight: active ? "700" : "500",
-                  }}
-                >
-                  {PROVIDER_LABELS[provider]}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
-
-      <View
-        style={{
-          borderRadius: 16,
-          borderWidth: 1,
-          borderColor: colors.cardBorder,
-          backgroundColor: colors.card,
-          padding: 14,
-          gap: 12,
-        }}
-      >
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <KeyRound size={16} color={colors.primary} />
-          <Text
-            style={{ color: colors.foreground, fontWeight: "700", flex: 1 }}
-          >
-            {PROVIDER_LABELS[selectedProvider]}
-          </Text>
-          <View
-            style={{
-              borderRadius: 999,
-              paddingHorizontal: 10,
-              paddingVertical: 4,
-              backgroundColor:
-                selectedStatusMeta.tone === "ok"
-                  ? "rgba(34, 197, 94, 0.15)"
-                  : selectedStatusMeta.tone === "error"
-                    ? `${colors.destructive}1F`
-                    : "rgba(245, 158, 11, 0.15)",
-            }}
-          >
-            <Text
+            <View
               style={{
-                color:
-                  selectedStatusMeta.tone === "ok"
-                    ? "#22C55E"
-                    : selectedStatusMeta.tone === "error"
-                      ? colors.destructive
-                      : "#F59E0B",
-                fontSize: 12,
-                fontWeight: "700",
+                height: 10,
+                width: `${Math.min(100, usageSummary ? (usageSummary.total_cost / monthlyBudget) * 100 : 0)}%`,
+                backgroundColor:
+                  usageSummary && usageSummary.total_cost / monthlyBudget >= 0.8
+                    ? colors.destructive
+                    : colors.primary,
+              }}
+            />
+          </View>
+
+          {usageSummary && usageSummary.total_cost / monthlyBudget >= 0.8 ? (
+            <View
+              style={{
+                marginTop: 8,
+                padding: 8,
+                borderRadius: 8,
+                backgroundColor: `${colors.destructive}14`,
               }}
             >
-              {selectedStatusMeta.label}
-            </Text>
-          </View>
+              <Text style={{ color: colors.destructive, fontWeight: "700" }}>
+                Approaching monthly budget
+              </Text>
+              <Text style={{ color: colors.mutedForeground }}>
+                You reached{" "}
+                {((usageSummary.total_cost / monthlyBudget) * 100).toFixed(0)}%
+                of your estimated monthly budget (${monthlyBudget}).
+              </Text>
+            </View>
+          ) : null}
         </View>
-
-        <Text style={{ color: colors.mutedForeground }}>{infoText}</Text>
-        <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
-          {formatCheckedAt(selectedState?.checkedAt)}
-        </Text>
 
         <View
           style={{
-            borderRadius: 12,
+            borderRadius: 16,
             borderWidth: 1,
             borderColor: colors.cardBorder,
-            paddingHorizontal: 12,
-            paddingVertical: 10,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
+            backgroundColor: colors.card,
+            padding: 14,
+            gap: 10,
           }}
         >
-          <Text style={{ color: colors.foreground, flex: 1 }}>
-            {keyPreviewText}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Shield size={16} color={colors.primary} />
+            <Text style={{ color: colors.foreground, fontWeight: "700" }}>
+              Security policy
+            </Text>
+          </View>
+          <Text style={{ color: colors.mutedForeground, lineHeight: 20 }}>
+            Keys are stored only on this device. They are never uploaded to
+            Firestore. During development, ENV fallback keys can be used if no
+            user key exists.
           </Text>
-          <Pressable
-            onPress={async () => {
-              if (revealedKey) {
-                setRevealedKey(null);
-                return;
-              }
-
-              const resolved = await getResolvedApiKey(selectedProvider);
-              if (!resolved.key) {
-                showToast("No key available to reveal", "info");
-                return;
-              }
-
-              if (resolved.source === "preview") {
-                // For security, never reveal ENV/preview keys in the app UI.
-                showToast(
-                  "This key is provided by the system and is hidden",
-                  "info",
-                );
-                return;
-              }
-
-              setRevealedKey(resolved.key);
-              setTimeout(() => {
-                setRevealedKey(null);
-              }, 1000);
-            }}
-            style={{ padding: 4 }}
-          >
-            {revealedKey ? (
-              <EyeOff size={18} color={colors.mutedForeground} />
-            ) : (
-              <Eye size={18} color={colors.mutedForeground} />
-            )}
-          </Pressable>
         </View>
 
-        <TextInput
-          value={keyInput}
-          onChangeText={setKeyInput}
-          placeholder="Paste your API key"
-          placeholderTextColor={colors.mutedForeground}
-          autoCapitalize="none"
-          autoCorrect={false}
+        <View
           style={{
-            borderRadius: 12,
+            borderRadius: 16,
             borderWidth: 1,
             borderColor: colors.cardBorder,
-            color: colors.foreground,
-            backgroundColor: colors.background,
-            paddingHorizontal: 12,
-            paddingVertical: 12,
-            minHeight: 48,
+            backgroundColor: colors.card,
+            padding: 14,
+            gap: 10,
           }}
-        />
+        >
+          <Text style={{ color: colors.mutedForeground, fontWeight: "600" }}>
+            Preferred provider
+          </Text>
+          <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+            {PROVIDERS.map((provider) => {
+              const active = provider === selectedProvider;
+              return (
+                <Pressable
+                  key={provider}
+                  onPress={() => {
+                    void applyProviderPreference(provider);
+                  }}
+                  style={{
+                    borderRadius: 999,
+                    borderWidth: 1,
+                    borderColor: active ? colors.primary : colors.cardBorder,
+                    backgroundColor: active
+                      ? `${colors.primary}1A`
+                      : colors.background,
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    minHeight: 40,
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: active ? colors.primary : colors.foreground,
+                      fontWeight: active ? "700" : "500",
+                    }}
+                  >
+                    {PROVIDER_LABELS[provider]}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
 
-        <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
-          <Pressable
-            onPress={() => {
-              void handleSaveKey();
-            }}
-            disabled={saving}
+        <View
+          style={{
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+            backgroundColor: colors.card,
+            padding: 14,
+            gap: 12,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <KeyRound size={16} color={colors.primary} />
+            <Text
+              style={{ color: colors.foreground, fontWeight: "700", flex: 1 }}
+            >
+              {PROVIDER_LABELS[selectedProvider]}
+            </Text>
+            <View
+              style={{
+                borderRadius: 999,
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+                backgroundColor:
+                  selectedStatusMeta.tone === "ok"
+                    ? "rgba(34, 197, 94, 0.15)"
+                    : selectedStatusMeta.tone === "error"
+                      ? `${colors.destructive}1F`
+                      : "rgba(245, 158, 11, 0.15)",
+              }}
+            >
+              <Text
+                style={{
+                  color:
+                    selectedStatusMeta.tone === "ok"
+                      ? "#22C55E"
+                      : selectedStatusMeta.tone === "error"
+                        ? colors.destructive
+                        : "#F59E0B",
+                  fontSize: 12,
+                  fontWeight: "700",
+                }}
+              >
+                {selectedStatusMeta.label}
+              </Text>
+            </View>
+          </View>
+
+          <Text style={{ color: colors.mutedForeground }}>{infoText}</Text>
+          <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
+            {formatCheckedAt(selectedState?.checkedAt)}
+          </Text>
+
+          <View
             style={{
-              minHeight: 44,
               borderRadius: 12,
-              paddingHorizontal: 14,
-              justifyContent: "center",
-              alignItems: "center",
-              backgroundColor: colors.primary,
-              opacity: saving ? 0.7 : 1,
+              borderWidth: 1,
+              borderColor: colors.cardBorder,
+              paddingHorizontal: 12,
+              paddingVertical: 10,
               flexDirection: "row",
-              gap: 8,
+              alignItems: "center",
+              justifyContent: "space-between",
             }}
           >
-            {saving ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <CheckCircle2 size={16} color="#fff" />
-            )}
-            <Text style={{ color: "#fff", fontWeight: "700" }}>Save Key</Text>
-          </Pressable>
+            <Text style={{ color: colors.foreground, flex: 1 }}>
+              {keyPreviewText}
+            </Text>
+            <Pressable
+              onPress={async () => {
+                if (revealedKey) {
+                  setRevealedKey(null);
+                  return;
+                }
 
-          <Pressable
-            onPress={() => {
-              void handleTest();
-            }}
-            disabled={testing || loading}
+                const resolved = await getResolvedApiKey(selectedProvider);
+                if (!resolved.key) {
+                  showToast("No key available to reveal", "info");
+                  return;
+                }
+
+                if (resolved.source === "preview") {
+                  // For security, never reveal ENV/preview keys in the app UI.
+                  showToast(
+                    "This key is provided by the system and is hidden",
+                    "info",
+                  );
+                  return;
+                }
+
+                setRevealedKey(resolved.key);
+                setTimeout(() => {
+                  setRevealedKey(null);
+                }, 1000);
+              }}
+              style={{ padding: 4 }}
+            >
+              {revealedKey ? (
+                <EyeOff size={18} color={colors.mutedForeground} />
+              ) : (
+                <Eye size={18} color={colors.mutedForeground} />
+              )}
+            </Pressable>
+          </View>
+
+          <TextInput
+            value={keyInput}
+            onChangeText={setKeyInput}
+            placeholder="Paste your API key"
+            placeholderTextColor={colors.mutedForeground}
+            autoCapitalize="none"
+            autoCorrect={false}
             style={{
-              minHeight: 44,
               borderRadius: 12,
-              paddingHorizontal: 14,
-              justifyContent: "center",
-              alignItems: "center",
+              borderWidth: 1,
+              borderColor: colors.cardBorder,
+              color: colors.foreground,
+              backgroundColor: colors.background,
+              paddingHorizontal: 12,
+              paddingVertical: 12,
+              minHeight: 48,
+            }}
+          />
+
+          <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+            <Pressable
+              onPress={() => {
+                void handleSaveKey();
+              }}
+              disabled={saving}
+              style={{
+                minHeight: 44,
+                borderRadius: 12,
+                paddingHorizontal: 14,
+                justifyContent: "center",
+                alignItems: "center",
+                backgroundColor: colors.primary,
+                opacity: saving ? 0.7 : 1,
+                flexDirection: "row",
+                gap: 8,
+              }}
+            >
+              {saving ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <CheckCircle2 size={16} color="#fff" />
+              )}
+              <Text style={{ color: "#fff", fontWeight: "700" }}>Save Key</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => {
+                void handleTest();
+              }}
+              disabled={testing || loading}
+              style={{
+                minHeight: 44,
+                borderRadius: 12,
+                paddingHorizontal: 14,
+                justifyContent: "center",
+                alignItems: "center",
+                borderWidth: 1,
+                borderColor: colors.cardBorder,
+                backgroundColor: colors.background,
+                opacity: testing || loading ? 0.7 : 1,
+                flexDirection: "row",
+                gap: 8,
+              }}
+            >
+              {testing ? (
+                <ActivityIndicator size="small" color={colors.foreground} />
+              ) : (
+                <FlaskConical size={16} color={colors.foreground} />
+              )}
+              <Text style={{ color: colors.foreground, fontWeight: "700" }}>
+                Test Key
+              </Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => {
+                void handleDelete();
+              }}
+              disabled={deleting}
+              style={{
+                minHeight: 44,
+                borderRadius: 12,
+                paddingHorizontal: 14,
+                justifyContent: "center",
+                alignItems: "center",
+                borderWidth: 1,
+                borderColor: `${colors.destructive}55`,
+                backgroundColor: `${colors.destructive}14`,
+                opacity: deleting ? 0.7 : 1,
+                flexDirection: "row",
+                gap: 8,
+              }}
+            >
+              {deleting ? (
+                <ActivityIndicator size="small" color={colors.destructive} />
+              ) : (
+                <Trash2 size={16} color={colors.destructive} />
+              )}
+              <Text style={{ color: colors.destructive, fontWeight: "700" }}>
+                Delete Key
+              </Text>
+            </Pressable>
+          </View>
+
+          <View
+            style={{
+              borderRadius: 12,
               borderWidth: 1,
               borderColor: colors.cardBorder,
               backgroundColor: colors.background,
-              opacity: testing || loading ? 0.7 : 1,
-              flexDirection: "row",
-              gap: 8,
+              padding: 10,
+              gap: 6,
             }}
           >
-            {testing ? (
-              <ActivityIndicator size="small" color={colors.foreground} />
-            ) : (
-              <FlaskConical size={16} color={colors.foreground} />
-            )}
-            <Text style={{ color: colors.foreground, fontWeight: "700" }}>
-              Test Key
-            </Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() => {
-              void handleDelete();
-            }}
-            disabled={deleting}
-            style={{
-              minHeight: 44,
-              borderRadius: 12,
-              paddingHorizontal: 14,
-              justifyContent: "center",
-              alignItems: "center",
-              borderWidth: 1,
-              borderColor: `${colors.destructive}55`,
-              backgroundColor: `${colors.destructive}14`,
-              opacity: deleting ? 0.7 : 1,
-              flexDirection: "row",
-              gap: 8,
-            }}
-          >
-            {deleting ? (
-              <ActivityIndicator size="small" color={colors.destructive} />
-            ) : (
-              <Trash2 size={16} color={colors.destructive} />
-            )}
-            <Text style={{ color: colors.destructive, fontWeight: "700" }}>
-              Delete Key
-            </Text>
-          </Pressable>
-        </View>
-
-        <View
-          style={{
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: colors.cardBorder,
-            backgroundColor: colors.background,
-            padding: 10,
-            gap: 6,
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <CircleAlert size={14} color={colors.mutedForeground} />
-            <Text style={{ color: colors.mutedForeground, fontWeight: "600" }}>
-              Setup guide
-            </Text>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+            >
+              <CircleAlert size={14} color={colors.mutedForeground} />
+              <Text
+                style={{ color: colors.mutedForeground, fontWeight: "600" }}
+              >
+                Setup guide
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => {
+                void Linking.openURL(PROVIDER_GUIDES[selectedProvider]);
+              }}
+              style={{ paddingVertical: 2 }}
+            >
+              <Text style={{ color: colors.primary, lineHeight: 18 }}>
+                Open provider setup guide
+              </Text>
+            </Pressable>
           </View>
-          <Pressable
-            onPress={() => {
-              void Linking.openURL(PROVIDER_GUIDES[selectedProvider]);
-            }}
-            style={{ paddingVertical: 2 }}
-          >
-            <Text style={{ color: colors.primary, lineHeight: 18 }}>
-              Open provider setup guide
-            </Text>
-          </Pressable>
         </View>
-      </View>
       </ScrollView>
     </KeyboardAwareContainer>
   );

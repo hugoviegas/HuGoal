@@ -1,12 +1,7 @@
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ComponentType,
-} from "react";
+import { useEffect, useMemo, useState, type ComponentType } from "react";
 import {
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -144,7 +139,6 @@ export function GlobalChatOverlay() {
 
   const contextMeta = CONTEXT_META[activeContext];
   const messages = history[activeContext];
-  const listRef = useRef<FlatList<any> | null>(null);
 
   const collapsedOrHidden = chatState === "collapsed" || chatState === "hidden";
   const isExpandedOrFullscreen =
@@ -215,10 +209,8 @@ export function GlobalChatOverlay() {
     void loadMemories();
   }, [activeContext, initSession, loadMemories, userId]);
 
-  // Removed global keyboard listener that expanded the chat whenever the
-  // keyboard showed. This caused the chat panel to open when the keyboard
-  // was triggered by unrelated inputs elsewhere in the app. Expansion is
-  // now driven by the chat input's `onInputFocus` handler instead.
+  // REMOVED: Auto-expansion on keyboard show was causing unwanted drawer opens.
+  // The input focus handler in ChatInputBar now handles expansion when needed.
 
   const animatedPanelStyle = useAnimatedStyle(() => ({
     height: panelHeight.value,
@@ -676,12 +668,11 @@ export function GlobalChatOverlay() {
           <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             keyboardVerticalOffset={
-              Platform.OS === "ios" ? insets.bottom + 100 : insets.bottom + 88
+              Platform.OS === "ios" ? insets.bottom + 100 : 0
             }
             style={{ flex: 1 }}
           >
             <FlatList
-              ref={listRef}
               data={messages}
               keyExtractor={(item) => item.id}
               keyboardShouldPersistTaps="handled"
@@ -730,12 +721,6 @@ export function GlobalChatOverlay() {
                 onImageSelected={() => {}}
                 onInputFocus={() => {
                   setState("expanded");
-                  // scroll to bottom when input is focused so the composer is visible
-                  try {
-                    (listRef.current as any)?.scrollToEnd?.({ animated: true });
-                  } catch (e) {
-                    // ignore
-                  }
                 }}
                 disabled={sending}
                 placeholder="Message your coach"

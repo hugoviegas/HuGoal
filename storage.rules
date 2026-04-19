@@ -45,6 +45,14 @@ service firebase.storage {
       allow delete: if isOwner(userId);
     }
 
+    // Community post images:
+    // community_posts/{uid}/{timestamp}.jpg
+    match /community_posts/{userId}/{fileName} {
+      allow read: if isSignedIn();
+      allow create, update: if isOwner(userId) && isValidWorkoutCoverUpload();
+      allow delete: if isOwner(userId);
+    }
+
     // Group check-in images:
     // group_check_ins/{groupId}/{uid}/{timestamp}.jpg
     match /group_check_ins/{groupId}/{userId}/{fileName} {

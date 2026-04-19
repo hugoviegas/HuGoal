@@ -11,7 +11,13 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
-import { X, Image as ImageIcon, Globe, Users, ChevronDown } from "lucide-react-native";
+import {
+  X,
+  Image as ImageIcon,
+  Globe,
+  Users,
+  ChevronDown,
+} from "lucide-react-native";
 import { Avatar } from "@/components/ui/Avatar";
 import { KeyboardAwareContainer } from "@/components/ui/KeyboardAwareContainer";
 import { useThemeStore } from "@/stores/theme.store";
@@ -47,7 +53,7 @@ export default function CreatePostScreen() {
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ["images"],
       allowsMultipleSelection: true,
       selectionLimit: 4,
       quality: 0.8,
@@ -80,7 +86,12 @@ export default function CreatePostScreen() {
       const message = e instanceof Error ? e.message : "Upload failed";
       console.error("[community][create-post] Publish failed", e);
       // Save as draft
-      const draft = { content, images, visibility, saved_at: new Date().toISOString() };
+      const draft = {
+        content,
+        images,
+        visibility,
+        saved_at: new Date().toISOString(),
+      };
       await AsyncStorage.setItem(`post_draft:${uid}`, JSON.stringify(draft));
       showToast(`${message}. Draft saved.`, "warning");
     } finally {
@@ -117,10 +128,16 @@ export default function CreatePostScreen() {
             backgroundColor: pressed ? colors.surface : "transparent",
           })}
         >
-          <Text style={{ color: colors.mutedForeground, fontSize: 16 }}>Cancel</Text>
+          <Text style={{ color: colors.mutedForeground, fontSize: 16 }}>
+            Cancel
+          </Text>
         </Pressable>
 
-        <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: "700" }}>New Post</Text>
+        <Text
+          style={{ color: colors.foreground, fontSize: 17, fontWeight: "700" }}
+        >
+          New Post
+        </Text>
 
         <Pressable
           onPress={handlePublish}
@@ -142,7 +159,9 @@ export default function CreatePostScreen() {
           ) : (
             <Text
               style={{
-                color: !canPublish ? colors.mutedForeground : colors.primaryForeground,
+                color: !canPublish
+                  ? colors.mutedForeground
+                  : colors.primaryForeground,
                 fontSize: 15,
                 fontWeight: "700",
               }}
@@ -159,10 +178,18 @@ export default function CreatePostScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Author row */}
-        <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
+        <View
+          style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}
+        >
           <Avatar source={profile?.avatar_url} name={profile?.name} size="md" />
           <View style={{ flex: 1, gap: 4 }}>
-            <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: "700" }}>
+            <Text
+              style={{
+                color: colors.foreground,
+                fontSize: 15,
+                fontWeight: "700",
+              }}
+            >
               {profile?.name}
             </Text>
 
@@ -176,7 +203,9 @@ export default function CreatePostScreen() {
                 paddingHorizontal: 10,
                 paddingVertical: 4,
                 borderRadius: 20,
-                backgroundColor: pressed ? colors.surface : colors.surface + "80",
+                backgroundColor: pressed
+                  ? colors.surface
+                  : colors.surface + "80",
                 borderWidth: 1,
                 borderColor: colors.cardBorder,
                 alignSelf: "flex-start",
@@ -189,7 +218,10 @@ export default function CreatePostScreen() {
               )}
               <Text
                 style={{
-                  color: visibility === "public" ? colors.primary : colors.mutedForeground,
+                  color:
+                    visibility === "public"
+                      ? colors.primary
+                      : colors.mutedForeground,
                   fontSize: 12,
                   fontWeight: "700",
                 }}
@@ -221,7 +253,8 @@ export default function CreatePostScreen() {
         {/* Character count */}
         <Text
           style={{
-            color: charCount > MAX_CHARS * 0.9 ? "#F59E0B" : colors.mutedForeground,
+            color:
+              charCount > MAX_CHARS * 0.9 ? "#F59E0B" : colors.mutedForeground,
             fontSize: 12,
             textAlign: "right",
           }}
@@ -231,7 +264,11 @@ export default function CreatePostScreen() {
 
         {/* Image previews */}
         {images.length > 0 && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ gap: 8 }}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ gap: 8 }}
+          >
             <View style={{ flexDirection: "row", gap: 8 }}>
               {images.map((uri, idx) => (
                 <View key={idx} style={{ position: "relative" }}>
@@ -291,7 +328,9 @@ export default function CreatePostScreen() {
           })}
         >
           <ImageIcon size={22} color={colors.primary} />
-          <Text style={{ color: colors.primary, fontSize: 14, fontWeight: "600" }}>
+          <Text
+            style={{ color: colors.primary, fontSize: 14, fontWeight: "600" }}
+          >
             Photo {images.length > 0 ? `(${images.length}/4)` : ""}
           </Text>
         </Pressable>
