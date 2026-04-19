@@ -13,6 +13,25 @@ interface AIResponse {
 interface AIRequestOptions {
   model?: string;
   apiKeyOverride?: string;
+  signal?: AbortSignal;
+  stream?: boolean;
+  onToken?: (token: string) => void;
+}
+
+export interface ProviderCapabilities {
+  supportsStreaming: boolean;
+}
+
+const PROVIDER_CAPABILITIES: Record<AIProvider, ProviderCapabilities> = {
+  gemini: { supportsStreaming: false },
+  claude: { supportsStreaming: false },
+  openai: { supportsStreaming: true },
+};
+
+export function getProviderCapabilities(
+  provider: AIProvider,
+): ProviderCapabilities {
+  return PROVIDER_CAPABILITIES[provider];
 }
 
 export type AIKeyTestStatus =
@@ -141,13 +160,45 @@ async function callOpenAI(
   options?: AIRequestOptions,
 ): Promise<AIResponse> {
   const client = new OpenAI({ apiKey });
-  const response = await client.chat.completions.create({
-    model: options?.model ?? "gpt-4o",
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-    ],
-  });
+
+  if (options?.stream && typeof options.onToken === "function") {
+    const stream = await client.chat.completions.create(
+      {
+        model: options?.model ?? "gpt-4o",
+        stream: true,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+      },
+      {
+        signal: options.signal,
+      },
+    );
+
+    let fullText = "";
+    for await (const chunk of stream) {
+      const token = chunk.choices[0]?.delta?.content;
+      if (!token) continue;
+      fullText += token;
+      options.onToken(token);
+    }
+
+    return { text: fullText };
+  }
+
+  const response = await client.chat.completions.create(
+    {
+      model: options?.model ?? "gpt-4o",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+    },
+    {
+      signal: options?.signal,
+    },
+  );
   return { text: response.choices[0]?.message?.content ?? "" };
 }
 

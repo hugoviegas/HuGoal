@@ -28,6 +28,7 @@ export default function CommunityFeedScreen() {
 
   const feed = useCommunityStore((s) => s.feed);
   const feedLoading = useCommunityStore((s) => s.feedLoading);
+  const feedSyncing = useCommunityStore((s) => s.feedSyncing);
   const loadFeed = useCommunityStore((s) => s.loadFeed);
   const startFeedListener = useCommunityStore((s) => s.startFeedListener);
   const stopFeedListener = useCommunityStore((s) => s.stopFeedListener);
@@ -126,6 +127,26 @@ export default function CommunityFeedScreen() {
       {/* Community tab */}
       {activeTab === "community" && (
         <>
+          {feedSyncing ? (
+            <View
+              style={{
+                paddingHorizontal: 16,
+                paddingTop: 8,
+                paddingBottom: 2,
+              }}
+            >
+              <Text
+                style={{
+                  color: colors.primary,
+                  fontSize: 12,
+                  fontWeight: "600",
+                }}
+              >
+                Syncing latest posts...
+              </Text>
+            </View>
+          ) : null}
+
           {feedLoading && feed.length === 0 ? (
             <View
               style={{

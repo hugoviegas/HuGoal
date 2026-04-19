@@ -12,8 +12,17 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import type { CommunityPost, PostMedia, PostLinkedContent, PostVisibility } from "@/types";
-import { getFollowingIds, getBlockedUserIds, getMutedUserIds } from "@/lib/community-follows";
+import type {
+  CommunityPost,
+  PostMedia,
+  PostLinkedContent,
+  PostVisibility,
+} from "@/types";
+import {
+  getFollowingIds,
+  getBlockedUserIds,
+  getMutedUserIds,
+} from "@/lib/community-follows";
 import { firestoreToPost } from "@/lib/community-posts";
 
 const FEED_LIMIT = 100;
@@ -57,13 +66,18 @@ export async function loadFeed(uid: string): Promise<CommunityPost[]> {
 
     const posts = snap.docs
       .map((d) => firestoreToPost(d.id, d.data() as Record<string, unknown>))
-      .filter((p) => chunk.includes(p.author_id) && !excludeIds.has(p.author_id));
+      .filter(
+        (p) => chunk.includes(p.author_id) && !excludeIds.has(p.author_id),
+      );
     allPosts = allPosts.concat(posts);
   }
 
   // Sort by created_at desc and cap at FEED_LIMIT
   return allPosts
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    )
     .slice(0, FEED_LIMIT);
 }
 
@@ -74,35 +88,39 @@ export function setupFeedListener(
   followingIds: string[],
   blockedIds: string[],
   mutedIds: string[],
-  onUpdate: (posts: CommunityPost[]) => void,
+  onUpdate: (posts: CommunityPost[], meta?: { fromCache: boolean }) => void,
 ): Unsubscribe {
   if (followingIds.length === 0) {
-    onUpdate([]);
+    onUpdate([], { fromCache: true });
     return () => {};
   }
 
   const excludeIds = new Set([...blockedIds, ...mutedIds]);
   const chunk = followingIds.slice(0, 30); // First chunk only for real-time
 
-  const buildPrimaryQuery = () => query(
-    collection(db, "community_posts"),
-    where("author_id", "in", chunk),
-    where("status", "==", "published"),
-    orderBy("created_at", "desc"),
-    limit(FEED_LIMIT),
-  );
+  const buildPrimaryQuery = () =>
+    query(
+      collection(db, "community_posts"),
+      where("author_id", "in", chunk),
+      where("status", "==", "published"),
+      orderBy("created_at", "desc"),
+      limit(FEED_LIMIT),
+    );
 
-  const buildFallbackQuery = () => query(
-    collection(db, "community_posts"),
-    where("status", "==", "published"),
-    limit(FEED_LIMIT),
-  );
+  const buildFallbackQuery = () =>
+    query(
+      collection(db, "community_posts"),
+      where("status", "==", "published"),
+      limit(FEED_LIMIT),
+    );
 
   const mapPosts = (snap: QuerySnapshot<DocumentData>) => {
     const allowedAuthors = new Set(chunk);
     return snap.docs
       .map((d) => firestoreToPost(d.id, d.data() as Record<string, unknown>))
-      .filter((p) => allowedAuthors.has(p.author_id) && !excludeIds.has(p.author_id));
+      .filter(
+        (p) => allowedAuthors.has(p.author_id) && !excludeIds.has(p.author_id),
+      );
   };
 
   let fallbackUnsub: Unsubscribe | null = null;
@@ -110,7 +128,7 @@ export function setupFeedListener(
   const primaryUnsub = onSnapshot(
     buildPrimaryQuery(),
     (snap) => {
-      onUpdate(mapPosts(snap));
+      onUpdate(mapPosts(snap), { fromCache: snap.metadata.fromCache });
     },
     (error) => {
       console.error("[community][feed] primary listener failed", error);
@@ -120,11 +138,14 @@ export function setupFeedListener(
       fallbackUnsub = onSnapshot(
         buildFallbackQuery(),
         (snap) => {
-          onUpdate(mapPosts(snap));
+          onUpdate(mapPosts(snap), { fromCache: snap.metadata.fromCache });
         },
         (fallbackError) => {
-          console.error("[community][feed] fallback listener failed", fallbackError);
-          onUpdate([]);
+          console.error(
+            "[community][feed] fallback listener failed",
+            fallbackError,
+          );
+          onUpdate([], { fromCache: false });
         },
       );
     },

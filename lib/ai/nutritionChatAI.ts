@@ -362,6 +362,7 @@ interface AnalyzeNutritionChatParams {
   userMessage: string;
   pantryItems: NutritionChatPantryItem[];
   previousItems?: NutritionChatItem[];
+  signal?: AbortSignal;
 }
 
 const FALLBACK_PROVIDER_CHAIN: AIProvider[] = ["gemini", "claude", "openai"];
@@ -596,6 +597,7 @@ Current pending items (update these when user asks for corrections): ${JSON.stri
         provider,
         REVIEW_SYSTEM_PROMPT,
         userPrompt,
+        { signal: params.signal },
       );
       const reviewItems = parseReviewResponseToItems(
         response.text,
@@ -622,6 +624,7 @@ interface AnalyzeNutritionReviewParams {
   pantryItems: NutritionChatPantryItem[];
   previousItems?: NutritionReviewItem[];
   memoryPromptBlock?: string;
+  signal?: AbortSignal;
 }
 
 export async function analyzeNutritionReviewText(
@@ -646,6 +649,7 @@ Current pending review items (update these when user asks for corrections): ${JS
         provider,
         `${memoryPrefix}${REVIEW_SYSTEM_PROMPT}`,
         userPrompt,
+        { signal: params.signal },
       );
       const items = parseReviewResponseToItems(
         response.text,

@@ -68,13 +68,15 @@ export default function AuthLayout() {
       />
     );
   }
-  console.log("[AuthLayout] render —", {
-    isInitializing,
-    isLoading,
-    isAuthenticated,
-    hasProfile: !!profile,
-    segments,
-  });
+  if (__DEV__) {
+    console.log("[AuthLayout] render —", {
+      isInitializing,
+      isLoading,
+      isAuthenticated,
+      hasProfile: !!profile,
+      segments,
+    });
+  }
 
   if (isInitializing || isLoading) {
     return (
@@ -186,16 +188,20 @@ export default function AuthLayout() {
   }
 
   if (!isAuthenticated && (isOnboardingRoute || isVerifyEmailRoute)) {
-    console.log(
-      "[AuthLayout] Unauthenticated on protected route — redirecting to auth",
-    );
+    if (__DEV__) {
+      console.log(
+        "[AuthLayout] Unauthenticated on protected route — redirecting to auth",
+      );
+    }
     return <Redirect href="/(auth)/auth" />;
   }
 
   if (isAuthenticated && user && !user.emailVerified && !isVerifyEmailRoute) {
-    console.log(
-      "[AuthLayout] Email not verified — redirecting to verify-email",
-    );
+    if (__DEV__) {
+      console.log(
+        "[AuthLayout] Email not verified — redirecting to verify-email",
+      );
+    }
     return <Redirect href="/(auth)/verify-email" />;
   }
 
@@ -219,7 +225,9 @@ export default function AuthLayout() {
     return <Redirect href="/(auth)/onboarding/gender" />;
   }
 
-  console.log("[AuthLayout] Rendering Stack — unauthenticated login flow");
+  if (__DEV__) {
+    console.log("[AuthLayout] Rendering Stack — unauthenticated login flow");
+  }
   return (
     <Stack
       screenOptions={{

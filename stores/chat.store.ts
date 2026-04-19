@@ -73,6 +73,12 @@ interface ChatStore {
   setState: (nextState: ChatState) => void;
   setContext: (context: ChatContext) => void;
   appendMessage: (context: ChatContext, message: ChatMessage) => void;
+  upsertTextMessage: (
+    context: ChatContext,
+    messageId: string,
+    role: "user" | "assistant",
+    text: string,
+  ) => void;
   setHistory: (context: ChatContext, messages: ChatMessage[]) => void;
   setLoadingHistory: (value: boolean) => void;
   setSyncingToCloud: (value: boolean) => void;
@@ -155,6 +161,48 @@ export const useChatStore = create<ChatStore>((set) => ({
         history: {
           ...current.history,
           [context]: [...current.history[context], message],
+        },
+      };
+    }),
+
+  upsertTextMessage: (context, messageId, role, text) =>
+    set((current) => {
+      const messages = current.history[context];
+      const idx = messages.findIndex((message) => message.id === messageId);
+
+      if (idx === -1) {
+        const nextMessage: ChatTextMessage = {
+          id: messageId,
+          role,
+          type: "text",
+          text,
+          createdAt: new Date().toISOString(),
+        };
+        return {
+          history: {
+            ...current.history,
+            [context]: [...messages, nextMessage],
+          },
+        };
+      }
+
+      const target = messages[idx];
+      if (target.type !== "text") {
+        return current;
+      }
+
+      const updated: ChatTextMessage = {
+        ...target,
+        role,
+        text,
+      };
+
+      const nextMessages = [...messages];
+      nextMessages[idx] = updated;
+      return {
+        history: {
+          ...current.history,
+          [context]: nextMessages,
         },
       };
     }),

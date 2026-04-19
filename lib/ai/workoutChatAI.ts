@@ -20,6 +20,7 @@ export interface WorkoutChatAIInput {
   sessionContext: WorkoutSessionContext;
   previousMessages: WorkoutChatMessage[];
   userMemories?: WorkoutChatUserMemory[];
+  signal?: AbortSignal;
 }
 
 export interface WorkoutChatAIResponse {
@@ -273,7 +274,9 @@ export async function analyzeWorkoutChatMessage(
 
   for (const provider of order) {
     try {
-      const response = await generateText(provider, systemPrompt, userPrompt);
+      const response = await generateText(provider, systemPrompt, userPrompt, {
+        signal: input.signal,
+      });
       return parseResponse(response.text);
     } catch (err) {
       lastError = err;

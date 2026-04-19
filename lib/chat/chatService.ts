@@ -18,6 +18,7 @@ import type { ChatContext, ChatMessage } from "@/stores/chat.store";
 import type { WorkoutTemplateRecord } from "@/lib/firestore/workouts";
 import type { WorkoutChatMessage } from "@/stores/workout.store";
 import type { AIProvider } from "@/types";
+import { getProviderCapabilities } from "@/lib/ai-provider";
 
 export type ChatServiceResponse =
   | { kind: "text"; text: string }
@@ -65,6 +66,70 @@ const CONTEXT_ROUTES: Record<ChatContext, ChatRouteDefinition> = {
 
 export interface ChatRouteDeps {
   userId?: string;
+  onAssistantToken?: (token: string) => void;
+  enableStreaming?: boolean;
+  signal?: AbortSignal;
+}
+
+const OFFLINE_PROBE_URL = "https://clients3.google.com/generate_204";
+const OFFLINE_PROBE_TIMEOUT_MS = 2500;
+
+const inFlightRequests = new Map<
+  ChatContext,
+  { controller: AbortController; requestId: number }
+>();
+let requestSequence = 0;
+
+function createAbortError(message: string): Error {
+  const error = new Error(message);
+  error.name = "AbortError";
+  return error;
+}
+
+function beginRequest(context: ChatContext): {
+  signal: AbortSignal;
+  requestId: number;
+} {
+  const previous = inFlightRequests.get(context);
+  if (previous) {
+    previous.controller.abort();
+  }
+
+  const controller = new AbortController();
+  const requestId = ++requestSequence;
+  inFlightRequests.set(context, { controller, requestId });
+
+  return { signal: controller.signal, requestId };
+}
+
+function finalizeRequest(context: ChatContext, requestId: number): void {
+  const current = inFlightRequests.get(context);
+  if (current?.requestId === requestId) {
+    inFlightRequests.delete(context);
+  }
+}
+
+async function assertOnline(signal: AbortSignal): Promise<void> {
+  if (signal.aborted) {
+    throw createAbortError("Request cancelled");
+  }
+
+  const timeoutController = new AbortController();
+  const timeoutId = setTimeout(() => {
+    timeoutController.abort();
+  }, OFFLINE_PROBE_TIMEOUT_MS);
+
+  try {
+    await fetch(OFFLINE_PROBE_URL, {
+      method: "GET",
+      cache: "no-store",
+      signal: timeoutController.signal,
+    });
+  } catch {
+    throw new Error("You're offline - check your connection");
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 function getPreferredProvider(): AIProvider {
@@ -173,10 +238,22 @@ async function getAppContextText(userId?: string): Promise<string | null> {
 
 async function sendHomeContext(
   args: HandlerArgs,
+  options?: {
+    signal?: AbortSignal;
+    onAssistantToken?: (token: string) => void;
+    enableStreaming?: boolean;
+  },
 ): Promise<ChatServiceResponse> {
   const authState = useAuthStore.getState();
   const appContext = await getAppContextText(args.userId);
   const memoriesBlock = getMemoryPromptBlock();
+  const supportsStreaming = getProviderCapabilities(
+    args.preferredProvider,
+  ).supportsStreaming;
+  const shouldStream =
+    options?.enableStreaming === true &&
+    supportsStreaming &&
+    typeof options.onAssistantToken === "function";
 
   const text = await sendHomeChatMessage({
     preferredProvider: args.preferredProvider,
@@ -185,6 +262,9 @@ async function sendHomeContext(
     history: toHomeHistory(args.history),
     appContext: appContext ?? undefined,
     userMemoriesBlock: memoriesBlock || undefined,
+    signal: options?.signal,
+    stream: shouldStream,
+    onToken: options?.onAssistantToken,
   });
 
   return { kind: "text", text };
@@ -192,6 +272,7 @@ async function sendHomeContext(
 
 async function sendNutritionContext(
   args: HandlerArgs,
+  options?: { signal?: AbortSignal },
 ): Promise<ChatServiceResponse> {
   const authState = useAuthStore.getState();
   const appContext = await getAppContextText(args.userId);
@@ -214,6 +295,7 @@ async function sendNutritionContext(
       pantryItems,
       previousItems: toNutritionReviewHistoryItems(args.history),
       memoryPromptBlock: memoriesBlock || undefined,
+      signal: options?.signal,
     });
   } catch {
     const fallbackText = await sendHomeChatMessage({
@@ -223,6 +305,7 @@ async function sendNutritionContext(
       history: toHomeHistory(args.history),
       appContext: appContext ?? undefined,
       userMemoriesBlock: memoriesBlock || undefined,
+      signal: options?.signal,
     });
 
     return { kind: "text", text: fallbackText };
@@ -252,6 +335,7 @@ async function sendNutritionContext(
 
 async function sendWorkoutsContext(
   args: HandlerArgs,
+  options?: { signal?: AbortSignal },
 ): Promise<ChatServiceResponse> {
   const authState = useAuthStore.getState();
   const appContext = await getAppContextText(args.userId);
@@ -280,6 +364,7 @@ async function sendWorkoutsContext(
       category: memory.category,
       content: memory.content,
     })),
+    signal: options?.signal,
   });
 
   if (response.action !== "none") {
@@ -299,6 +384,7 @@ async function sendWorkoutsContext(
     history: toHomeHistory(args.history),
     appContext: appContext ?? undefined,
     userMemoriesBlock: getMemoryPromptBlock() || undefined,
+    signal: options?.signal,
   });
 
   return { kind: "text", text: fallbackText };
@@ -306,8 +392,13 @@ async function sendWorkoutsContext(
 
 async function sendCommunityContext(
   args: HandlerArgs,
+  options?: {
+    signal?: AbortSignal;
+    onAssistantToken?: (token: string) => void;
+    enableStreaming?: boolean;
+  },
 ): Promise<ChatServiceResponse> {
-  return sendHomeContext(args);
+  return sendHomeContext(args, options);
 }
 
 export async function routeMessage(
@@ -317,41 +408,63 @@ export async function routeMessage(
   deps: ChatRouteDeps = {},
 ): Promise<ChatServiceResponse> {
   const route = CONTEXT_ROUTES[context];
+  void route;
   const preferredProvider = getPreferredProvider();
+  const signal = deps.signal;
 
   if (context === "nutrition") {
-    return sendNutritionContext({
-      message,
-      history,
-      preferredProvider,
-      userId: deps.userId,
-    });
+    return sendNutritionContext(
+      {
+        message,
+        history,
+        preferredProvider,
+        userId: deps.userId,
+      },
+      { signal },
+    );
   }
 
   if (context === "workouts") {
-    return sendWorkoutsContext({
-      message,
-      history,
-      preferredProvider,
-      userId: deps.userId,
-    });
+    return sendWorkoutsContext(
+      {
+        message,
+        history,
+        preferredProvider,
+        userId: deps.userId,
+      },
+      { signal },
+    );
   }
 
   if (context === "community") {
-    return sendCommunityContext({
+    return sendCommunityContext(
+      {
+        message,
+        history,
+        preferredProvider,
+        userId: deps.userId,
+      },
+      {
+        signal,
+        onAssistantToken: deps.onAssistantToken,
+        enableStreaming: deps.enableStreaming,
+      },
+    );
+  }
+
+  return sendHomeContext(
+    {
       message,
       history,
       preferredProvider,
       userId: deps.userId,
-    });
-  }
-
-  return sendHomeContext({
-    message,
-    history,
-    preferredProvider,
-    userId: deps.userId,
-  });
+    },
+    {
+      signal,
+      onAssistantToken: deps.onAssistantToken,
+      enableStreaming: deps.enableStreaming,
+    },
+  );
 }
 
 export async function sendMessage(
@@ -360,7 +473,17 @@ export async function sendMessage(
   history: ChatMessage[],
   deps: ChatRouteDeps = {},
 ): Promise<ChatServiceResponse> {
-  return routeMessage(context, message, history, deps);
+  const { signal, requestId } = beginRequest(context);
+
+  try {
+    await assertOnline(signal);
+    return await routeMessage(context, message, history, {
+      ...deps,
+      signal,
+    });
+  } finally {
+    finalizeRequest(context, requestId);
+  }
 }
 
 export function getChatRouteMap(): Record<ChatContext, ChatRouteDefinition> {

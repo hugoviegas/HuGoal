@@ -10,6 +10,7 @@ import {
   Platform,
 } from "react-native";
 import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 // Use React Native StatusBar to explicitly control Android bar style/background
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -18,10 +19,16 @@ import { useAuthStore } from "@/stores/auth.store";
 import { useThemeStore } from "@/stores/theme.store";
 import { ToastContainer } from "@/components/ui/Toast";
 import { GlobalChatOverlay } from "@/components/chat/GlobalChatOverlay";
-import { bootstrapApp } from "@/lib/bootstrap";
+import { bootstrapCritical, bootstrapDeferred } from "@/lib/bootstrap";
+import { isFirebaseReady, firebaseInitError } from "@/lib/firebase";
+import { Perf } from "@/lib/performance";
+
+void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const initialize = useAuthStore((s) => s.initialize);
+  const isAuthLoading = useAuthStore((s) => s.isLoading);
+  const isAuthInitializing = useAuthStore((s) => s.isInitializing);
   const initializeTheme = useThemeStore((s) => s.initialize);
   const syncWithSystem = useThemeStore((s) => s.syncWithSystem);
   const mode = useThemeStore((s) => s.mode);
@@ -47,7 +54,9 @@ export default function RootLayout() {
           console.error("[GlobalErrorHandler] stack:", error?.stack);
           prev?.(error, isFatal);
         });
-        console.log("[RootLayout] Global error handler registered.");
+        if (__DEV__) {
+          console.log("[RootLayout] Global error handler registered.");
+        }
       }
     } catch (e) {
       console.warn("[RootLayout] Could not register global error handler:", e);
@@ -60,16 +69,7 @@ export default function RootLayout() {
 
     const start = async () => {
       try {
-        console.log("[RootLayout] Starting Firebase import...");
-        const { isFirebaseReady, firebaseInitError } =
-          await import("@/lib/firebase");
-
-        console.log(
-          "[RootLayout] Firebase ready:",
-          isFirebaseReady,
-          "error:",
-          firebaseInitError ?? "none",
-        );
+        Perf.mark("cold_start");
 
         if (!isFirebaseReady) {
           throw new Error(
@@ -78,10 +78,15 @@ export default function RootLayout() {
           );
         }
 
-        console.log("[RootLayout] Calling auth.initialize()...");
-        unsubscribe = initialize();
-        bootstrapApp(); // background: reads SecureStore API keys
-        console.log("[RootLayout] Init complete.");
+        const initializeAuthPromise = Promise.resolve().then(() => {
+          unsubscribe = initialize();
+        });
+
+        await Promise.all([initializeAuthPromise, bootstrapCritical()]);
+
+        setTimeout(() => {
+          void bootstrapDeferred();
+        }, 0);
       } catch (error) {
         if (!isMounted) return;
         const errorMessage =
@@ -100,6 +105,17 @@ export default function RootLayout() {
       }
     };
   }, [initialize]);
+
+  useEffect(() => {
+    if (initError) {
+      return;
+    }
+
+    if (!isAuthLoading && !isAuthInitializing) {
+      void SplashScreen.hideAsync();
+      Perf.measure("cold_start");
+    }
+  }, [initError, isAuthInitializing, isAuthLoading]);
 
   useEffect(() => {
     initializeTheme();
@@ -162,7 +178,7 @@ export default function RootLayout() {
             screenOptions={{
               headerShown: false,
               contentStyle: { backgroundColor: colors.background },
-              animation: "slide_from_right",
+              animation: Platform.OS === "ios" ? "default" : "slide_from_right",
             }}
           >
             <Stack.Screen name="index" />

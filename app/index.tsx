@@ -8,7 +8,7 @@ const INIT_TIMEOUT_MS = 10000;
 
 export default function Index() {
   const colors = useThemeStore((s) => s.colors);
-  const { isAuthenticated, isInitializing, isLoading, forceReady } =
+  const { isAuthenticated, isInitializing, isLoading, authStatus, forceReady } =
     useAuthStore();
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -23,10 +23,9 @@ export default function Index() {
         timeoutRef.current = null;
       }
     };
-  }, []);
+  }, [forceReady]);
 
-  if (isInitializing || isLoading) {
-    console.log("[index] Waiting — isInitializing:", isInitializing, "isLoading:", isLoading);
+  if (authStatus === "loading" || isInitializing || isLoading) {
     return (
       <View
         style={{
@@ -42,10 +41,8 @@ export default function Index() {
   }
 
   if (!isAuthenticated) {
-    console.log("[index] Not authenticated — redirecting to /(auth)/auth");
     return <Redirect href="/(auth)/auth" />;
   }
 
-  console.log("[index] Authenticated — redirecting to /(tabs)/home");
   return <Redirect href="/(tabs)/home" />;
 }

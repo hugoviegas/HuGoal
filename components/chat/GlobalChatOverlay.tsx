@@ -1,7 +1,13 @@
-import { useEffect, useMemo, useState, type ComponentType } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ComponentType,
+} from "react";
 import {
   FlatList,
-  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -93,7 +99,7 @@ function resolveTargetHeight(
   return 52;
 }
 
-export function GlobalChatOverlay() {
+function GlobalChatOverlayComponent() {
   const insets = useSafeAreaInsets();
   const { height: viewportHeight } = useWindowDimensions();
   const colors = useThemeStore((state) => state.colors);
@@ -105,7 +111,6 @@ export function GlobalChatOverlay() {
   const chatState = useChatStore((state) => state.state);
   const activeContext = useChatStore((state) => state.activeContext);
   const history = useChatStore((state) => state.history);
-  const activeSessionId = useChatStore((state) => state.activeSessionId);
   const isSyncingToCloud = useChatStore((state) => state.isSyncingToCloud);
   const initSession = useChatStore((state) => state.initSession);
   const activateSession = useChatStore((state) => state.activateSession);
@@ -117,6 +122,7 @@ export function GlobalChatOverlay() {
   );
   const setState = useChatStore((state) => state.setState);
   const appendMessage = useChatStore((state) => state.appendMessage);
+  const upsertTextMessage = useChatStore((state) => state.upsertTextMessage);
   const updateMessageStatus = useChatStore(
     (state) => state.updateMessageStatus,
   );
@@ -237,17 +243,20 @@ export function GlobalChatOverlay() {
     return "dinner";
   };
 
-  const appendAssistantText = (text: string) => {
-    appendMessage(activeContext, {
-      id: generateId(),
-      role: "assistant",
-      type: "text",
-      text,
-      createdAt: new Date().toISOString(),
-    });
-  };
+  const appendAssistantText = useCallback(
+    (text: string) => {
+      appendMessage(activeContext, {
+        id: generateId(),
+        role: "assistant",
+        type: "text",
+        text,
+        createdAt: new Date().toISOString(),
+      });
+    },
+    [activeContext, appendMessage],
+  );
 
-  const handleStartNewChat = async () => {
+  const handleStartNewChat = useCallback(async () => {
     try {
       await startNewChat(activeContext);
       setHistoryDrawerVisible(false);
@@ -256,195 +265,249 @@ export function GlobalChatOverlay() {
         error instanceof Error ? error.message : "Could not start a new chat";
       showToast(message, "error");
     }
-  };
+  }, [activeContext, showToast, startNewChat]);
 
-  const handleDeleteSession = async (sessionId: string) => {
-    try {
-      await deleteSessionById(activeContext, sessionId);
-      await refreshContextFromCloud(activeContext);
-      showToast("Chat deleted", "success");
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Could not delete chat";
-      showToast(message, "error");
-      throw error;
-    }
-  };
+  const handleDeleteSession = useCallback(
+    async (sessionId: string) => {
+      try {
+        await deleteSessionById(activeContext, sessionId);
+        await refreshContextFromCloud(activeContext);
+        showToast("Chat deleted", "success");
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Could not delete chat";
+        showToast(message, "error");
+        throw error;
+      }
+    },
+    [activeContext, deleteSessionById, refreshContextFromCloud, showToast],
+  );
 
-  const handleUpdateNutritionReviewItem = (
-    messageId: string,
-    itemId: string,
-    patch: Partial<import("@/lib/ai/nutritionChatAI").NutritionReviewItem>,
-  ) => {
-    updateReviewItem(activeContext, messageId, itemId, patch);
-  };
+  const handleUpdateNutritionReviewItem = useCallback(
+    (
+      messageId: string,
+      itemId: string,
+      patch: Partial<import("@/lib/ai/nutritionChatAI").NutritionReviewItem>,
+    ) => {
+      updateReviewItem(activeContext, messageId, itemId, patch);
+    },
+    [activeContext, updateReviewItem],
+  );
 
-  const handleCancelNutritionReview = (messageId: string) => {
-    updateMessageStatus(activeContext, messageId, "cancelled");
-  };
+  const handleCancelNutritionReview = useCallback(
+    (messageId: string) => {
+      updateMessageStatus(activeContext, messageId, "cancelled");
+    },
+    [activeContext, updateMessageStatus],
+  );
 
-  const handleConfirmNutritionReview = async (messageId: string) => {
-    if (!userId) {
-      throw new Error("Missing user session");
-    }
+  const handleConfirmNutritionReview = useCallback(
+    async (messageId: string) => {
+      if (!userId) {
+        throw new Error("Missing user session");
+      }
 
-    const currentMessage = history[activeContext].find(
-      (message) =>
-        message.id === messageId && message.type === "nutrition_review",
-    );
-
-    if (!currentMessage || currentMessage.type !== "nutrition_review") {
-      throw new Error("Nutrition review message not found");
-    }
-
-    setSubmittingReviewMessageId(messageId);
-    try {
-      const items = currentMessage.items.map((item) => {
-        const selectedCandidate =
-          item.candidates[item.selectedCandidateIndex] ?? item.candidates[0];
-        const macros = computeMacros(selectedCandidate.per100g, item.weight_g);
-
-        return {
-          food_name: selectedCandidate.name,
-          serving_size_g: Math.max(1, item.weight_g),
-          calories: macros.calories,
-          protein_g: macros.protein_g,
-          carbs_g: macros.carbs_g,
-          fat_g: macros.fat_g,
-          source: "ai_generated",
-          notes: `${selectedCandidate.name} (${item.weight_g}g)`,
-        } satisfies NutritionItem;
-      });
-
-      await createNutritionLog(userId, {
-        meal_type: resolveMealType(),
-        items,
-        notes: "Saved from nutrition review chat",
-      });
-
-      updateMessageStatus(activeContext, messageId, "confirmed");
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Failed to save nutrition review";
-      showToast(message, "error");
-    } finally {
-      setSubmittingReviewMessageId(null);
-    }
-  };
-
-  const sendTextMessage = async (text: string) => {
-    const trimmed = text.trim();
-
-    if (!trimmed || sending) {
-      return;
-    }
-
-    const userMessage = {
-      id: generateId(),
-      role: "user" as const,
-      type: "text" as const,
-      text: trimmed,
-      createdAt: new Date().toISOString(),
-    };
-
-    appendMessage(activeContext, userMessage);
-    setSending(true);
-
-    try {
-      const contextHistory = [...messages, userMessage];
-      const response = await sendMessage(
-        activeContext,
-        trimmed,
-        contextHistory,
-        { userId },
+      const currentMessage = history[activeContext].find(
+        (message) =>
+          message.id === messageId && message.type === "nutrition_review",
       );
 
-      if (response.kind === "text") {
-        appendAssistantText(response.text);
-        return;
+      if (!currentMessage || currentMessage.type !== "nutrition_review") {
+        throw new Error("Nutrition review message not found");
       }
 
-      if (response.kind === "nutrition_review") {
-        appendMessage(activeContext, {
-          id: generateId(),
-          role: "assistant",
-          type: "nutrition_review",
-          status: "pending",
-          items: response.items,
-          createdAt: new Date().toISOString(),
+      setSubmittingReviewMessageId(messageId);
+      try {
+        const items = currentMessage.items.map((item) => {
+          const selectedCandidate =
+            item.candidates[item.selectedCandidateIndex] ?? item.candidates[0];
+          const macros = computeMacros(
+            selectedCandidate.per100g,
+            item.weight_g,
+          );
+
+          return {
+            food_name: selectedCandidate.name,
+            serving_size_g: Math.max(1, item.weight_g),
+            calories: macros.calories,
+            protein_g: macros.protein_g,
+            carbs_g: macros.carbs_g,
+            fat_g: macros.fat_g,
+            source: "ai_generated",
+            notes: `${selectedCandidate.name} (${item.weight_g}g)`,
+          } satisfies NutritionItem;
         });
+
+        await createNutritionLog(userId, {
+          meal_type: resolveMealType(),
+          items,
+          notes: "Saved from nutrition review chat",
+        });
+
+        updateMessageStatus(activeContext, messageId, "confirmed");
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Failed to save nutrition review";
+        showToast(message, "error");
+      } finally {
+        setSubmittingReviewMessageId(null);
+      }
+    },
+    [activeContext, history, showToast, updateMessageStatus, userId],
+  );
+
+  const sendTextMessage = useCallback(
+    async (text: string) => {
+      const trimmed = text.trim();
+
+      if (!trimmed || sending) {
         return;
       }
 
-      if (response.kind === "workout") {
-        let template: WorkoutTemplateRecord | null = null;
-        const workoutStore = useWorkoutStore.getState();
+      const userMessage = {
+        id: generateId(),
+        role: "user" as const,
+        type: "text" as const,
+        text: trimmed,
+        createdAt: new Date().toISOString(),
+      };
 
-        if (response.action === "create_workout" && response.newTemplate) {
-          if (!userId) {
-            throw new Error("Missing user session");
+      appendMessage(activeContext, userMessage);
+      setSending(true);
+
+      try {
+        const contextHistory = [...messages, userMessage];
+        const streamingMessageId = generateId();
+        let streamedText = "";
+        const response = await sendMessage(
+          activeContext,
+          trimmed,
+          contextHistory,
+          {
+            userId,
+            enableStreaming: true,
+            onAssistantToken: (token) => {
+              streamedText += token;
+              upsertTextMessage(
+                activeContext,
+                streamingMessageId,
+                "assistant",
+                streamedText,
+              );
+            },
+          },
+        );
+
+        if (response.kind === "text") {
+          if (streamedText.trim().length > 0) {
+            upsertTextMessage(
+              activeContext,
+              streamingMessageId,
+              "assistant",
+              response.text,
+            );
+            return;
           }
-
-          template = await createWorkoutTemplate(userId, {
-            name: response.newTemplate.name ?? "New Workout",
-            description: response.newTemplate.description,
-            cover_image_url: response.newTemplate.cover_image_url,
-            difficulty: response.newTemplate.difficulty ?? "intermediate",
-            is_ai_generated: true,
-            source_prompt: response.newTemplate.source_prompt,
-            exercises: response.newTemplate.exercises ?? [],
-            sections: response.newTemplate.sections,
-            target_muscles: response.newTemplate.target_muscles,
-            is_active: true,
-            is_public: false,
-            is_draft: false,
-            location: response.newTemplate.location,
-            estimated_duration_minutes:
-              response.newTemplate.estimated_duration_minutes ?? 45,
-            tags: response.newTemplate.tags ?? [],
-          });
-        }
-
-        if (response.action === "patch_workout" && response.patch) {
-          const templateId =
-            workoutStore.todayWorkout?.id ?? workoutStore.templateId;
-          if (!templateId) {
-            throw new Error("No workout template available to patch");
-          }
-
-          await updateWorkoutTemplate(templateId, response.patch);
-          template = await getWorkoutTemplate(templateId);
-        }
-
-        if (!template) {
           appendAssistantText(response.text);
           return;
         }
 
-        useWorkoutStore.getState().setTodayWorkout(template);
-        appendMessage(activeContext, {
-          id: generateId(),
-          role: "assistant",
-          type: "workout_card",
-          payload: template,
-          createdAt: new Date().toISOString(),
-        });
-        if (response.text) {
-          appendAssistantText(response.text);
+        if (response.kind === "nutrition_review") {
+          appendMessage(activeContext, {
+            id: generateId(),
+            role: "assistant",
+            type: "nutrition_review",
+            status: "pending",
+            items: response.items,
+            createdAt: new Date().toISOString(),
+          });
+          return;
         }
-        return;
+
+        if (response.kind === "workout") {
+          let template: WorkoutTemplateRecord | null = null;
+          const workoutStore = useWorkoutStore.getState();
+
+          if (response.action === "create_workout" && response.newTemplate) {
+            if (!userId) {
+              throw new Error("Missing user session");
+            }
+
+            template = await createWorkoutTemplate(userId, {
+              name: response.newTemplate.name ?? "New Workout",
+              description: response.newTemplate.description,
+              cover_image_url: response.newTemplate.cover_image_url,
+              difficulty: response.newTemplate.difficulty ?? "intermediate",
+              is_ai_generated: true,
+              source_prompt: response.newTemplate.source_prompt,
+              exercises: response.newTemplate.exercises ?? [],
+              sections: response.newTemplate.sections,
+              target_muscles: response.newTemplate.target_muscles,
+              is_active: true,
+              is_public: false,
+              is_draft: false,
+              location: response.newTemplate.location,
+              estimated_duration_minutes:
+                response.newTemplate.estimated_duration_minutes ?? 45,
+              tags: response.newTemplate.tags ?? [],
+            });
+          }
+
+          if (response.action === "patch_workout" && response.patch) {
+            const templateId =
+              workoutStore.todayWorkout?.id ?? workoutStore.templateId;
+            if (!templateId) {
+              throw new Error("No workout template available to patch");
+            }
+
+            await updateWorkoutTemplate(templateId, response.patch);
+            template = await getWorkoutTemplate(templateId);
+          }
+
+          if (!template) {
+            appendAssistantText(response.text);
+            return;
+          }
+
+          useWorkoutStore.getState().setTodayWorkout(template);
+          appendMessage(activeContext, {
+            id: generateId(),
+            role: "assistant",
+            type: "workout_card",
+            payload: template,
+            createdAt: new Date().toISOString(),
+          });
+          if (response.text) {
+            appendAssistantText(response.text);
+          }
+          return;
+        }
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          return;
+        }
+
+        const message =
+          error instanceof Error ? error.message : "Could not send message";
+        appendAssistantText(message);
+        showToast(message, "error");
+      } finally {
+        setSending(false);
       }
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Could not send message";
-      appendAssistantText(message);
-      showToast(message, "error");
-    } finally {
-      setSending(false);
-    }
-  };
+    },
+    [
+      activeContext,
+      appendAssistantText,
+      appendMessage,
+      messages,
+      sending,
+      showToast,
+      upsertTextMessage,
+      userId,
+    ],
+  );
 
   const emptyStateText = useMemo(() => {
     if (activeContext === "workouts") {
@@ -675,6 +738,10 @@ export function GlobalChatOverlay() {
             <FlatList
               data={messages}
               keyExtractor={(item) => item.id}
+              removeClippedSubviews={Platform.OS === "android"}
+              maxToRenderPerBatch={10}
+              windowSize={5}
+              initialNumToRender={8}
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={{
                 gap: spacing.xs,
@@ -747,5 +814,8 @@ export function GlobalChatOverlay() {
     </View>
   );
 }
+
+export const GlobalChatOverlay = memo(GlobalChatOverlayComponent);
+GlobalChatOverlay.displayName = "GlobalChatOverlay";
 
 export default GlobalChatOverlay;

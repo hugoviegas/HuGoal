@@ -5,7 +5,12 @@ import {
   getReactNativePersistence,
   type Auth,
 } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import {
+  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
@@ -73,7 +78,20 @@ if (isFirebaseReady) {
     auth = getAuth(app);
   }
 
-  db = getFirestore(app);
+  try {
+    db =
+      Platform.OS === "web"
+        ? initializeFirestore(app, {
+            localCache: persistentLocalCache({
+              tabManager: persistentMultipleTabManager(),
+            }),
+          })
+        : initializeFirestore(app, {
+            experimentalAutoDetectLongPolling: true,
+          });
+  } catch {
+    db = getFirestore(app);
+  }
   storage = getStorage(app);
 } else {
   // Keep exports stable so callers can gate usage through isFirebaseReady.

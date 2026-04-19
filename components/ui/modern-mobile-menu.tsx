@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { View, Pressable, Platform, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
@@ -57,7 +57,7 @@ const CORE_TABS = new Set([
   "community",
 ]);
 
-export function ModernMobileMenu({
+function ModernMobileMenuComponent({
   state,
   descriptors,
   navigation,
@@ -81,12 +81,16 @@ export function ModernMobileMenu({
     opacityAnim.value = withTiming(navbarVisible ? 1 : 0, { duration: 250 });
   }, [navbarVisible, opacityAnim, slideAnim]);
 
-  const visibleRoutes = state.routes.filter((route) => {
-    const options = descriptors[route.key]?.options;
-    const href = (options as { href?: string | null } | undefined)?.href;
-    const routeBase = route.name.toLowerCase().split("/")[0];
-    return href !== null && CORE_TABS.has(routeBase);
-  });
+  const visibleRoutes = useMemo(
+    () =>
+      state.routes.filter((route) => {
+        const options = descriptors[route.key]?.options;
+        const href = (options as { href?: string | null } | undefined)?.href;
+        const routeBase = route.name.toLowerCase().split("/")[0];
+        return href !== null && CORE_TABS.has(routeBase);
+      }),
+    [descriptors, state.routes],
+  );
 
   const activeRouteKey = state.routes[state.index]?.key;
   const activeVisibleIndex = Math.max(
@@ -106,26 +110,28 @@ export function ModernMobileMenu({
     });
   }, [chatIndicatorOpacity, chatState]);
 
-  const handleItemPress = (
-    route: BottomTabBarProps["state"]["routes"][number],
-  ) => {
-    const isFocused = activeRouteKey === route.key;
-    const event = navigation.emit({
-      type: "tabPress",
-      target: route.key,
-      canPreventDefault: true,
-    });
+  const handleItemPress = useCallback(
+    (route: BottomTabBarProps["state"]["routes"][number]) => {
+      const isFocused = activeRouteKey === route.key;
+      const event = navigation.emit({
+        type: "tabPress",
+        target: route.key,
+        canPreventDefault: true,
+      });
 
-    if (!isFocused && !event.defaultPrevented) {
-      navigation.navigate(route.name, route.params);
-    }
-  };
+      if (!isFocused && !event.defaultPrevented) {
+        navigation.navigate(route.name, route.params);
+      }
+    },
+    [activeRouteKey, navigation],
+  );
 
-  const handleItemLongPress = (
-    route: BottomTabBarProps["state"]["routes"][number],
-  ) => {
-    navigation.emit({ type: "tabLongPress", target: route.key });
-  };
+  const handleItemLongPress = useCallback(
+    (route: BottomTabBarProps["state"]["routes"][number]) => {
+      navigation.emit({ type: "tabLongPress", target: route.key });
+    },
+    [navigation],
+  );
 
   const borderColor = colors.tabBarBorder;
   const inactiveColor = colors.muted;
@@ -162,10 +168,16 @@ export function ModernMobileMenu({
     opacity: chatIndicatorOpacity.value,
   }));
 
-  const firstHalfRoutes = visibleRoutes.slice(0, 2);
-  const secondHalfRoutes = visibleRoutes.slice(2);
+  const firstHalfRoutes = useMemo(
+    () => visibleRoutes.slice(0, 2),
+    [visibleRoutes],
+  );
+  const secondHalfRoutes = useMemo(
+    () => visibleRoutes.slice(2),
+    [visibleRoutes],
+  );
 
-  const handleChatPress = () => {
+  const handleChatPress = useCallback(() => {
     // Toggle behavior: if currently expanded/fullscreen -> collapse,
     // otherwise (hidden or collapsed) -> expand.
     if (chatState === "expanded" || chatState === "fullscreen") {
@@ -174,7 +186,7 @@ export function ModernMobileMenu({
     }
 
     setChatState("expanded");
-  };
+  }, [chatState, setChatState]);
 
   const shadowStyle =
     Platform.OS === "web"
@@ -328,6 +340,9 @@ export function ModernMobileMenu({
     </Animated.View>
   );
 }
+
+export const ModernMobileMenu = memo(ModernMobileMenuComponent);
+ModernMobileMenu.displayName = "ModernMobileMenu";
 
 const styles = StyleSheet.create({
   animatedContainer: {

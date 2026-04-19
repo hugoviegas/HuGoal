@@ -1,5 +1,7 @@
 import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 import type { NutritionLog, DailyNutritionGoal, NutritionItem } from "@/types";
+import { createMMKVStateStorage } from "@/lib/mmkv-storage";
 
 export type ChatMessageType =
   | "user_text"
@@ -72,6 +74,19 @@ interface NutritionState {
   reset: () => void;
 }
 
+interface PersistedNutritionSlice {
+  selectedDate: string;
+  dailyGoal: DailyNutritionGoal;
+  waterMl: number;
+  todayTotals: {
+    calories: number;
+    protein_g: number;
+    carbs_g: number;
+    fat_g: number;
+  };
+  lastFetchedAt: number | null;
+}
+
 function computeTotals(logs: NutritionLog[]) {
   return logs.reduce(
     (acc, log) => ({
@@ -91,66 +106,9 @@ const DEFAULT_GOAL: DailyNutritionGoal = {
   fat_g: 65,
 };
 
-export const useNutritionStore = create<NutritionState>((set, get) => ({
-  todayLogs: [],
-  dailyGoal: DEFAULT_GOAL,
-  waterMl: 0,
-  selectedDate: getTodayDateKey(),
-  streakDays: [],
-  chatMessages: [],
-  isLoading: false,
-  lastFetchedAt: null,
-  selectedFoodSelection: null,
-  todayTotals: { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 },
-
-  setTodayLogs: (logs) =>
-    set({ todayLogs: logs, todayTotals: computeTotals(logs) }),
-
-  addLog: (log) => {
-    const updated = [log, ...get().todayLogs];
-    set({ todayLogs: updated, todayTotals: computeTotals(updated) });
-  },
-
-  removeLog: (logId) => {
-    const updated = get().todayLogs.filter((l) => l.id !== logId);
-    set({ todayLogs: updated, todayTotals: computeTotals(updated) });
-  },
-
-  setDailyGoal: (goal) => set({ dailyGoal: goal }),
-
-  setWater: (ml) => set({ waterMl: ml }),
-  addWater: (ml) => set({ waterMl: get().waterMl + ml }),
-  setSelectedDate: (date) => set({ selectedDate: date }),
-  setStreakDays: (days) => set({ streakDays: days }),
-  setChatMessages: (messages) => set({ chatMessages: messages }),
-  addChatMessage: (message) =>
-    set({ chatMessages: [...get().chatMessages, message] }),
-  clearChatMessages: () => set({ chatMessages: [] }),
-
-  setLoading: (loading) => set({ isLoading: loading }),
-  setLastFetchedAt: (ts) => set({ lastFetchedAt: ts }),
-
-  setSelectedFoodSelection: (item, editIndex = null) => {
-    if (!item) {
-      set({ selectedFoodSelection: null });
-      return;
-    }
-
-    set({
-      selectedFoodSelection: {
-        item,
-        editIndex,
-      },
-    });
-  },
-  consumeSelectedFoodSelection: () => {
-    const selection = get().selectedFoodSelection;
-    set({ selectedFoodSelection: null });
-    return selection;
-  },
-
-  reset: () =>
-    set({
+export const useNutritionStore = create<NutritionState>()(
+  persist(
+    (set, get) => ({
       todayLogs: [],
       dailyGoal: DEFAULT_GOAL,
       waterMl: 0,
@@ -161,5 +119,102 @@ export const useNutritionStore = create<NutritionState>((set, get) => ({
       lastFetchedAt: null,
       selectedFoodSelection: null,
       todayTotals: { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 },
+
+      setTodayLogs: (logs) =>
+        set({ todayLogs: logs, todayTotals: computeTotals(logs) }),
+
+      addLog: (log) => {
+        const updated = [log, ...get().todayLogs];
+        set({ todayLogs: updated, todayTotals: computeTotals(updated) });
+      },
+
+      removeLog: (logId) => {
+        const updated = get().todayLogs.filter((l) => l.id !== logId);
+        set({ todayLogs: updated, todayTotals: computeTotals(updated) });
+      },
+
+      setDailyGoal: (goal) => set({ dailyGoal: goal }),
+
+      setWater: (ml) => set({ waterMl: ml }),
+      addWater: (ml) => set({ waterMl: get().waterMl + ml }),
+      setSelectedDate: (date) => set({ selectedDate: date }),
+      setStreakDays: (days) => set({ streakDays: days }),
+      setChatMessages: (messages) => set({ chatMessages: messages }),
+      addChatMessage: (message) =>
+        set({ chatMessages: [...get().chatMessages, message] }),
+      clearChatMessages: () => set({ chatMessages: [] }),
+
+      setLoading: (loading) => set({ isLoading: loading }),
+      setLastFetchedAt: (ts) => set({ lastFetchedAt: ts }),
+
+      setSelectedFoodSelection: (item, editIndex = null) => {
+        if (!item) {
+          set({ selectedFoodSelection: null });
+          return;
+        }
+
+        set({
+          selectedFoodSelection: {
+            item,
+            editIndex,
+          },
+        });
+      },
+      consumeSelectedFoodSelection: () => {
+        const selection = get().selectedFoodSelection;
+        set({ selectedFoodSelection: null });
+        return selection;
+      },
+
+      reset: () =>
+        set({
+          todayLogs: [],
+          dailyGoal: DEFAULT_GOAL,
+          waterMl: 0,
+          selectedDate: getTodayDateKey(),
+          streakDays: [],
+          chatMessages: [],
+          isLoading: false,
+          lastFetchedAt: null,
+          selectedFoodSelection: null,
+          todayTotals: { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 },
+        }),
     }),
-}));
+    {
+      name: "hugoal-nutrition-store-v1",
+      storage: createJSONStorage(() =>
+        createMMKVStateStorage("hugoal-nutrition-store"),
+      ),
+      partialize: (state): PersistedNutritionSlice => ({
+        selectedDate: state.selectedDate,
+        dailyGoal: state.dailyGoal,
+        waterMl: state.waterMl,
+        todayTotals: state.todayTotals,
+        lastFetchedAt: state.lastFetchedAt,
+      }),
+      merge: (persisted, current) => {
+        const persistedState = persisted as PersistedNutritionSlice | undefined;
+        if (!persistedState) {
+          return current;
+        }
+
+        const today = getTodayDateKey();
+        if (persistedState.selectedDate !== today) {
+          return {
+            ...current,
+            dailyGoal: persistedState.dailyGoal,
+            selectedDate: today,
+            waterMl: 0,
+            todayTotals: { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 },
+            lastFetchedAt: null,
+          };
+        }
+
+        return {
+          ...current,
+          ...persistedState,
+        };
+      },
+    },
+  ),
+);

@@ -14,6 +14,9 @@ export interface HomeChatInput {
   history: HomeChatHistoryItem[];
   appContext?: string;
   userMemoriesBlock?: string;
+  stream?: boolean;
+  onToken?: (token: string) => void;
+  signal?: AbortSignal;
 }
 
 const FALLBACK_CHAIN: AIProvider[] = ["gemini", "claude", "openai"];
@@ -92,6 +95,9 @@ export async function sendHomeChatMessage(
     history,
     appContext,
     userMemoriesBlock,
+    stream,
+    onToken,
+    signal,
   } = input;
   const order = await providerOrder(preferredProvider);
   const systemPrompt = buildSystemPrompt(
@@ -104,7 +110,11 @@ export async function sendHomeChatMessage(
   let lastError: unknown;
   for (const provider of order) {
     try {
-      const res = await generateText(provider, systemPrompt, userPrompt);
+      const res = await generateText(provider, systemPrompt, userPrompt, {
+        stream,
+        onToken,
+        signal,
+      });
       return res.text.trim();
     } catch (e) {
       lastError = e;

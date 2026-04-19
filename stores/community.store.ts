@@ -9,7 +9,12 @@ import type {
   GroupCheckIn,
 } from "@/types";
 import { loadFeed, setupFeedListener } from "@/lib/community-feed";
-import { createPost, likePost, unlikePost, deletePost } from "@/lib/community-posts";
+import {
+  createPost,
+  likePost,
+  unlikePost,
+  deletePost,
+} from "@/lib/community-posts";
 import {
   followUser,
   unfollowUser,
@@ -40,6 +45,8 @@ interface CommunityState {
   feed: CommunityPost[];
   feedLoading: boolean;
   feedError: string | null;
+  feedFromCache: boolean;
+  feedSyncing: boolean;
 
   // Discover
   discoverPosts: CommunityPost[];
@@ -100,8 +107,17 @@ interface CommunityState {
 
   // Actions — Groups
   loadGroups: (uid: string) => Promise<void>;
-  joinGroup: (groupId: string, uid: string, user_name: string, user_avatar?: string) => Promise<void>;
-  leaveGroup: (groupId: string, uid: string, isCreator?: boolean) => Promise<void>;
+  joinGroup: (
+    groupId: string,
+    uid: string,
+    user_name: string,
+    user_avatar?: string,
+  ) => Promise<void>;
+  leaveGroup: (
+    groupId: string,
+    uid: string,
+    isCreator?: boolean,
+  ) => Promise<void>;
   loadLeaderboard: (groupId: string) => Promise<void>;
 
   // Actions — Check-ins
@@ -127,6 +143,8 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
   feed: [],
   feedLoading: false,
   feedError: null,
+  feedFromCache: false,
+  feedSyncing: false,
   discoverPosts: [],
   suggestedPeople: [],
   groups: [],
@@ -145,12 +163,21 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
   // ── Feed ────────────────────────────────────────────────────────────────────
 
   loadFeed: async (uid) => {
-    set({ feedLoading: true, feedError: null });
+    set({ feedLoading: true, feedError: null, feedSyncing: false });
     try {
       const feed = await loadFeed(uid);
-      set({ feed, feedLoading: false });
+      set({
+        feed,
+        feedLoading: false,
+        feedFromCache: false,
+        feedSyncing: false,
+      });
     } catch (e: unknown) {
-      set({ feedError: (e as Error).message ?? "Failed to load feed", feedLoading: false });
+      set({
+        feedError: (e as Error).message ?? "Failed to load feed",
+        feedLoading: false,
+        feedSyncing: false,
+      });
     }
   },
 
@@ -174,9 +201,20 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
 
     set({ followingIds, blockedIds, mutedIds });
 
-    const unsub = setupFeedListener(uid, followingIds, blockedIds, mutedIds, (posts) => {
-      set({ feed: posts });
-    });
+    const unsub = setupFeedListener(
+      uid,
+      followingIds,
+      blockedIds,
+      mutedIds,
+      (posts, meta) => {
+        const fromCache = meta?.fromCache ?? false;
+        set({
+          feed: posts,
+          feedFromCache: fromCache,
+          feedSyncing: fromCache,
+        });
+      },
+    );
 
     set({ _feedUnsubscribe: unsub });
   },
@@ -203,8 +241,12 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
         p.id === postId
           ? {
               ...p,
-              like_count: p.liked_by.includes(uid) ? p.like_count : p.like_count + 1,
-              liked_by: p.liked_by.includes(uid) ? p.liked_by : [...p.liked_by, uid],
+              like_count: p.liked_by.includes(uid)
+                ? p.like_count
+                : p.like_count + 1,
+              liked_by: p.liked_by.includes(uid)
+                ? p.liked_by
+                : [...p.liked_by, uid],
             }
           : p,
       ),
@@ -218,7 +260,9 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
         p.id === postId
           ? {
               ...p,
-              like_count: p.liked_by.includes(uid) ? p.like_count - 1 : p.like_count,
+              like_count: p.liked_by.includes(uid)
+                ? p.like_count - 1
+                : p.like_count,
               liked_by: p.liked_by.filter((id) => id !== uid),
             }
           : p,
