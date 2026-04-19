@@ -134,9 +134,13 @@ export default function AuthScreen() {
         code === "auth/wrong-password" ||
         code === "auth/invalid-credential"
           ? "Invalid credentials."
-          : code === "auth/network-request-failed"
-            ? "Network error. Check your connection."
-            : "Failed to log in. Please try again.";
+          : code === "auth/user-disabled"
+            ? "This account has been disabled."
+            : code === "auth/too-many-requests"
+              ? "Too many attempts. Please try again later."
+              : code === "auth/network-request-failed"
+                ? "Network error. Check your connection."
+                : "Failed to log in. Please try again.";
       showToast(msg, "error");
       startCooldown(setLoginCooldown);
     } finally {
@@ -182,9 +186,13 @@ export default function AuthScreen() {
       const msg =
         code === "auth/email-already-in-use"
           ? "An account with this email already exists."
-          : code === "auth/network-request-failed"
-            ? "Network error. Check your connection."
-            : "Failed to sign up. Please try again.";
+          : code === "auth/invalid-email"
+            ? "The email address is invalid."
+            : code === "auth/weak-password"
+              ? "The password is too weak."
+              : code === "auth/network-request-failed"
+                ? "Network error. Check your connection."
+                : "Failed to sign up. Please try again.";
       showToast(msg, "error");
       startCooldown(setSignupCooldown);
     } finally {

@@ -23,7 +23,7 @@ export default function SettingsLayout() {
   }
 
   if (!isAuthenticated) {
-    return <Redirect href="/(auth)/login" />;
+    return <Redirect href="/(auth)/auth" />;
   }
 
   return (

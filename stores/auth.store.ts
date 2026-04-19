@@ -9,6 +9,14 @@ import { phaseDebug } from "@/lib/debug/phase-debug";
 import { AUTH_SAFE_BOOT } from "@/lib/auth-flow-flags";
 import type { UserProfile, WorkoutSettings } from "@/types";
 
+// Import other stores for resetting on logout
+import { useWorkoutStore } from "./workout.store";
+import { useNutritionStore } from "./nutrition.store";
+import { useDashboardStore } from "./dashboard.store";
+import { useChatStore } from "./chat.store";
+import { useNutritionOnboardingStore } from "./nutrition-onboarding.store";
+import { useCommunityStore } from "./community.store";
+
 export type AuthStatus =
   | "loading"
   | "authenticated_cached"
@@ -239,6 +247,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (uid) {
       await AsyncStorage.removeItem(`onboarding_draft:${uid}`);
     }
+
+    // Reset feature stores to prevent state leaking between accounts
+    useWorkoutStore.getState().reset();
+    useNutritionStore.getState().reset();
+    useDashboardStore.getState().reset();
+    useNutritionOnboardingStore.getState().reset();
+    if (useChatStore.getState().clearAllHistory) {
+      useChatStore.getState().clearAllHistory();
+    }
+
     set({
       user: null,
       profile: null,

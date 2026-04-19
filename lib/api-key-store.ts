@@ -74,12 +74,17 @@ function previewKeyByProvider(provider: AIProvider): string | null {
 }
 
 async function currentUserHasProAccess(): Promise<boolean> {
+  // Eagerly check local state to avoid network roundtrips after login
+  const { useAuthStore } = require("@/stores/auth.store");
+  const localProfile = useAuthStore.getState().profile;
+  if (localProfile?.is_pro) return true;
+
   const currentUser = auth?.currentUser;
   if (!currentUser) return false;
 
   try {
-    const profile = await getDocument<UserProfile>("profiles", currentUser.uid);
-    return profile?.is_pro === true;
+    const fetchedProfile = await getDocument<UserProfile>("profiles", currentUser.uid);
+    return fetchedProfile?.is_pro === true;
   } catch {
     return false;
   }
