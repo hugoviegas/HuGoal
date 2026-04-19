@@ -3,6 +3,7 @@ import { useAuthStore } from "@/stores/auth.store";
 import {
   archiveSession,
   createSession,
+  deleteSession,
   deleteExpiredArchivedSessions,
   listSessions,
   loadSession,
@@ -79,6 +80,7 @@ interface ChatStore {
   clearAllHistory: () => void;
   initSession: (context: ChatContext) => Promise<void>;
   activateSession: (context: ChatContext, sessionId: string) => Promise<void>;
+  deleteSessionById: (context: ChatContext, sessionId: string) => Promise<void>;
   startNewChat: (context: ChatContext) => Promise<void>;
   syncToCloud: (context: ChatContext) => Promise<void>;
   loadMemories: () => Promise<void>;
@@ -245,6 +247,41 @@ export const useChatStore = create<ChatStore>((set) => ({
     }));
   },
 
+  deleteSessionById: async (context, sessionId) => {
+    const uid = useAuthStore.getState().user?.uid;
+    if (!uid) {
+      return;
+    }
+
+    set({ isLoadingHistory: true });
+    try {
+      await deleteSession(uid, sessionId);
+
+      const currentActive = useChatStore.getState().activeSessionId[context];
+      if (currentActive !== sessionId) {
+        return;
+      }
+
+      const existingSessions = await listSessions(uid, context, 1);
+      const latestSession =
+        existingSessions[0] ?? (await createSession(uid, context));
+      const messages = await loadSession(uid, latestSession.sessionId);
+
+      set((current) => ({
+        activeSessionId: {
+          ...current.activeSessionId,
+          [context]: latestSession.sessionId,
+        },
+        history: {
+          ...current.history,
+          [context]: messages,
+        },
+      }));
+    } finally {
+      set({ isLoadingHistory: false });
+    }
+  },
+
   startNewChat: async (context) => {
     const uid = useAuthStore.getState().user?.uid;
     if (!uid) {
@@ -266,9 +303,11 @@ export const useChatStore = create<ChatStore>((set) => ({
         );
       }
 
-      if (sessionId) {
-        await archiveSession(uid, sessionId);
-      }
+      // Create a new session and keep the previous session available in history.
+      // Previously we archived the session which removed it from the visible
+      // history. To preserve the previous conversation while starting a fresh
+      // one, create a new session explicitly and activate it.
+      const newSession = await createSession(uid, context);
 
       set((current) => ({
         history: {
@@ -277,11 +316,10 @@ export const useChatStore = create<ChatStore>((set) => ({
         },
         activeSessionId: {
           ...current.activeSessionId,
-          [context]: null,
+          [context]: newSession.sessionId,
         },
       }));
 
-      await useChatStore.getState().initSession(context);
       await useChatStore.getState().loadMemories();
     } finally {
       set({ isLoadingHistory: false });

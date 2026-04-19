@@ -33,6 +33,7 @@ import {
   maskApiKey,
   saveApiKey,
 } from "@/lib/api-key-store";
+import { KeyboardAwareContainer } from "@/components/ui/KeyboardAwareContainer";
 import { testProviderApiKey, type AIKeyTestStatus } from "@/lib/ai-provider";
 import {
   getUsageThisMonth,
@@ -358,16 +359,17 @@ export default function AIKeysSettingsScreen() {
   const selectedStatusMeta = statusMeta(selectedState?.status ?? "unchecked");
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: colors.background }}
-      contentContainerStyle={{
-        paddingTop: insets.top + 16,
-        paddingBottom: insets.bottom + 32,
-        paddingHorizontal: 16,
-        gap: 16,
-      }}
-      showsVerticalScrollIndicator={false}
-    >
+    <KeyboardAwareContainer style={{ backgroundColor: colors.background }}>
+      <ScrollView
+        style={{ flex: 1, backgroundColor: colors.background }}
+        contentContainerStyle={{
+          paddingTop: insets.top + 16,
+          paddingBottom: insets.bottom + 32,
+          paddingHorizontal: 16,
+          gap: 16,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <Pressable
           onPress={() => router.back()}
@@ -754,6 +756,7 @@ export default function AIKeysSettingsScreen() {
           </Pressable>
         </View>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAwareContainer>
   );
 }

@@ -1,8 +1,13 @@
-import { useEffect, useMemo, useState, type ComponentType } from "react";
 import {
-  Alert,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+} from "react";
+import {
   FlatList,
-  Keyboard,
+  KeyboardAvoidingView,
   Platform,
   Pressable,
   Text,
@@ -109,6 +114,7 @@ export function GlobalChatOverlay() {
   const isSyncingToCloud = useChatStore((state) => state.isSyncingToCloud);
   const initSession = useChatStore((state) => state.initSession);
   const activateSession = useChatStore((state) => state.activateSession);
+  const deleteSessionById = useChatStore((state) => state.deleteSessionById);
   const startNewChat = useChatStore((state) => state.startNewChat);
   const loadMemories = useChatStore((state) => state.loadMemories);
   const refreshContextFromCloud = useChatStore(
@@ -138,6 +144,7 @@ export function GlobalChatOverlay() {
 
   const contextMeta = CONTEXT_META[activeContext];
   const messages = history[activeContext];
+  const listRef = useRef<FlatList<any> | null>(null);
 
   const collapsedOrHidden = chatState === "collapsed" || chatState === "hidden";
   const isExpandedOrFullscreen =
@@ -208,19 +215,10 @@ export function GlobalChatOverlay() {
     void loadMemories();
   }, [activeContext, initSession, loadMemories, userId]);
 
-  useEffect(() => {
-    const showEvent =
-      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const subscription = Keyboard.addListener(showEvent, () => {
-      if (chatState === "hidden" || chatState === "collapsed") {
-        setState("expanded");
-      }
-    });
-
-    return () => {
-      subscription.remove();
-    };
-  }, [chatState, setState]);
+  // Removed global keyboard listener that expanded the chat whenever the
+  // keyboard showed. This caused the chat panel to open when the keyboard
+  // was triggered by unrelated inputs elsewhere in the app. Expansion is
+  // now driven by the chat input's `onInputFocus` handler instead.
 
   const animatedPanelStyle = useAnimatedStyle(() => ({
     height: panelHeight.value,
@@ -257,22 +255,28 @@ export function GlobalChatOverlay() {
     });
   };
 
-  const handleStartNewChat = () => {
-    Alert.alert(
-      "Start a new chat?",
-      "Your memories will be saved from this conversation.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Start New Chat",
-          style: "destructive",
-          onPress: () => {
-            void startNewChat(activeContext);
-            setHistoryDrawerVisible(false);
-          },
-        },
-      ],
-    );
+  const handleStartNewChat = async () => {
+    try {
+      await startNewChat(activeContext);
+      setHistoryDrawerVisible(false);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Could not start a new chat";
+      showToast(message, "error");
+    }
+  };
+
+  const handleDeleteSession = async (sessionId: string) => {
+    try {
+      await deleteSessionById(activeContext, sessionId);
+      await refreshContextFromCloud(activeContext);
+      showToast("Chat deleted", "success");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Could not delete chat";
+      showToast(message, "error");
+      throw error;
+    }
   };
 
   const handleUpdateNutritionReviewItem = (
@@ -581,13 +585,13 @@ export function GlobalChatOverlay() {
 
           {chatState === "collapsed" ? (
             <Pressable
-              onPress={() => setState("expanded")}
+              onPress={() => setState("hidden")}
               hitSlop={10}
               accessibilityRole="button"
-              accessibilityLabel="Expand chat"
+              accessibilityLabel="Hide chat"
               style={{ padding: 4 }}
             >
-              <Maximize2 size={18} color={colors.mutedForeground} />
+              <X size={18} color={colors.mutedForeground} />
             </Pressable>
           ) : (
             <>
@@ -669,8 +673,15 @@ export function GlobalChatOverlay() {
         </Pressable>
 
         {chatState !== "collapsed" && chatState !== "hidden" ? (
-          <View style={{ flex: 1 }}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            keyboardVerticalOffset={
+              Platform.OS === "ios" ? insets.bottom + 100 : insets.bottom + 88
+            }
+            style={{ flex: 1 }}
+          >
             <FlatList
+              ref={listRef}
               data={messages}
               keyExtractor={(item) => item.id}
               keyboardShouldPersistTaps="handled"
@@ -719,12 +730,18 @@ export function GlobalChatOverlay() {
                 onImageSelected={() => {}}
                 onInputFocus={() => {
                   setState("expanded");
+                  // scroll to bottom when input is focused so the composer is visible
+                  try {
+                    (listRef.current as any)?.scrollToEnd?.({ animated: true });
+                  } catch (e) {
+                    // ignore
+                  }
                 }}
                 disabled={sending}
                 placeholder="Message your coach"
               />
             </View>
-          </View>
+          </KeyboardAvoidingView>
         ) : null}
       </Animated.View>
 
@@ -737,6 +754,7 @@ export function GlobalChatOverlay() {
           await activateSession(activeContext, sessionId);
         }}
         onNewChat={handleStartNewChat}
+        onDeleteSession={handleDeleteSession}
         onRefreshContext={async () => {
           await refreshContextFromCloud(activeContext);
         }}

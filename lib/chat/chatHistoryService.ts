@@ -235,6 +235,25 @@ export async function listSessions(
   );
 }
 
+export async function listArchivedSessions(
+  uid: string,
+  context: ChatContext,
+  maxResults = 20,
+): Promise<ChatSessionDocument[]> {
+  const sessionsQuery = query(
+    sessionsCollection(uid),
+    where("context", "==", context),
+    where("isArchived", "==", true),
+    orderBy("updatedAt", "desc"),
+    limit(maxResults),
+  );
+
+  const snapshot = await getDocs(sessionsQuery);
+  return snapshot.docs.map((entry) =>
+    toSessionDocument(entry.id, entry.data() as Record<string, unknown>),
+  );
+}
+
 export async function archiveSession(
   uid: string,
   sessionId: string,
@@ -286,5 +305,18 @@ export async function deleteSession(
   sessionId: string,
 ): Promise<void> {
   await deleteDoc(sessionDoc(uid, sessionId));
+  clearCache(sessionId);
+}
+
+export async function unarchiveSession(
+  uid: string,
+  sessionId: string,
+): Promise<void> {
+  await setDoc(
+    sessionDoc(uid, sessionId),
+    { isArchived: false, updatedAt: serverTimestamp() },
+    { merge: true },
+  );
+
   clearCache(sessionId);
 }

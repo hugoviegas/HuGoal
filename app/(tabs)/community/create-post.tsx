@@ -6,8 +6,6 @@ import {
   Pressable,
   Image,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
 } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
@@ -15,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { X, Image as ImageIcon, Globe, Users, ChevronDown } from "lucide-react-native";
 import { Avatar } from "@/components/ui/Avatar";
+import { KeyboardAwareContainer } from "@/components/ui/KeyboardAwareContainer";
 import { useThemeStore } from "@/stores/theme.store";
 import { useAuthStore } from "@/stores/auth.store";
 import { useCommunityStore } from "@/stores/community.store";
@@ -94,10 +93,7 @@ export default function CreatePostScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: colors.background }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
+    <KeyboardAwareContainer style={{ backgroundColor: colors.background }}>
       {/* Header */}
       <View
         style={{
@@ -300,6 +296,6 @@ export default function CreatePostScreen() {
           </Text>
         </Pressable>
       </View>
-    </KeyboardAvoidingView>
+    </KeyboardAwareContainer>
   );
 }

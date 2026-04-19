@@ -1,6 +1,8 @@
-import { getRandomBytes } from "expo-crypto";
 import * as SecureStore from "expo-secure-store";
 import { Buffer } from "buffer";
+import { gcm } from "@noble/ciphers/aes.js";
+import { pbkdf2 } from "@noble/hashes/pbkdf2.js";
+import { sha256 } from "@noble/hashes/sha2.js";
 
 import type { ChatMessage } from "@/stores/chat.store";
 
@@ -10,18 +12,7 @@ const PBKDF2_KEY_LENGTH = 32;
 const AES_GCM_IV_BYTES = 12;
 const BACKUP_WRAP_SUFFIX = "backup_wrap_v1";
 
-// WeakMap does not support string keys; Map is used for uid-keyed cache.
-const cryptoKeyCache = new Map<string, CryptoKey>();
 const rawKeyCache = new Map<string, Uint8Array>();
-
-function getSubtleCrypto(): SubtleCrypto {
-  const subtle = globalThis.crypto?.subtle;
-  if (!subtle) {
-    throw new Error("Web Crypto SubtleCrypto is unavailable");
-  }
-
-  return subtle;
-}
 
 function toBase64(bytes: Uint8Array): string {
   return Buffer.from(bytes).toString("base64");
@@ -31,12 +22,20 @@ function fromBase64(value: string): Uint8Array {
   return new Uint8Array(Buffer.from(value, "base64"));
 }
 
-function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
-  const sliced = bytes.buffer.slice(
-    bytes.byteOffset,
-    bytes.byteOffset + bytes.byteLength,
-  );
-  return sliced as ArrayBuffer;
+function getRandomBytes(length: number): Uint8Array {
+  const bytes = new Uint8Array(length);
+  const cryptoObj = globalThis.crypto;
+
+  if (cryptoObj && typeof cryptoObj.getRandomValues === "function") {
+    cryptoObj.getRandomValues(bytes);
+    return bytes;
+  }
+
+  for (let index = 0; index < length; index += 1) {
+    bytes[index] = Math.floor(Math.random() * 256);
+  }
+
+  return bytes;
 }
 
 function getKeyStorageKey(uid: string): string {
@@ -100,34 +99,13 @@ function reverseUid(uid: string): string {
   return uid.split("").reverse().join("");
 }
 
-async function subtlePbkdf2(
+function noblePbkdf2(
   password: string,
   salt: string,
   iterations: number,
   keyLen: number,
-): Promise<Uint8Array> {
-  const subtle = getSubtleCrypto();
-  const enc = new TextEncoder();
-  const baseKey = await subtle.importKey(
-    "raw",
-    enc.encode(password),
-    { name: "PBKDF2" },
-    false,
-    ["deriveBits"],
-  );
-
-  const derivedBits = await subtle.deriveBits(
-    {
-      name: "PBKDF2",
-      salt: enc.encode(salt),
-      iterations,
-      hash: "SHA-256",
-    },
-    baseKey,
-    keyLen * 8,
-  );
-
-  return new Uint8Array(derivedBits);
+): Uint8Array {
+  return pbkdf2(sha256, password, salt, { c: iterations, dkLen: keyLen });
 }
 
 async function getOrCreateRawKey(uid: string): Promise<Uint8Array> {
@@ -144,7 +122,7 @@ async function getOrCreateRawKey(uid: string): Promise<Uint8Array> {
     return storedBytes;
   }
 
-  const derived = await subtlePbkdf2(
+  const derived = noblePbkdf2(
     uid,
     reverseUid(uid),
     PBKDF2_ITERATIONS,
@@ -156,44 +134,26 @@ async function getOrCreateRawKey(uid: string): Promise<Uint8Array> {
   return derived;
 }
 
-async function deriveBackupWrapKey(uid: string): Promise<CryptoKey> {
-  const wrapRaw = await subtlePbkdf2(
+function deriveBackupWrapKey(uid: string): Uint8Array {
+  return noblePbkdf2(
     `${uid}:${BACKUP_WRAP_SUFFIX}`,
     `${reverseUid(uid)}:${BACKUP_WRAP_SUFFIX}`,
     PBKDF2_ITERATIONS,
     PBKDF2_KEY_LENGTH,
   );
-
-  return getSubtleCrypto().importKey(
-    "raw",
-    toArrayBuffer(wrapRaw),
-    { name: "AES-GCM" },
-    false,
-    ["encrypt", "decrypt"],
-  );
 }
 
-export async function deriveKey(uid: string): Promise<CryptoKey> {
+export async function deriveKey(uid: string): Promise<Uint8Array> {
   if (!uid.trim()) {
     throw new Error("Cannot derive chat key without uid");
   }
 
-  const cached = cryptoKeyCache.get(uid);
+  const cached = rawKeyCache.get(uid);
   if (cached) {
     return cached;
   }
 
-  const rawKey = await getOrCreateRawKey(uid);
-  const cryptoKey = await getSubtleCrypto().importKey(
-    "raw",
-    toArrayBuffer(rawKey),
-    { name: "AES-GCM" },
-    false,
-    ["encrypt", "decrypt"],
-  );
-
-  cryptoKeyCache.set(uid, cryptoKey);
-  return cryptoKey;
+  return getOrCreateRawKey(uid);
 }
 
 export async function encryptMessages(
@@ -201,21 +161,11 @@ export async function encryptMessages(
   messages: ChatMessage[],
 ): Promise<string> {
   const key = await deriveKey(uid);
-  const subtle = getSubtleCrypto();
   const iv = getRandomBytes(AES_GCM_IV_BYTES);
 
   const payload = JSON.stringify(messages);
   const plaintext = new TextEncoder().encode(payload);
-  const encrypted = await subtle.encrypt(
-    {
-      name: "AES-GCM",
-      iv: toArrayBuffer(iv),
-    },
-    key,
-    plaintext,
-  );
-
-  const ciphertext = new Uint8Array(encrypted);
+  const ciphertext = gcm(key, iv).encrypt(plaintext);
   const result = new Uint8Array(iv.length + ciphertext.length);
   result.set(iv, 0);
   result.set(ciphertext, iv.length);
@@ -233,7 +183,6 @@ export async function decryptMessages(
 
   try {
     const key = await deriveKey(uid);
-    const subtle = getSubtleCrypto();
     const payload = fromBase64(encrypted);
 
     if (payload.length <= AES_GCM_IV_BYTES) {
@@ -243,14 +192,7 @@ export async function decryptMessages(
     const iv = payload.slice(0, AES_GCM_IV_BYTES);
     const ciphertext = payload.slice(AES_GCM_IV_BYTES);
 
-    const decrypted = await subtle.decrypt(
-      {
-        name: "AES-GCM",
-        iv: toArrayBuffer(iv),
-      },
-      key,
-      toArrayBuffer(ciphertext),
-    );
+    const decrypted = gcm(key, iv).decrypt(ciphertext);
 
     const text = new TextDecoder().decode(decrypted);
     const parsed = JSON.parse(text);
@@ -274,16 +216,7 @@ export async function encryptKeyForCloudBackup(uid: string): Promise<string> {
   const wrapKey = await deriveBackupWrapKey(uid);
   const iv = getRandomBytes(AES_GCM_IV_BYTES);
 
-  const encrypted = await getSubtleCrypto().encrypt(
-    {
-      name: "AES-GCM",
-      iv: toArrayBuffer(iv),
-    },
-    wrapKey,
-    toArrayBuffer(rawKey),
-  );
-
-  const ciphertext = new Uint8Array(encrypted);
+  const ciphertext = gcm(wrapKey, iv).encrypt(rawKey);
   const result = new Uint8Array(iv.length + ciphertext.length);
   result.set(iv, 0);
   result.set(ciphertext, iv.length);
@@ -303,18 +236,8 @@ export async function restoreKeyFromCloudBackup(
   const iv = payload.slice(0, AES_GCM_IV_BYTES);
   const ciphertext = payload.slice(AES_GCM_IV_BYTES);
 
-  const decrypted = await getSubtleCrypto().decrypt(
-    {
-      name: "AES-GCM",
-      iv: toArrayBuffer(iv),
-    },
-    wrapKey,
-    toArrayBuffer(ciphertext),
-  );
-
-  const restoredRaw = new Uint8Array(decrypted);
+  const restoredRaw = gcm(wrapKey, iv).decrypt(ciphertext);
   await safeSetStoredKey(getKeyStorageKey(uid), toBase64(restoredRaw));
 
   rawKeyCache.set(uid, restoredRaw);
-  cryptoKeyCache.delete(uid);
 }

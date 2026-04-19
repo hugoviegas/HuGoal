@@ -2,7 +2,6 @@ import {
   View,
   Text,
   Pressable,
-  KeyboardAvoidingView,
   Platform,
   ScrollView,
   TextInput,
@@ -26,6 +25,7 @@ import { useThemeStore } from "@/stores/theme.store";
 import { useToastStore } from "@/stores/toast.store";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { KeyboardAwareContainer } from "@/components/ui/KeyboardAwareContainer";
 import { SocialAuthSection } from "@/components/auth/SocialAuthSection";
 import { useRef, useState } from "react";
 import { Moon, Smartphone, Sun } from "lucide-react-native";
@@ -234,10 +234,9 @@ export default function AuthScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    <KeyboardAwareContainer
       keyboardVerticalOffset={Platform.OS === "ios" ? insets.top : 0}
-      style={{ flex: 1, backgroundColor: colors.background }}
+      style={{ backgroundColor: colors.background }}
     >
       <ScrollView
         ref={scrollViewRef}
@@ -778,6 +777,6 @@ export default function AuthScreen() {
           </View>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardAwareContainer>
   );
 }
