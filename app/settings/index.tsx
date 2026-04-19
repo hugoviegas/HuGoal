@@ -25,8 +25,13 @@ import {
   User,
   RefreshCw,
   KeyRound,
+  Database,
 } from "lucide-react-native";
 import { useState } from "react";
+import {
+  createEncryptedKeyBackup,
+  restoreLatestEncryptedKeyBackup,
+} from "@/lib/chat/chatBackupService";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -39,6 +44,8 @@ export default function SettingsScreen() {
   const logout = useAuthStore((s) => s.logout);
   const showToast = useToastStore((s) => s.show);
   const [checkingForUpdate, setCheckingForUpdate] = useState(false);
+  const [backingUpKey, setBackingUpKey] = useState(false);
+  const [restoringKey, setRestoringKey] = useState(false);
   const appVersion = Constants.expoConfig?.version ?? "1.0.0";
 
   const handleLogout = async () => {
@@ -74,6 +81,43 @@ export default function SettingsScreen() {
       showToast("Falha ao verificar atualizacoes. Tente novamente.", "error");
     } finally {
       setCheckingForUpdate(false);
+    }
+  };
+
+  const handleBackupChatKey = async () => {
+    const uid = useAuthStore.getState().user?.uid;
+    if (!uid || backingUpKey) {
+      return;
+    }
+
+    setBackingUpKey(true);
+    try {
+      await createEncryptedKeyBackup(uid);
+      showToast("Encrypted chat key backup saved to cloud.", "success");
+    } catch {
+      showToast("Failed to create encrypted key backup.", "error");
+    } finally {
+      setBackingUpKey(false);
+    }
+  };
+
+  const handleRestoreChatKey = async () => {
+    const uid = useAuthStore.getState().user?.uid;
+    if (!uid || restoringKey) {
+      return;
+    }
+
+    setRestoringKey(true);
+    try {
+      await restoreLatestEncryptedKeyBackup(uid);
+      showToast(
+        "Encrypted chat key restored. Reopen chat history to refresh.",
+        "success",
+      );
+    } catch {
+      showToast("No valid backup found to restore.", "error");
+    } finally {
+      setRestoringKey(false);
     }
   };
 
@@ -358,6 +402,52 @@ export default function SettingsScreen() {
           disabled={checkingForUpdate}
           right={
             checkingForUpdate ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <ChevronRight size={18} color={colors.muted} />
+            )
+          }
+        />
+      </View>
+
+      {/* Chat Security */}
+      <SectionHeader title="Chat Security" />
+      <View
+        style={{
+          backgroundColor: colors.card,
+          borderRadius: 16,
+          marginHorizontal: 16,
+          overflow: "hidden",
+          borderWidth: 1,
+          borderColor: colors.cardBorder,
+        }}
+      >
+        <Row
+          icon={<Database size={18} color={colors.primary} />}
+          label={
+            backingUpKey ? "Backing up key..." : "Backup encrypted chat key"
+          }
+          description="Saves an encrypted key document under your account"
+          onPress={handleBackupChatKey}
+          disabled={backingUpKey}
+          right={
+            backingUpKey ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <ChevronRight size={18} color={colors.muted} />
+            )
+          }
+        />
+        <Row
+          icon={<Database size={18} color={colors.accent} />}
+          label={
+            restoringKey ? "Restoring key..." : "Restore latest chat key backup"
+          }
+          description="Loads your latest encrypted backup key from cloud"
+          onPress={handleRestoreChatKey}
+          disabled={restoringKey}
+          right={
+            restoringKey ? (
               <ActivityIndicator size="small" color={colors.primary} />
             ) : (
               <ChevronRight size={18} color={colors.muted} />

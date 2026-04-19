@@ -13,6 +13,7 @@ export interface HomeChatInput {
   profile: UserProfile | null;
   history: HomeChatHistoryItem[];
   appContext?: string;
+  userMemoriesBlock?: string;
 }
 
 const FALLBACK_CHAIN: AIProvider[] = ["gemini", "claude", "openai"];
@@ -36,6 +37,7 @@ async function providerOrder(preferred: AIProvider): Promise<AIProvider[]> {
 function buildSystemPrompt(
   profile: UserProfile | null,
   appContext?: string,
+  userMemoriesBlock?: string,
 ): string {
   const name = profile?.name?.split(" ")[0] ?? "User";
   const goal = profile?.goal ?? "general_fitness";
@@ -58,7 +60,13 @@ ${appContext.trim()}
 </app_context>`
     : "";
 
-  return `You are HuGoal Coach, a direct fitness & nutrition assistant for ${name} (${userCtx}).${appContextBlock}
+  const memoriesBlock = userMemoriesBlock?.trim()
+    ? `
+
+${userMemoriesBlock.trim()}`
+    : "";
+
+  return `You are HuGoal Coach, a direct fitness & nutrition assistant for ${name} (${userCtx}).${memoriesBlock}${appContextBlock}
 Reply in ≤3 sentences. Be specific and action-oriented — no filler.
 For workouts: give sets/reps/rest. For nutrition: give grams/kcal.
 If asked off-topic, redirect to fitness or nutrition.`;
@@ -77,10 +85,20 @@ function buildHistory(history: HomeChatHistoryItem[]): string {
 export async function sendHomeChatMessage(
   input: HomeChatInput,
 ): Promise<string> {
-  const { preferredProvider, userMessage, profile, history, appContext } =
-    input;
+  const {
+    preferredProvider,
+    userMessage,
+    profile,
+    history,
+    appContext,
+    userMemoriesBlock,
+  } = input;
   const order = await providerOrder(preferredProvider);
-  const systemPrompt = buildSystemPrompt(profile, appContext);
+  const systemPrompt = buildSystemPrompt(
+    profile,
+    appContext,
+    userMemoriesBlock,
+  );
   const userPrompt = `${buildHistory(history)}User: ${userMessage}`;
 
   let lastError: unknown;

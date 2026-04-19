@@ -10,8 +10,10 @@ import {
   formatAppContextSnapshot,
   getAppContextSnapshotWithTimeout,
 } from "@/lib/chat/appContextQuery";
+import { injectMemoriesIntoPrompt } from "@/lib/chat/chatMemoryService";
 import { listPantryItems } from "@/lib/firestore/pantry";
 import { useAuthStore } from "@/stores/auth.store";
+import { useChatStore } from "@/stores/chat.store";
 import type { ChatContext, ChatMessage } from "@/stores/chat.store";
 import type { WorkoutTemplateRecord } from "@/lib/firestore/workouts";
 import type { WorkoutChatMessage } from "@/stores/workout.store";
@@ -67,6 +69,10 @@ export interface ChatRouteDeps {
 
 function getPreferredProvider(): AIProvider {
   return useAuthStore.getState().profile?.preferred_ai_provider ?? "gemini";
+}
+
+function getMemoryPromptBlock(): string {
+  return injectMemoriesIntoPrompt(useChatStore.getState().memories);
 }
 
 function toHomeHistory(
@@ -170,6 +176,7 @@ async function sendHomeContext(
 ): Promise<ChatServiceResponse> {
   const authState = useAuthStore.getState();
   const appContext = await getAppContextText(args.userId);
+  const memoriesBlock = getMemoryPromptBlock();
 
   const text = await sendHomeChatMessage({
     preferredProvider: args.preferredProvider,
@@ -177,6 +184,7 @@ async function sendHomeContext(
     profile: authState.profile,
     history: toHomeHistory(args.history),
     appContext: appContext ?? undefined,
+    userMemoriesBlock: memoriesBlock || undefined,
   });
 
   return { kind: "text", text };
@@ -187,6 +195,7 @@ async function sendNutritionContext(
 ): Promise<ChatServiceResponse> {
   const authState = useAuthStore.getState();
   const appContext = await getAppContextText(args.userId);
+  const memoriesBlock = getMemoryPromptBlock();
 
   let pantryItems: NutritionChatPantryItem[] = [];
   if (authState.user?.uid) {
@@ -204,6 +213,7 @@ async function sendNutritionContext(
       userMessage: args.message,
       pantryItems,
       previousItems: toNutritionReviewHistoryItems(args.history),
+      memoryPromptBlock: memoriesBlock || undefined,
     });
   } catch {
     const fallbackText = await sendHomeChatMessage({
@@ -212,6 +222,7 @@ async function sendNutritionContext(
       profile: authState.profile,
       history: toHomeHistory(args.history),
       appContext: appContext ?? undefined,
+      userMemoriesBlock: memoriesBlock || undefined,
     });
 
     return { kind: "text", text: fallbackText };
@@ -233,6 +244,7 @@ async function sendNutritionContext(
     profile: authState.profile,
     history: toHomeHistory(args.history),
     appContext: appContext ?? undefined,
+    userMemoriesBlock: memoriesBlock || undefined,
   });
 
   return { kind: "text", text: fallbackText };
@@ -243,6 +255,7 @@ async function sendWorkoutsContext(
 ): Promise<ChatServiceResponse> {
   const authState = useAuthStore.getState();
   const appContext = await getAppContextText(args.userId);
+  const memories = useChatStore.getState().memories;
 
   const response = await analyzeWorkoutChatMessage({
     preferredProvider: args.preferredProvider,
@@ -263,7 +276,10 @@ async function sendWorkoutsContext(
       today_override: null,
     },
     previousMessages: toWorkoutHistory(args.history),
-    userMemories: [],
+    userMemories: memories.slice(0, 10).map((memory) => ({
+      category: memory.category,
+      content: memory.content,
+    })),
   });
 
   if (response.action !== "none") {
@@ -282,6 +298,7 @@ async function sendWorkoutsContext(
     profile: authState.profile,
     history: toHomeHistory(args.history),
     appContext: appContext ?? undefined,
+    userMemoriesBlock: getMemoryPromptBlock() || undefined,
   });
 
   return { kind: "text", text: fallbackText };

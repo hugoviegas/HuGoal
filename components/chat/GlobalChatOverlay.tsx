@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ComponentType } from "react";
 import {
+  Alert,
   FlatList,
   Keyboard,
   Platform,
@@ -17,6 +18,9 @@ import {
   Utensils,
   House,
   X,
+  History,
+  Plus,
+  Cloud,
 } from "lucide-react-native";
 import Animated, {
   useAnimatedStyle,
@@ -27,6 +31,7 @@ import Animated, {
 
 import { ChatInputBar } from "@/components/nutrition/ChatInputBar";
 import { MessageRenderer } from "@/components/chat/MessageRenderer";
+import { ChatHistoryDrawer } from "@/components/chat/ChatHistoryDrawer";
 import { TypingIndicator } from "@/components/shared/TypingIndicator";
 import {
   FLOATING_TAB_BAR_BOTTOM_OFFSET,
@@ -100,6 +105,15 @@ export function GlobalChatOverlay() {
   const chatState = useChatStore((state) => state.state);
   const activeContext = useChatStore((state) => state.activeContext);
   const history = useChatStore((state) => state.history);
+  const activeSessionId = useChatStore((state) => state.activeSessionId);
+  const isSyncingToCloud = useChatStore((state) => state.isSyncingToCloud);
+  const initSession = useChatStore((state) => state.initSession);
+  const activateSession = useChatStore((state) => state.activateSession);
+  const startNewChat = useChatStore((state) => state.startNewChat);
+  const loadMemories = useChatStore((state) => state.loadMemories);
+  const refreshContextFromCloud = useChatStore(
+    (state) => state.refreshContextFromCloud,
+  );
   const setState = useChatStore((state) => state.setState);
   const appendMessage = useChatStore((state) => state.appendMessage);
   const updateMessageStatus = useChatStore(
@@ -108,6 +122,7 @@ export function GlobalChatOverlay() {
   const updateReviewItem = useChatStore((state) => state.updateReviewItem);
 
   const [sending, setSending] = useState(false);
+  const [historyDrawerVisible, setHistoryDrawerVisible] = useState(false);
   const [submittingReviewMessageId, setSubmittingReviewMessageId] = useState<
     string | null
   >(null);
@@ -185,6 +200,15 @@ export function GlobalChatOverlay() {
   }, [chatState, navTranslateY, navbarVisible, setState]);
 
   useEffect(() => {
+    if (!userId) {
+      return;
+    }
+
+    void initSession(activeContext);
+    void loadMemories();
+  }, [activeContext, initSession, loadMemories, userId]);
+
+  useEffect(() => {
     const showEvent =
       Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
     const subscription = Keyboard.addListener(showEvent, () => {
@@ -231,6 +255,24 @@ export function GlobalChatOverlay() {
       text,
       createdAt: new Date().toISOString(),
     });
+  };
+
+  const handleStartNewChat = () => {
+    Alert.alert(
+      "Start a new chat?",
+      "Your memories will be saved from this conversation.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Start New Chat",
+          style: "destructive",
+          onPress: () => {
+            void startNewChat(activeContext);
+            setHistoryDrawerVisible(false);
+          },
+        },
+      ],
+    );
   };
 
   const handleUpdateNutritionReviewItem = (
@@ -516,6 +558,27 @@ export function GlobalChatOverlay() {
             </Text>
           </View>
 
+          {isSyncingToCloud ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 4,
+                marginRight: 6,
+              }}
+            >
+              <Cloud size={14} color={colors.primary} />
+              <Text
+                style={[
+                  typography.caption,
+                  { color: colors.primary, fontSize: 11 },
+                ]}
+              >
+                syncing
+              </Text>
+            </View>
+          ) : null}
+
           {chatState === "collapsed" ? (
             <Pressable
               onPress={() => setState("expanded")}
@@ -528,6 +591,26 @@ export function GlobalChatOverlay() {
             </Pressable>
           ) : (
             <>
+              <Pressable
+                onPress={() => setHistoryDrawerVisible((value) => !value)}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel="Open chat history"
+                style={{ padding: 4 }}
+              >
+                <History size={18} color={colors.mutedForeground} />
+              </Pressable>
+
+              <Pressable
+                onPress={handleStartNewChat}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel="Start new chat"
+                style={{ padding: 4 }}
+              >
+                <Plus size={18} color={colors.mutedForeground} />
+              </Pressable>
+
               <Pressable
                 onPress={() => setState("collapsed")}
                 hitSlop={10}
@@ -644,6 +727,20 @@ export function GlobalChatOverlay() {
           </View>
         ) : null}
       </Animated.View>
+
+      <ChatHistoryDrawer
+        visible={historyDrawerVisible}
+        uid={userId}
+        context={activeContext}
+        onClose={() => setHistoryDrawerVisible(false)}
+        onLoadSession={async (sessionId) => {
+          await activateSession(activeContext, sessionId);
+        }}
+        onNewChat={handleStartNewChat}
+        onRefreshContext={async () => {
+          await refreshContextFromCloud(activeContext);
+        }}
+      />
     </View>
   );
 }

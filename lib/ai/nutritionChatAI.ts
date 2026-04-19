@@ -621,6 +621,7 @@ interface AnalyzeNutritionReviewParams {
   userMessage: string;
   pantryItems: NutritionChatPantryItem[];
   previousItems?: NutritionReviewItem[];
+  memoryPromptBlock?: string;
 }
 
 export async function analyzeNutritionReviewText(
@@ -629,6 +630,9 @@ export async function analyzeNutritionReviewText(
   const order = await providerOrder(params.preferredProvider);
   const pantryPreview = params.pantryItems.slice(0, 300);
   const previousItems = params.previousItems ?? [];
+  const memoryPrefix = params.memoryPromptBlock?.trim()
+    ? `${params.memoryPromptBlock.trim()}\n\n`
+    : "";
 
   const userPrompt = `User message: "${params.userMessage}"
 User's pantry items (prioritize exact matches): ${JSON.stringify(pantryPreview)}
@@ -640,7 +644,7 @@ Current pending review items (update these when user asks for corrections): ${JS
     try {
       const response = await generateText(
         provider,
-        REVIEW_SYSTEM_PROMPT,
+        `${memoryPrefix}${REVIEW_SYSTEM_PROMPT}`,
         userPrompt,
       );
       const items = parseReviewResponseToItems(

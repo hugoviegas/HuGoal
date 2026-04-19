@@ -1,4 +1,19 @@
 import { create } from "zustand";
+import { useAuthStore } from "@/stores/auth.store";
+import {
+  archiveSession,
+  createSession,
+  deleteExpiredArchivedSessions,
+  listSessions,
+  loadSession,
+  appendToSession,
+  type ChatMemoryDocument,
+} from "@/lib/chat/chatHistoryService";
+import {
+  extractMemoriesFromSession,
+  loadMemories as loadStoredMemories,
+} from "@/lib/chat/chatMemoryService";
+import type { AIProvider } from "@/types";
 
 export type ChatState = "hidden" | "collapsed" | "expanded" | "fullscreen";
 export type ChatContext = "home" | "workouts" | "nutrition" | "community";
@@ -50,12 +65,24 @@ interface ChatStore {
   state: ChatState;
   activeContext: ChatContext;
   history: Record<ChatContext, ChatMessage[]>;
+  activeSessionId: Record<ChatContext, string | null>;
+  memories: ChatMemoryDocument[];
+  isLoadingHistory: boolean;
+  isSyncingToCloud: boolean;
   setState: (nextState: ChatState) => void;
   setContext: (context: ChatContext) => void;
   appendMessage: (context: ChatContext, message: ChatMessage) => void;
   setHistory: (context: ChatContext, messages: ChatMessage[]) => void;
+  setLoadingHistory: (value: boolean) => void;
+  setSyncingToCloud: (value: boolean) => void;
   clearContextHistory: (context: ChatContext) => void;
   clearAllHistory: () => void;
+  initSession: (context: ChatContext) => Promise<void>;
+  activateSession: (context: ChatContext, sessionId: string) => Promise<void>;
+  startNewChat: (context: ChatContext) => Promise<void>;
+  syncToCloud: (context: ChatContext) => Promise<void>;
+  loadMemories: () => Promise<void>;
+  refreshContextFromCloud: (context: ChatContext) => Promise<void>;
   updateMessageStatus: (
     context: ChatContext,
     messageId: string,
@@ -76,22 +103,59 @@ const EMPTY_HISTORY: Record<ChatContext, ChatMessage[]> = {
   community: [],
 };
 
+const EMPTY_SESSION_ID: Record<ChatContext, string | null> = {
+  home: null,
+  workouts: null,
+  nutrition: null,
+  community: null,
+};
+
+const SYNC_DEBOUNCE_MS = 2000;
+const syncTimers: Partial<Record<ChatContext, ReturnType<typeof setTimeout>>> =
+  {};
+
+function clearSyncTimer(context: ChatContext): void {
+  const existing = syncTimers[context];
+  if (existing) {
+    clearTimeout(existing);
+    syncTimers[context] = undefined;
+  }
+}
+
+function getPreferredProvider(): AIProvider {
+  return useAuthStore.getState().profile?.preferred_ai_provider ?? "gemini";
+}
+
 export const useChatStore = create<ChatStore>((set) => ({
   state: "hidden",
   activeContext: "home",
   history: EMPTY_HISTORY,
+  activeSessionId: EMPTY_SESSION_ID,
+  memories: [],
+  isLoadingHistory: false,
+  isSyncingToCloud: false,
 
   setState: (nextState) => set({ state: nextState }),
 
-  setContext: (context) => set({ activeContext: context }),
+  setContext: (context) => {
+    set({ activeContext: context });
+    void useChatStore.getState().initSession(context);
+  },
 
   appendMessage: (context, message) =>
-    set((current) => ({
-      history: {
-        ...current.history,
-        [context]: [...current.history[context], message],
-      },
-    })),
+    set((current) => {
+      clearSyncTimer(context);
+      syncTimers[context] = setTimeout(() => {
+        void useChatStore.getState().syncToCloud(context);
+      }, SYNC_DEBOUNCE_MS);
+
+      return {
+        history: {
+          ...current.history,
+          [context]: [...current.history[context], message],
+        },
+      };
+    }),
 
   setHistory: (context, messages) =>
     set((current) => ({
@@ -101,6 +165,10 @@ export const useChatStore = create<ChatStore>((set) => ({
       },
     })),
 
+  setLoadingHistory: (value) => set({ isLoadingHistory: value }),
+
+  setSyncingToCloud: (value) => set({ isSyncingToCloud: value }),
+
   clearContextHistory: (context) =>
     set((current) => ({
       history: {
@@ -109,7 +177,167 @@ export const useChatStore = create<ChatStore>((set) => ({
       },
     })),
 
-  clearAllHistory: () => set({ history: EMPTY_HISTORY }),
+  clearAllHistory: () =>
+    set({
+      history: EMPTY_HISTORY,
+      activeSessionId: EMPTY_SESSION_ID,
+      memories: [],
+    }),
+
+  initSession: async (context) => {
+    const uid = useAuthStore.getState().user?.uid;
+    if (!uid) {
+      return;
+    }
+
+    set({ isLoadingHistory: true });
+    try {
+      void deleteExpiredArchivedSessions(uid).catch(() => undefined);
+
+      const currentSession = useChatStore.getState().activeSessionId[context];
+      if (currentSession) {
+        const messages = await loadSession(uid, currentSession);
+        set((current) => ({
+          history: {
+            ...current.history,
+            [context]: messages,
+          },
+        }));
+        return;
+      }
+
+      const existingSessions = await listSessions(uid, context, 1);
+      const latestSession =
+        existingSessions[0] ?? (await createSession(uid, context));
+      const messages = await loadSession(uid, latestSession.sessionId);
+
+      set((current) => ({
+        activeSessionId: {
+          ...current.activeSessionId,
+          [context]: latestSession.sessionId,
+        },
+        history: {
+          ...current.history,
+          [context]: messages,
+        },
+      }));
+    } finally {
+      set({ isLoadingHistory: false });
+    }
+  },
+
+  activateSession: async (context, sessionId) => {
+    const uid = useAuthStore.getState().user?.uid;
+    if (!uid) {
+      return;
+    }
+
+    const messages = await loadSession(uid, sessionId, { forceRemote: true });
+    set((current) => ({
+      activeSessionId: {
+        ...current.activeSessionId,
+        [context]: sessionId,
+      },
+      history: {
+        ...current.history,
+        [context]: messages,
+      },
+    }));
+  },
+
+  startNewChat: async (context) => {
+    const uid = useAuthStore.getState().user?.uid;
+    if (!uid) {
+      return;
+    }
+
+    const state = useChatStore.getState();
+    const sessionId = state.activeSessionId[context];
+    const messages = state.history[context];
+
+    set({ isLoadingHistory: true });
+    try {
+      if (sessionId && messages.length > 0) {
+        await extractMemoriesFromSession(
+          uid,
+          messages,
+          sessionId,
+          getPreferredProvider(),
+        );
+      }
+
+      if (sessionId) {
+        await archiveSession(uid, sessionId);
+      }
+
+      set((current) => ({
+        history: {
+          ...current.history,
+          [context]: [],
+        },
+        activeSessionId: {
+          ...current.activeSessionId,
+          [context]: null,
+        },
+      }));
+
+      await useChatStore.getState().initSession(context);
+      await useChatStore.getState().loadMemories();
+    } finally {
+      set({ isLoadingHistory: false });
+    }
+  },
+
+  syncToCloud: async (context) => {
+    const uid = useAuthStore.getState().user?.uid;
+    if (!uid) {
+      return;
+    }
+
+    const state = useChatStore.getState();
+    const sessionId = state.activeSessionId[context];
+    if (!sessionId) {
+      return;
+    }
+
+    set({ isSyncingToCloud: true });
+    try {
+      await appendToSession(uid, sessionId, state.history[context]);
+    } finally {
+      set({ isSyncingToCloud: false });
+    }
+  },
+
+  loadMemories: async () => {
+    const uid = useAuthStore.getState().user?.uid;
+    if (!uid) {
+      set({ memories: [] });
+      return;
+    }
+
+    const memories = await loadStoredMemories(uid, 10);
+    set({ memories });
+  },
+
+  refreshContextFromCloud: async (context) => {
+    const uid = useAuthStore.getState().user?.uid;
+    if (!uid) {
+      return;
+    }
+
+    const sessionId = useChatStore.getState().activeSessionId[context];
+    if (!sessionId) {
+      return;
+    }
+
+    const messages = await loadSession(uid, sessionId, { forceRemote: true });
+    set((current) => ({
+      history: {
+        ...current.history,
+        [context]: messages,
+      },
+    }));
+  },
 
   updateMessageStatus: (context, messageId, status) =>
     set((current) => ({
