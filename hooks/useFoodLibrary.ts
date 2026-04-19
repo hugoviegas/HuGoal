@@ -7,6 +7,7 @@ import {
   type PantryItem,
   type PantryItemInput,
 } from "@/lib/firestore/pantry";
+import { nutritionItemToPantryInput } from "@/lib/nutrition/unified-food";
 import { useAuthStore } from "@/stores/auth.store";
 import type { NutritionItem } from "@/types";
 
@@ -51,15 +52,6 @@ function mapPantryItem(item: PantryItem): FoodLibraryViewItem {
     serving_unit: item.serving_unit,
     raw: item,
   };
-}
-
-function toPer100(value: number, servingSize: number): number {
-  if (!Number.isFinite(value)) {
-    return 0;
-  }
-
-  const safeServing = servingSize > 0 ? servingSize : 100;
-  return Math.max(0, Math.round((value / safeServing) * 100 * 100) / 100);
 }
 
 export function useFoodLibrary(): UseFoodLibraryResult {
@@ -132,16 +124,7 @@ export function useFoodLibrary(): UseFoodLibraryResult {
 
   const addFromNutritionItem = useCallback(
     async (item: NutritionItem) => {
-      await saveItem({
-        name: item.food_name,
-        brand: item.brand,
-        calories_per_100g: toPer100(item.calories, item.serving_size_g),
-        protein_per_100g: toPer100(item.protein_g, item.serving_size_g),
-        carbs_per_100g: toPer100(item.carbs_g, item.serving_size_g),
-        fat_per_100g: toPer100(item.fat_g, item.serving_size_g),
-        serving_size_g: item.serving_size_g > 0 ? item.serving_size_g : 100,
-        serving_unit: "g",
-      });
+      await saveItem(nutritionItemToPantryInput(item, "g"));
     },
     [saveItem],
   );

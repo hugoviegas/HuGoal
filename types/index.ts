@@ -300,12 +300,26 @@ export interface NutritionItem {
   sugar_g?: number;
   source: FoodSource;
   photo_url?: string; // local URI or Firebase Storage URL
+  ai_suggested?: boolean;
+  confidence?: number;
+  review_session_id?: string;
+  user_edited?: boolean;
+  original_weight_g?: number;
+}
+
+export interface NutritionLogMetadata {
+  source?: "manual" | "nutrition_review" | "ai_generated";
+  review_session_id?: string;
+  is_final?: boolean;
+  ai_model?: string;
 }
 
 export interface NutritionLog {
   id: string;
   user_id: string;
   logged_at: string;
+  confirmed_at?: string;
+  saved_at?: string;
   meal_type: MealType;
   items: NutritionItem[];
   total: {
@@ -316,6 +330,7 @@ export interface NutritionLog {
   };
   notes?: string;
   image_url?: string;
+  metadata?: NutritionLogMetadata;
 }
 
 export interface FoodLibraryItem {
@@ -617,10 +632,136 @@ export interface NutritionRDIResult {
   macro_split: NutritionMacroSplit;
 }
 
+export type NutritionGoalStrategy =
+  | "formula_only"
+  | "formula_plus_override"
+  | "manual_only";
+
+export interface ManualNutrientTargets {
+  calories?: number;
+  protein_g?: number;
+  carbs_g?: number;
+  fat_g?: number;
+  fiber_g?: number;
+  sugar_g?: number;
+  sodium_mg?: number;
+}
+
 export interface NutritionSettings extends NutritionRDIInputs {
   rdi_kcal: number;
   macro_split: NutritionMacroSplit;
+  water_goal_ml?: number;
+  cup_size_ml?: number;
+  goal_strategy?: NutritionGoalStrategy;
+  manual_nutrient_targets?: ManualNutrientTargets;
   updated_at: string;
+}
+
+export type ServingType = "weight" | "unit" | "liquid";
+
+export interface UnifiedFoodItem {
+  id: string;
+  user_id: string;
+  name: string;
+  brand?: string;
+  category?: string;
+  serving_type: ServingType;
+  base_serving_value: number;
+  base_serving_unit: "g" | "ml" | "unit";
+  unit_weight_g?: number;
+  kcal_per_base: number;
+  protein_g_per_base: number;
+  carbs_g_per_base: number;
+  fat_g_per_base: number;
+  fiber_g_per_base?: number;
+  sugar_g_per_base?: number;
+  barcode?: string;
+  notes?: string;
+  photo_url?: string;
+  source: FoodSource;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DailyLogEntry {
+  id: string;
+  user_id: string;
+  date_key: string;
+  meal_slot: MealType | "other";
+  food_id?: string;
+  snapshot_food: UnifiedFoodItem;
+  quantity: number;
+  quantity_unit: "g" | "ml" | "unit";
+  effective_grams_ml: number;
+  total_kcal: number;
+  total_protein_g: number;
+  total_carbs_g: number;
+  total_fat_g: number;
+  total_fiber_g?: number;
+  total_sugar_g?: number;
+  rdi_kcal_pct?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface HydrationSettings {
+  user_id: string;
+  daily_target_ml: number;
+  cup_size_ml: number;
+  updated_at: string;
+}
+
+export interface NutritionReminderSchedule {
+  time: string; // HH:mm
+  weekdays: number[]; // 0-6 (Sun-Sat)
+  timezone?: string;
+}
+
+export interface NutritionReminder {
+  id: string;
+  user_id: string;
+  title: string;
+  body: string;
+  type: "water" | "meal" | "custom";
+  enabled: boolean;
+  schedule: NutritionReminderSchedule;
+  repeat_interval_minutes?: number;
+  local_notification_ids?: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AIContextPayload {
+  date_key: string;
+  goals_summary: {
+    calories: number;
+    protein_g: number;
+    carbs_g: number;
+    fat_g: number;
+    fiber_g?: number;
+    sugar_g?: number;
+  };
+  hydration_summary: {
+    consumed_ml: number;
+    target_ml: number;
+  };
+  filtered_pantry_items: Array<{
+    id: string;
+    name: string;
+    kcal_per_base: number;
+    protein_g_per_base: number;
+    carbs_g_per_base: number;
+    fat_g_per_base: number;
+    base_serving_value: number;
+    base_serving_unit: "g" | "ml" | "unit";
+  }>;
+  day_log_summary: Array<{
+    meal_slot: MealType | "other";
+    food_name: string;
+    quantity: number;
+    quantity_unit: "g" | "ml" | "unit";
+    kcal: number;
+  }>;
 }
 
 export interface NutritionDaySummary {

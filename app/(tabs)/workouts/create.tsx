@@ -30,6 +30,7 @@ import { useToastStore } from "@/stores/toast.store";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
+import { DraggableExerciseList } from "@/components/workouts/DraggableExerciseList";
 import { ExerciseCard } from "@/components/workouts/ExerciseCard";
 import { MuscleMap } from "@/components/workouts/MuscleMap";
 import { ProgressFormIndicator } from "@/components/ui/ProgressFormIndicator";
@@ -1998,29 +1999,15 @@ Generate a structured workout as JSON with this exact shape:
     target: BuilderTarget,
     items: BuilderItem[],
   ) => (
-    <DraggableFlatList
-      data={items}
-      keyExtractor={(item) => item.id}
-      onDragBegin={() => {
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      }}
-      onDragEnd={({ data }) => {
-        handleReorderItems(target, data);
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      }}
-      scrollEnabled={false}
-      activationDistance={8}
-      renderItem={({ item, getIndex, drag, isActive }) => {
-        const itemIndex = getIndex() ?? 0;
-        return renderBuilderItem(
-          target,
-          item,
-          itemIndex,
-          items.length,
-          drag,
-          isActive,
-        );
-      }}
+    <DraggableExerciseList
+      items={items}
+      onReorder={(newItems) => handleReorderItems(target, newItems)}
+      onUpdateItem={(itemId, patch) => updateBuilderItem(target, itemId, patch)}
+      onRemoveItem={(itemId) => handleRemoveItem(target, itemId)}
+      onDuplicateItem={(itemId) => handleDuplicateItem(target, itemId)}
+      onMoveItem={(itemIndex, direction) =>
+        handleMoveItem(target, itemIndex, direction)
+      }
     />
   );
 

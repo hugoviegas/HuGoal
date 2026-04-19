@@ -19,6 +19,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   BedDouble,
+  CalendarX,
   Check,
   ChevronDown,
   ChevronRight,
@@ -27,11 +28,13 @@ import {
   Flame,
   Globe,
   MapPin,
+  Play,
   Sparkles,
   Target,
   Timer,
   TrendingDown,
 } from "lucide-react-native";
+import { BottomSheetModal } from "@/components/ui/BottomSheetModal";
 import { Modal } from "@/components/ui/Modal";
 import { useStreakValidator } from "@/hooks/useStreakValidator";
 import type { WorkoutWeekDayAssignment } from "@/lib/workouts/weekly-schedule";
@@ -304,6 +307,8 @@ export default function WorkoutsScreen() {
     Map<string, WorkoutWeekDayAssignment>
   >(new Map());
   const [sendingChat, setSendingChat] = useState(false);
+  const [switchSheetOpen, setSwitchSheetOpen] = useState(false);
+  const [switchingWorkout, setSwitchingWorkout] = useState(false);
 
   const { brokenInfo: streakBrokenInfo, dismiss: dismissStreakAlert } =
     useStreakValidator();
@@ -893,6 +898,26 @@ export default function WorkoutsScreen() {
     setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const handleSwitchWorkout = async (templateId: string) => {
+    if (!user) return;
+    setSwitchingWorkout(true);
+    try {
+      await applyDailyOverride(user.uid, formatLocalDateKey(new Date()), {
+        template_id: templateId,
+        source_template_id: templateId,
+        source_type: "change_workout_type",
+        manually_set: true,
+      });
+      setTodayAssignedTemplateId(templateId);
+      setSwitchSheetOpen(false);
+      showToast("Workout switched", "success");
+    } catch {
+      showToast("Could not switch workout", "error");
+    } finally {
+      setSwitchingWorkout(false);
+    }
+  };
+
   const handleOpenExerciseDetail = (exerciseId: string) => {
     setInspectId(exerciseId);
   };
@@ -1013,8 +1038,6 @@ export default function WorkoutsScreen() {
   void closePanel;
   void enterFullscreen;
   void exitFullscreen;
-  void sessionTargetId;
-  void startActionLabel;
   void handleWorkoutAudioRecorded;
   void handleWorkoutImageSelected;
 
@@ -1274,45 +1297,51 @@ export default function WorkoutsScreen() {
                 lineHeight: 18,
               }}
             >
-              Single exercises and custom sessions will be available in a future
-              update.
+              Single exercises and custom sessions coming soon.
             </Text>
           </View>
         ) : !selectedDayWorkout ? (
           <View
             className={cn(
-              "rounded-3xl p-5 mb-5",
+              "rounded-3xl p-6 mb-5 items-center",
               isDark ? "bg-dark-card" : "bg-light-card",
             )}
           >
-            <Text className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-              {isViewingToday
-                ? "No workout planned yet"
-                : "No workout assigned"}
+            <CalendarX
+              size={40}
+              color={isDark ? "#6b7280" : "#9ca3af"}
+              style={{ marginBottom: 12 }}
+            />
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: "700",
+                color: isDark ? "#f3f4f6" : "#111827",
+                marginBottom: 6,
+                textAlign: "center",
+              }}
+            >
+              {isViewingToday ? "No workout today" : "No workout assigned"}
             </Text>
-            <Text className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+            <Text
+              style={{
+                fontSize: 14,
+                color: isDark ? "#9ca3af" : "#6b7280",
+                textAlign: "center",
+                lineHeight: 20,
+              }}
+            >
               {isViewingToday
-                ? hasResolvedTodayAssignment
-                  ? "Today is configured as a rest day. You can still start a single workout or explore exercises."
-                  : "Create your first template and we will build your daily flow here."
-                : "No specific workout is assigned for this day yet."}
+                ? "No workout is scheduled for today."
+                : "No specific workout is assigned for this day."}
             </Text>
             {isViewingToday ? (
-              <View className="flex-row gap-2 mt-4">
-                <Button
-                  className="flex-1"
-                  onPress={() => router.push("/workouts/create")}
-                >
-                  Create workout
-                </Button>
-                <Button
-                  className="flex-1"
-                  variant="secondary"
-                  onPress={() => router.push("/workouts/explore")}
-                >
-                  Explore
-                </Button>
-              </View>
+              <Button
+                style={{ marginTop: 16, alignSelf: "stretch" }}
+                onPress={() => router.push("/workouts/create")}
+              >
+                + Create workout
+              </Button>
             ) : null}
           </View>
         ) : (
@@ -1564,6 +1593,65 @@ export default function WorkoutsScreen() {
                 </Pressable>
               </View>
             </View>
+
+            {/* ── Start / Switch CTA ── */}
+            {isViewingToday ? (
+              <View
+                style={{
+                  flexDirection: "row",
+                  gap: 10,
+                  marginBottom: 20,
+                }}
+              >
+                <Pressable
+                  onPress={() =>
+                    router.push(
+                      `/workouts/${sessionTargetId ?? selectedDayWorkout.id}/run`,
+                    )
+                  }
+                  style={{
+                    flex: 1,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    paddingVertical: 14,
+                    borderRadius: 16,
+                    backgroundColor: colors.primary,
+                  }}
+                >
+                  <Play size={16} color="#fff" fill="#fff" />
+                  <Text
+                    style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}
+                  >
+                    {`${startActionLabel} Workout`}
+                  </Text>
+                </Pressable>
+                {workouts.length > 1 ? (
+                  <Pressable
+                    onPress={() => setSwitchSheetOpen(true)}
+                    style={{
+                      paddingHorizontal: 16,
+                      paddingVertical: 14,
+                      borderRadius: 16,
+                      backgroundColor: isDark ? "#22252f" : "#f1f5f9",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: isDark ? "#d1d5db" : "#374151",
+                        fontWeight: "600",
+                        fontSize: 13,
+                      }}
+                    >
+                      Change
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : null}
 
             {/* ── Exercise plan ── */}
             <Text
@@ -1939,6 +2027,77 @@ export default function WorkoutsScreen() {
           onClose={() => setInspectId(null)}
         />
       ) : null}
+
+      {/* ── Switch Today's Workout sheet ── */}
+      <BottomSheetModal
+        visible={switchSheetOpen}
+        onClose={() => setSwitchSheetOpen(false)}
+        title="Change Today's Workout"
+        contentStyle={{ paddingHorizontal: 0, maxHeight: "75%" }}
+      >
+        <FlatList
+          data={workouts}
+          keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
+          renderItem={({ item: w }) => {
+            const isSelected =
+              w.id === (todayAssignedTemplateId ?? todayWorkout?.id);
+            return (
+              <Pressable
+                onPress={() => void handleSwitchWorkout(w.id)}
+                disabled={switchingWorkout}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: 14,
+                  borderRadius: 14,
+                  borderWidth: isSelected ? 1.5 : 1,
+                  borderColor: isSelected
+                    ? colors.primary
+                    : isDark
+                      ? "#374151"
+                      : "#e5e7eb",
+                  backgroundColor: isSelected
+                    ? colors.primary + "12"
+                    : isDark
+                      ? "#22252f"
+                      : "#f9fafb",
+                }}
+              >
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: "600",
+                      color: isDark ? "#f3f4f6" : "#111827",
+                    }}
+                    numberOfLines={1}
+                  >
+                    {w.name}
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: isDark ? "#9ca3af" : "#6b7280",
+                    }}
+                  >
+                    {w.exercises.length} exercises
+                    {w.estimated_duration_minutes
+                      ? ` · ${w.estimated_duration_minutes} min`
+                      : ""}
+                    {w.tags?.length
+                      ? ` · ${w.tags.slice(0, 2).join(", ")}`
+                      : ""}
+                  </Text>
+                </View>
+                {isSelected ? <Check size={16} color={colors.primary} /> : null}
+              </Pressable>
+            );
+          }}
+        />
+      </BottomSheetModal>
 
       {/* ── Streak broken alert (Feature 3) — once per session ── */}
       <Modal visible={!!streakBrokenInfo} onClose={dismissStreakAlert}>

@@ -19,7 +19,6 @@ export default function NutritionStackLayout() {
       <Stack.Screen name="ai-debug" />
       <Stack.Screen name="plan" />
       <Stack.Screen name="history" />
-      <Stack.Screen name="library" />
       <Stack.Screen name="pantry" />
       <Stack.Screen name="food-library" />
       <Stack.Screen name="settings" />

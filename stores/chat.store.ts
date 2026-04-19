@@ -46,7 +46,7 @@ export interface ChatNutritionCardMessage extends ChatBaseMessage {
 export interface ChatNutritionReviewMessage extends ChatBaseMessage {
   role: "assistant";
   type: "nutrition_review";
-  status: "pending" | "confirmed" | "cancelled";
+  status: "pending" | "confirmed" | "saved" | "cancelled";
   items: import("@/lib/ai/nutritionChatAI").NutritionReviewItem[];
 }
 
@@ -94,7 +94,7 @@ interface ChatStore {
   updateMessageStatus: (
     context: ChatContext,
     messageId: string,
-    status: "pending" | "confirmed" | "cancelled",
+    status: "pending" | "confirmed" | "saved" | "cancelled",
   ) => void;
   updateReviewItem: (
     context: ChatContext,
@@ -443,6 +443,10 @@ export const useChatStore = create<ChatStore>((set) => ({
         ...current.history,
         [context]: current.history[context].map((message) => {
           if (message.id !== messageId || message.type !== "nutrition_review") {
+            return message;
+          }
+
+          if (message.status !== "pending") {
             return message;
           }
 

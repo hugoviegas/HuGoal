@@ -17,6 +17,7 @@ import type {
   FoodLibraryItem,
   WaterLog,
   MealTemplate,
+  NutritionLogMetadata,
 } from "@/types";
 
 function stripUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> {
@@ -41,6 +42,22 @@ function sanitizeNutritionItem(item: NutritionItem): NutritionItem {
   const optional: Partial<NutritionItem> = {
     ...(item.brand ? { brand: item.brand } : {}),
     ...(item.notes ? { notes: item.notes } : {}),
+    ...(typeof item.ai_suggested === "boolean"
+      ? { ai_suggested: item.ai_suggested }
+      : {}),
+    ...(typeof item.confidence === "number" && Number.isFinite(item.confidence)
+      ? { confidence: item.confidence }
+      : {}),
+    ...(item.review_session_id
+      ? { review_session_id: item.review_session_id }
+      : {}),
+    ...(typeof item.user_edited === "boolean"
+      ? { user_edited: item.user_edited }
+      : {}),
+    ...(typeof item.original_weight_g === "number" &&
+    Number.isFinite(item.original_weight_g)
+      ? { original_weight_g: item.original_weight_g }
+      : {}),
     ...(typeof item.fiber_g === "number" && Number.isFinite(item.fiber_g)
       ? { fiber_g: item.fiber_g }
       : {}),
@@ -94,6 +111,9 @@ export interface NutritionLogInput {
   items: NutritionItem[];
   notes?: string;
   image_url?: string;
+  confirmed_at?: string;
+  saved_at?: string;
+  metadata?: NutritionLogMetadata;
 }
 
 export async function listNutritionLogs(
@@ -144,16 +164,26 @@ export async function createNutritionLog(
   const total = computeTotals(input.items);
   // Sanitize items to remove undefined fields (Firestore rejects undefined anywhere)
   const sanitizedItems = input.items.map((it) => sanitizeNutritionItem(it));
+  const metadata = input.metadata
+    ? stripUndefined({ ...input.metadata })
+    : undefined;
+
+  const confirmedAt =
+    input.confirmed_at ?? (metadata?.is_final ? now : undefined);
+  const savedAt = input.saved_at ?? (metadata?.is_final ? now : undefined);
 
   const payload: NutritionLog = {
     id: reference.id,
     user_id: uid,
     logged_at: now,
+    ...(confirmedAt ? { confirmed_at: confirmedAt } : {}),
+    ...(savedAt ? { saved_at: savedAt } : {}),
     meal_type: input.meal_type,
     items: sanitizedItems,
     total,
     notes: input.notes,
     image_url: input.image_url,
+    ...(metadata ? { metadata } : {}),
   };
 
   const writePayload = stripUndefined({ ...payload });
@@ -176,6 +206,10 @@ export async function updateNutritionLog(
     if (!snapshot.exists()) throw new Error("Nutrition log not found");
 
     const existing = snapshot.data() as NutritionLog;
+    if (existing.metadata?.is_final) {
+      throw new Error("This meal cannot be edited after confirmation");
+    }
+
     const items = patch.items ?? existing.items;
     // sanitize items if provided
     const sanitizedItems = Array.isArray(patch.items)

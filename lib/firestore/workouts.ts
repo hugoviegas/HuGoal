@@ -229,6 +229,7 @@ export interface PausedWorkoutSessionRecord {
   paused_at: string;
   expires_at: string;
   updated_at: string;
+  step_overrides?: Record<string, { targetReps?: string; targetWeightKg?: number }>;
 }
 
 export interface SavePausedWorkoutSessionInput {
@@ -242,6 +243,7 @@ export interface SavePausedWorkoutSessionInput {
   pausedElapsedSeconds: number;
   currentRestElapsedSeconds: number;
   startedAt?: string;
+  stepOverrides?: Record<string, { targetReps?: string; targetWeightKg?: number }>;
 }
 
 function workoutsCollection() {
@@ -454,6 +456,7 @@ export async function savePausedWorkoutSession(
     paused_at: nowIso,
     expires_at: expiresAtIso,
     updated_at: nowIso,
+    step_overrides: input.stepOverrides ?? undefined,
   };
 
   const sanitizedPayload = sanitizeFirestoreValue(payload);

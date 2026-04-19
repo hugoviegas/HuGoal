@@ -8,11 +8,12 @@ import React, {
 import {
   Animated,
   ActivityIndicator,
+  Easing,
+  FlatList,
   Image,
   PanResponder,
   Pressable,
   SafeAreaView,
-  ScrollView,
   Text,
   TextInput,
   useWindowDimensions,
@@ -21,22 +22,21 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Clock3,
   Dumbbell,
+  GripVertical,
+  PauseCircle,
+  Minus,
   Plus,
   SlidersHorizontal,
   X,
 } from "lucide-react-native";
+import DraggableFlatList from "react-native-draggable-flatlist";
+import { BottomSheetModal } from "@/components/ui/BottomSheetModal";
 import { Button } from "@/components/ui/Button";
-import { Stepper } from "@/components/ui/stepper";
-import {
-  ResponsiveModal,
-  ResponsiveModalBody,
-  ResponsiveModalDescription,
-  ResponsiveModalFooter,
-  ResponsiveModalHeader,
-  ResponsiveModalTitle,
-} from "@/components/ui/ResponsiveModal";
 import { useHideMainTabBar } from "@/hooks/useHideMainTabBar";
 import {
   clearPausedWorkoutSession,
@@ -85,6 +85,7 @@ interface ExerciseStep {
   targetWeightKg?: number;
   durationSeconds?: number;
   prepSeconds?: number;
+  sectionId?: string;
   sectionType?: "warmup" | "round" | "cooldown";
   sectionName?: string;
 }
@@ -94,11 +95,24 @@ interface RestStep {
   type: "rest";
   afterExerciseStepId: string;
   restSeconds: number;
+  sectionId?: string;
   sectionType?: "warmup" | "round" | "cooldown";
   sectionName?: string;
 }
 
 type SessionStep = ExerciseStep | RestStep;
+
+interface RoundItem {
+  step: SessionStep;
+  absoluteIndex: number;
+}
+
+interface RoundGroup {
+  id: string;
+  label: string;
+  sectionType?: "warmup" | "round" | "cooldown";
+  items: RoundItem[];
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
 
@@ -234,6 +248,9 @@ function buildSteps(exercises: RunningExercise[]): SessionStep[] {
         targetWeightKg: setPlan.weightKg,
         durationSeconds: setPlan.durationSeconds,
         prepSeconds: setPlan.prepSeconds,
+        sectionId: "legacy-round",
+        sectionType: "round",
+        sectionName: "Workout",
       });
 
       const hasNextStep =
@@ -246,6 +263,9 @@ function buildSteps(exercises: RunningExercise[]): SessionStep[] {
           type: "rest",
           afterExerciseStepId: stepId,
           restSeconds: 45,
+          sectionId: "legacy-round",
+          sectionType: "round",
+          sectionName: "Workout",
         });
       }
     });
@@ -272,7 +292,9 @@ function templateToSteps(
   const output: SessionStep[] = [];
   let globalExerciseIndex = 0;
 
-  const sortedSections = [...template.sections].sort((a, b) => a.order - b.order);
+  const sortedSections = [...template.sections].sort(
+    (a, b) => a.order - b.order,
+  );
 
   for (const section of sortedSections) {
     const sortedBlocks = [...section.blocks].sort((a, b) => a.order - b.order);
@@ -292,6 +314,7 @@ function templateToSteps(
           type: "rest",
           afterExerciseStepId: prevExerciseStepId,
           restSeconds,
+          sectionId: section.id,
           sectionType: section.type,
           sectionName: section.name,
         });
@@ -309,7 +332,9 @@ function templateToSteps(
 
       const execMode: "reps" | "time" =
         block.execution_mode ??
-        ((block.exercise_seconds ?? block.duration_seconds ?? 0) > 0 ? "time" : "reps");
+        ((block.exercise_seconds ?? block.duration_seconds ?? 0) > 0
+          ? "time"
+          : "reps");
 
       const stepId = `${section.id}-${block.id}-ex`;
 
@@ -319,13 +344,16 @@ function templateToSteps(
         exerciseIndex: globalExerciseIndex,
         setNumber: 1,
         totalSets: 1,
+        sectionId: section.id,
         sectionType: section.type,
         sectionName: section.name,
         exercise: {
           id: exId,
           name: block.name ?? exId,
-          muscleGroups: block.primary_muscles ?? official?.primary_muscles ?? [],
-          instructions: official?.instructions?.join("\n") ?? official?.instructions_en,
+          muscleGroups:
+            block.primary_muscles ?? official?.primary_muscles ?? [],
+          instructions:
+            official?.instructions?.join("\n") ?? official?.instructions_en,
           setsPlan: [
             {
               id: `${stepId}-set-1`,
@@ -358,8 +386,7 @@ export default function RunWorkoutScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { height: viewportHeight, width: viewportWidth } =
-    useWindowDimensions();
+  const { height: viewportHeight } = useWindowDimensions();
   const user = useAuthStore((s) => s.user);
   const { show: showToast } = useToastStore();
   const { isDark, colors } = useThemeStore();
@@ -369,16 +396,74 @@ export default function RunWorkoutScreen() {
   const [template, setTemplate] = useState<WorkoutTemplateRecord | null>(null);
   const [catalogById, setCatalogById] = useState<Record<string, any>>({});
   const [loadingTemplate, setLoadingTemplate] = useState(true);
+  const [stepOverrides, setStepOverrides] = useState<
+    Record<string, { targetReps?: string; targetWeightKg?: number }>
+  >({});
+  const [sessionStepIds, setSessionStepIds] = useState<string[]>([]);
+  const [openRounds, setOpenRounds] = useState<Record<string, boolean>>({});
 
-  const steps = useMemo(
-    () => (template ? templateToSteps(template, catalogById) : []),
-    [template, catalogById],
-  );
+  const baseSteps = useMemo(() => {
+    const base = template ? templateToSteps(template, catalogById) : [];
+    if (!base || Object.keys(stepOverrides).length === 0) return base;
+    return base.map((step) => {
+      if (step.type !== "exercise") return step;
+      const override = stepOverrides[step.id];
+      if (!override) return step;
+      return {
+        ...step,
+        targetReps: override.targetReps ?? step.targetReps,
+        targetWeightKg:
+          override.targetWeightKg !== undefined
+            ? override.targetWeightKg
+            : step.targetWeightKg,
+      } as ExerciseStep;
+    });
+  }, [template, catalogById, stepOverrides]);
 
-  const exercisesFromSteps = useMemo(
-    () => steps.filter((s): s is ExerciseStep => s.type === "exercise"),
-    [steps],
-  );
+  const baseStepById = useMemo(() => {
+    const output: Record<string, SessionStep> = {};
+    for (const step of baseSteps) output[step.id] = step;
+    return output;
+  }, [baseSteps]);
+
+  useEffect(() => {
+    const baseIds = baseSteps.map((step) => step.id);
+    setSessionStepIds((prev) => {
+      if (baseIds.length === 0) return [];
+      if (prev.length === 0) return baseIds;
+
+      const valid = new Set(baseIds);
+      const kept = prev.filter((id) => valid.has(id));
+      const keptSet = new Set(kept);
+      const missing = baseIds.filter((id) => !keptSet.has(id));
+      const next = [...kept, ...missing];
+
+      if (
+        next.length === prev.length &&
+        next.every((id, index) => id === prev[index])
+      ) {
+        return prev;
+      }
+
+      return next;
+    });
+  }, [baseSteps]);
+
+  const steps = useMemo(() => {
+    if (sessionStepIds.length === 0) return baseSteps;
+
+    const arranged = sessionStepIds
+      .map((id) => baseStepById[id])
+      .filter(Boolean) as SessionStep[];
+
+    if (arranged.length === baseSteps.length) {
+      return arranged;
+    }
+
+    const existing = new Set(arranged.map((step) => step.id));
+    const missing = baseSteps.filter((step) => !existing.has(step.id));
+    return [...arranged, ...missing];
+  }, [baseSteps, baseStepById, sessionStepIds]);
 
   const [sessionStartedAt, setSessionStartedAt] = useState(() =>
     new Date().toISOString(),
@@ -391,6 +476,7 @@ export default function RunWorkoutScreen() {
   const [repsDone, setRepsDone] = useState("");
   const [weightDone, setWeightDone] = useState("");
   const [editOpen, setEditOpen] = useState(false);
+  const [howToOpen, setHowToOpen] = useState(false);
   const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
   const [editReps, setEditReps] = useState("");
   const [editWeight, setEditWeight] = useState("");
@@ -403,6 +489,7 @@ export default function RunWorkoutScreen() {
     "Swipe left to continue",
   );
   const [heroImageIndex, setHeroImageIndex] = useState(0);
+  const [imageAutoCyclePaused, setImageAutoCyclePaused] = useState(false);
   const restCountdownStartedRef = useRef(false);
   const timedCountdownStartedRef = useRef(false);
   const furthestStepReachedRef = useRef(0);
@@ -421,12 +508,23 @@ export default function RunWorkoutScreen() {
     }[]
   >([]);
 
-  const collapsedSheetHeight = 118;
-  const expandedSheetHeight = Math.min(viewportHeight * 0.52, 430);
-  const sheetHeightAnim = useRef(
-    new Animated.Value(collapsedSheetHeight),
+  const collapsedSheetHeight = 72;
+  const expandedSheetHeight = Math.min(viewportHeight * 0.5, 400);
+  const sheetTravelDistance = expandedSheetHeight - collapsedSheetHeight;
+  const sheetTranslateY = useRef(
+    new Animated.Value(sheetTravelDistance),
   ).current;
+  const sheetDragStartYRef = useRef(sheetTravelDistance);
+  const sheetGestureMovedRef = useRef(false);
   const [sheetExpanded, setSheetExpanded] = useState(false);
+  const sheetContentOpacity = sheetTranslateY.interpolate({
+    inputRange: [0, sheetTravelDistance],
+    outputRange: [1, 0.35],
+    extrapolate: "clamp",
+  });
+  const progressListRef = useRef<any>(null);
+  const topStripRef = useRef<any>(null);
+  const { width: windowWidth } = useWindowDimensions();
 
   const currentStep = steps[currentStepIndex];
   const currentExerciseStep =
@@ -516,6 +614,7 @@ export default function RunWorkoutScreen() {
           setWeightDone(pausedSession.weight_done ?? "");
           setEditReps(pausedSession.reps_done ?? "");
           setEditWeight(pausedSession.weight_done ?? "");
+          setStepOverrides(pausedSession.step_overrides ?? {});
           setRestRemainingSeconds(pausedSession.rest_remaining_seconds ?? -1);
           setPrepRemainingSeconds(pausedSession.prep_remaining_seconds ?? -1);
           setTimedRemainingSeconds(pausedSession.timed_remaining_seconds ?? -1);
@@ -700,14 +799,21 @@ export default function RunWorkoutScreen() {
   const animateSheet = useCallback(
     (expanded: boolean) => {
       setSheetExpanded(expanded);
-      Animated.timing(sheetHeightAnim, {
-        toValue: expanded ? expandedSheetHeight : collapsedSheetHeight,
-        duration: 220,
-        useNativeDriver: false,
+      Animated.timing(sheetTranslateY, {
+        toValue: expanded ? 0 : sheetTravelDistance,
+        duration: 260,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
       }).start();
     },
-    [collapsedSheetHeight, expandedSheetHeight, sheetHeightAnim],
+    [sheetTranslateY, sheetTravelDistance],
   );
+
+  useEffect(() => {
+    const nextValue = sheetExpanded ? 0 : sheetTravelDistance;
+    sheetTranslateY.setValue(nextValue);
+    sheetDragStartYRef.current = nextValue;
+  }, [sheetExpanded, sheetTranslateY, sheetTravelDistance]);
 
   const handleStepBack = useCallback(() => {
     setCurrentStepIndex((prev) => {
@@ -762,6 +868,7 @@ export default function RunWorkoutScreen() {
                 pausedElapsedSeconds: totalPausedSecondsRef.current,
                 currentRestElapsedSeconds: getCurrentRestElapsedSeconds(),
                 startedAt: sessionStartedAt,
+                stepOverrides,
               });
             } catch (pauseSaveError) {
               console.error(
@@ -799,6 +906,7 @@ export default function RunWorkoutScreen() {
       user?.uid,
       weightDone,
       showToast,
+      stepOverrides,
     ],
   );
 
@@ -939,6 +1047,7 @@ export default function RunWorkoutScreen() {
       pausedElapsedSeconds: totalPausedSecondsRef.current,
       currentRestElapsedSeconds,
       startedAt: sessionStartedAt,
+      stepOverrides,
     });
   }, [
     completedSets,
@@ -952,6 +1061,7 @@ export default function RunWorkoutScreen() {
     timedRemainingSeconds,
     user?.uid,
     weightDone,
+    stepOverrides,
   ]);
 
   const handlePauseAndExit = async () => {
@@ -981,44 +1091,123 @@ export default function RunWorkoutScreen() {
     router.replace("/workouts");
   };
 
-  const currentRoundIndex =
-    currentStep?.type === "exercise"
-      ? currentStep.exerciseIndex
-      : (findNextExerciseStep(currentStepIndex)?.exerciseIndex ?? 0);
+  const roundGroups = useMemo<RoundGroup[]>(() => {
+    if (steps.length === 0) return [];
 
-  const goToPreviousExerciseFromStepper = useCallback(
-    (targetExerciseIndex: number) => {
-      const allowedPreviousExerciseIndex = currentRoundIndex - 1;
+    const groups: RoundGroup[] = [];
+    const groupIndexById = new Map<string, number>();
 
-      if (
-        allowedPreviousExerciseIndex < 0 ||
-        targetExerciseIndex !== allowedPreviousExerciseIndex
-      ) {
-        setDragHint("Only previous exercise can be reopened");
+    steps.forEach((step, absoluteIndex) => {
+      const sectionId = step.sectionId ?? "legacy-round";
+      const sectionType = step.sectionType ?? "round";
+      const sectionLabel =
+        step.sectionName?.trim() ||
+        (sectionType === "warmup"
+          ? "Warmup"
+          : sectionType === "cooldown"
+            ? "Cooldown"
+            : "Round");
+
+      const groupIndex = groupIndexById.get(sectionId);
+      if (groupIndex !== undefined) {
+        groups[groupIndex].items.push({ step, absoluteIndex });
         return;
       }
 
-      for (let i = currentStepIndex - 1; i >= 0; i -= 1) {
-        const step = steps[i];
-        if (
-          step.type === "exercise" &&
-          step.exerciseIndex === targetExerciseIndex
-        ) {
-          setCurrentStepIndex(i);
-          setDragHint("Returned to previous exercise");
-          return;
+      groupIndexById.set(sectionId, groups.length);
+      groups.push({
+        id: sectionId,
+        label: sectionLabel,
+        sectionType,
+        items: [{ step, absoluteIndex }],
+      });
+    });
+
+    return groups;
+  }, [steps]);
+
+  const currentRoundId = useMemo(() => {
+    const found = roundGroups.find((group) =>
+      group.items.some((item) => item.absoluteIndex === currentStepIndex),
+    );
+    return found?.id ?? null;
+  }, [roundGroups, currentStepIndex]);
+
+  const currentRoundGroupIndex = useMemo(() => {
+    if (!currentRoundId) return 0;
+    const idx = roundGroups.findIndex((group) => group.id === currentRoundId);
+    return idx >= 0 ? idx : 0;
+  }, [currentRoundId, roundGroups]);
+
+  const toggleRound = useCallback((roundId: string) => {
+    setOpenRounds((prev) => ({
+      ...prev,
+      [roundId]: !prev[roundId],
+    }));
+  }, []);
+
+  const isRoundReorderable = useCallback(
+    (group: RoundGroup) =>
+      group.sectionType === "round" &&
+      group.items.every((item) => item.absoluteIndex > currentStepIndex),
+    [currentStepIndex],
+  );
+
+  const handleRoundsReorder = useCallback(
+    (reorderedGroups: RoundGroup[]) => {
+      const reorderableIds = roundGroups
+        .filter((group) => isRoundReorderable(group))
+        .map((group) => group.id);
+
+      if (reorderableIds.length < 2) return;
+
+      const reorderableSet = new Set(reorderableIds);
+      const reorderedRoundIds = reorderedGroups
+        .map((group) => group.id)
+        .filter((id) => reorderableSet.has(id));
+
+      if (reorderedRoundIds.length !== reorderableIds.length) return;
+
+      const roundById = new Map(roundGroups.map((group) => [group.id, group]));
+      const finalGroups = [...roundGroups];
+
+      let cursor = 0;
+      for (let i = 0; i < finalGroups.length; i += 1) {
+        if (!isRoundReorderable(finalGroups[i])) continue;
+        const nextId = reorderedRoundIds[cursor++];
+        const nextGroup = nextId ? roundById.get(nextId) : null;
+        if (nextGroup) {
+          finalGroups[i] = nextGroup;
         }
       }
 
-      setDragHint("Previous exercise is locked");
+      const nextStepIds = finalGroups.flatMap((group) =>
+        group.items.map((item) => item.step.id),
+      );
+      setSessionStepIds(nextStepIds);
     },
-    [currentRoundIndex, currentStepIndex, steps],
+    [roundGroups, isRoundReorderable],
   );
 
-  const stepperRounds = exercisesFromSteps.map((step, index) => ({
-    id: `${step.exercise.id}-${index}`,
-    label: step.exercise.name,
-  }));
+  // Auto-scroll top strip to keep current round at left; also scroll expanded list when open
+  useEffect(() => {
+    if (roundGroups.length === 0) return;
+    const idx = Math.max(0, currentRoundGroupIndex);
+    try {
+      // top horizontal strip -> place current at left
+      topStripRef.current?.scrollToIndex({
+        index: idx,
+        animated: true,
+        viewPosition: 0,
+      });
+    } catch {}
+
+    if (sheetExpanded) {
+      try {
+        progressListRef.current?.scrollToIndex({ index: idx, animated: true });
+      } catch {}
+    }
+  }, [currentRoundGroupIndex, sheetExpanded, roundGroups.length]);
 
   const displayRestSeconds =
     restRemainingSeconds >= 0
@@ -1051,14 +1240,41 @@ export default function RunWorkoutScreen() {
       ? currentStep
       : findNextExerciseStep(currentStepIndex);
 
-  const upcomingSteps = useMemo(
-    () =>
-      steps.slice(
-        currentStepIndex,
-        Math.min(currentStepIndex + 12, steps.length),
-      ),
-    [currentStepIndex, steps],
-  );
+  const howToOfficial = modalTargetStep?.exercise
+    ? (catalogById[modalTargetStep.exercise.id] ??
+      catalogById[normalizeKey(modalTargetStep.exercise.id)] ??
+      catalogById[normalizeKey(modalTargetStep.exercise.name)] ??
+      null)
+    : null;
+
+  const howToSteps: string[] =
+    (Array.isArray(howToOfficial?.instructions)
+      ? howToOfficial.instructions
+      : String(howToOfficial?.instructions_en ?? "")
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean)) || [];
+
+  const howToImageUrl =
+    Array.isArray(howToOfficial?.remote_image_urls) &&
+    howToOfficial.remote_image_urls.length > 0
+      ? howToOfficial.remote_image_urls[0]
+      : null;
+
+  const adjustReps = useCallback((delta: number) => {
+    setEditReps((prev) => {
+      const next = Math.max(0, (Number(prev || "0") || 0) + delta);
+      return String(next);
+    });
+  }, []);
+
+  const adjustWeight = useCallback((delta: number) => {
+    setEditWeight((prev) => {
+      const current = Number(prev || "0") || 0;
+      const next = Math.max(0, Math.round((current + delta) * 10) / 10);
+      return String(next);
+    });
+  }, []);
 
   const currentExerciseImages =
     currentStep?.type === "exercise"
@@ -1143,47 +1359,91 @@ export default function RunWorkoutScreen() {
     [handleStepBack, onNextFromGesture],
   );
 
-  const sheetPanResponder = useMemo(
+  const sheetHandlePanResponder = useMemo(
     () =>
       PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onPanResponderGrant: () => {
+          sheetGestureMovedRef.current = false;
+          sheetTranslateY.stopAnimation((value) => {
+            sheetDragStartYRef.current = value;
+          });
+        },
         onMoveShouldSetPanResponder: (_event, gestureState) =>
           Math.abs(gestureState.dy) > 12 && Math.abs(gestureState.dx) < 45,
         onPanResponderMove: (_event, gestureState) => {
-          const baseHeight = sheetExpanded
-            ? expandedSheetHeight
-            : collapsedSheetHeight;
-          const nextHeight = Math.max(
-            collapsedSheetHeight,
-            Math.min(expandedSheetHeight, baseHeight - gestureState.dy),
+          if (Math.abs(gestureState.dy) > 3) {
+            sheetGestureMovedRef.current = true;
+          }
+
+          const nextTranslateY = Math.max(
+            0,
+            Math.min(
+              sheetTravelDistance,
+              sheetDragStartYRef.current + gestureState.dy,
+            ),
           );
-          sheetHeightAnim.setValue(nextHeight);
+          sheetTranslateY.setValue(nextTranslateY);
         },
         onPanResponderRelease: (_event, gestureState) => {
-          sheetHeightAnim.stopAnimation((value) => {
+          if (!sheetGestureMovedRef.current) {
+            animateSheet(!sheetExpanded);
+            return;
+          }
+
+          sheetTranslateY.stopAnimation((value) => {
             const shouldExpand =
-              gestureState.dy < -32 ||
-              (!sheetExpanded && value > collapsedSheetHeight + 44);
+              gestureState.vy < -0.28 ||
+              (gestureState.dy < -24 && Math.abs(gestureState.dx) < 38) ||
+              value < sheetTravelDistance / 2;
+            animateSheet(shouldExpand);
+          });
+        },
+        onPanResponderTerminate: (_event, gestureState) => {
+          sheetTranslateY.stopAnimation((value) => {
+            const shouldExpand =
+              gestureState.vy < -0.28 ||
+              (gestureState.dy < -24 && Math.abs(gestureState.dx) < 38) ||
+              value < sheetTravelDistance / 2;
             animateSheet(shouldExpand);
           });
         },
       }),
-    [
-      animateSheet,
-      collapsedSheetHeight,
-      expandedSheetHeight,
-      sheetExpanded,
-      sheetHeightAnim,
-    ],
+    [animateSheet, sheetExpanded, sheetTranslateY, sheetTravelDistance],
   );
 
   useEffect(() => {
     if (currentStep?.type !== "exercise") {
       setHeroImageIndex(0);
+      setImageAutoCyclePaused(false);
       return;
     }
 
     setHeroImageIndex(0);
+    setImageAutoCyclePaused(false);
   }, [currentStep?.id, currentStep?.type]);
+
+  useEffect(() => {
+    if (currentStep?.type !== "exercise") return;
+    if (sessionPaused || editOpen || howToOpen || closeConfirmOpen) return;
+    if (imageAutoCyclePaused) return;
+    if (currentExerciseImages.length <= 1) return;
+
+    const intervalId = setInterval(() => {
+      setHeroImageIndex((prev) => (prev + 1) % currentExerciseImages.length);
+    }, 2000);
+
+    return () => clearInterval(intervalId);
+  }, [
+    closeConfirmOpen,
+    currentExerciseImages.length,
+    currentStep?.id,
+    currentStep?.type,
+    editOpen,
+    howToOpen,
+    imageAutoCyclePaused,
+    sessionPaused,
+  ]);
 
   useEffect(() => {
     if (!sessionHydrated || hydratingSession || !user?.uid) return;
@@ -1202,6 +1462,7 @@ export default function RunWorkoutScreen() {
         pausedElapsedSeconds: totalPausedSecondsRef.current,
         currentRestElapsedSeconds: getCurrentRestElapsedSeconds(),
         startedAt: sessionStartedAt,
+        stepOverrides,
       })
         .then(() => {
           lastCompletedCountSavedRef.current = completedSets.length;
@@ -1229,6 +1490,7 @@ export default function RunWorkoutScreen() {
     timedRemainingSeconds,
     user?.uid,
     weightDone,
+    stepOverrides,
   ]);
 
   if (loadingTemplate) {
@@ -1336,7 +1598,14 @@ export default function RunWorkoutScreen() {
                     : "#0891b2",
             }}
           >
-            <Text style={{ color: "#fff", fontSize: 11, fontWeight: "700", letterSpacing: 0.8 }}>
+            <Text
+              style={{
+                color: "#fff",
+                fontSize: 11,
+                fontWeight: "700",
+                letterSpacing: 0.8,
+              }}
+            >
               {currentStep.sectionName.toUpperCase()}
             </Text>
           </View>
@@ -1360,9 +1629,10 @@ export default function RunWorkoutScreen() {
                     return;
                   }
 
+                  setImageAutoCyclePaused(true);
+
                   setHeroImageIndex(
-                    (prev) =>
-                      (prev + 1) % Math.min(2, currentExerciseImages.length),
+                    (prev) => (prev + 1) % currentExerciseImages.length,
                   );
                 }}
               >
@@ -1419,16 +1689,25 @@ export default function RunWorkoutScreen() {
                       : formatSeconds(displayTimedSeconds)}
                   </Text>
                 ) : null}
+                <Text className="mt-1 text-base font-medium text-gray-600 dark:text-gray-400">
+                  Current weight {weightDone || "0"} kg
+                </Text>
                 <Text className="mt-1 text-3xl font-semibold text-gray-900 dark:text-gray-100">
                   {currentStep.exercise.name}
-                  {currentStep.executionMode !== "time" && weightDone
-                    ? ` • ${weightDone} kg`
-                    : ""}
                 </Text>
-                <Text className="mt-2 text-base text-gray-600 dark:text-gray-400">
-                  Set {currentStep.setNumber}/{currentStep.totalSets} •{" "}
-                  {currentStep.exerciseIndex + 1}/{exercisesFromSteps.length}
-                </Text>
+                <View className="mt-3 flex-row items-center justify-between">
+                  <Text className="text-sm text-gray-600 dark:text-gray-400">
+                    Focus on form and control
+                  </Text>
+                  <Pressable
+                    onPress={() => setHowToOpen(true)}
+                    className="rounded-full px-3 py-1.5 bg-cyan-100 dark:bg-cyan-900/30"
+                  >
+                    <Text className="text-xs font-semibold text-cyan-700 dark:text-cyan-300">
+                      How to
+                    </Text>
+                  </Pressable>
+                </View>
                 {currentStep.executionMode === "time" ? (
                   <Text className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                     {`Work ${currentStep.durationSeconds ?? 0}s`}
@@ -1456,6 +1735,11 @@ export default function RunWorkoutScreen() {
               }}
             >
               <View className="items-center">
+                <PauseCircle
+                  size={48}
+                  color={colors.primary}
+                  style={{ marginBottom: 8 }}
+                />
                 <Text
                   className="font-bold text-cyan-600 dark:text-cyan-400"
                   style={{ fontSize: 110, lineHeight: 116 }}
@@ -1551,6 +1835,7 @@ export default function RunWorkoutScreen() {
             <View
               pointerEvents="none"
               style={{
+                pointerEvents: "none",
                 position: "absolute",
                 left: 16,
                 right: 16,
@@ -1578,6 +1863,7 @@ export default function RunWorkoutScreen() {
         <View
           pointerEvents="none"
           style={{
+            pointerEvents: "none",
             position: "absolute",
             left: 16,
             right: 16,
@@ -1611,172 +1897,470 @@ export default function RunWorkoutScreen() {
           left: 0,
           right: 0,
           bottom: 0,
-          height: sheetHeightAnim,
+          height: expandedSheetHeight,
+          transform: [{ translateY: sheetTranslateY }],
           backgroundColor: colors.background,
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
           borderTopWidth: 1,
           borderTopColor: colors.cardBorder,
           paddingBottom: insets.bottom,
+          overflow: "hidden",
         }}
       >
-        <View style={{ paddingTop: 6, paddingBottom: 2 }}>
+        {/* Sliding handle area (gesture only) */}
+        <View
+          {...sheetHandlePanResponder.panHandlers}
+          style={{
+            paddingTop: 10,
+            paddingBottom: 6,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
           <View
-            {...sheetPanResponder.panHandlers}
             style={{
-              alignItems: "center",
-              justifyContent: "center",
-              minHeight: 44,
-              paddingHorizontal: 16,
-              paddingVertical: 8,
+              width: 40,
+              height: 4,
+              borderRadius: 2,
+              backgroundColor: isDark ? "#4b5563" : "#cbd5e1",
+              marginBottom: 6,
             }}
-          >
-            <View
-              style={{
-                width: 48,
-                height: 4,
-                borderRadius: 999,
-                backgroundColor: isDark ? "#4b5563" : "#cbd5e1",
-              }}
-            />
-          </View>
-
-          <Pressable
-            onPress={() => animateSheet(!sheetExpanded)}
-            style={{
-              alignItems: "center",
-              justifyContent: "center",
-              paddingTop: 2,
-              paddingBottom: 6,
-            }}
-          >
-            <Text className="text-xs font-semibold text-gray-600 dark:text-gray-400">
-              {sheetExpanded ? "Tap to close steps" : "Tap to open steps"}
-            </Text>
-          </Pressable>
-        </View>
-
-        <View style={{ paddingHorizontal: 0, paddingBottom: 8 }}>
-          <Stepper
-            steps={stepperRounds}
-            currentStep={currentRoundIndex}
-            onStepPress={goToPreviousExerciseFromStepper}
-            isStepPressable={(index) => index === currentRoundIndex - 1}
           />
+          <Text
+            style={{
+              fontSize: 11,
+              fontWeight: "600",
+              color: isDark ? "#6b7280" : "#9ca3af",
+            }}
+          >
+            {sheetExpanded
+              ? "Arraste para baixo ou toque para fechar"
+              : "Arraste para cima ou toque para abrir"}
+          </Text>
         </View>
 
-        {sheetExpanded ? (
-          <ScrollView
-            className="flex-1"
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 14 }}
-            showsVerticalScrollIndicator={false}
-          >
-            {upcomingSteps.map((step, relativeIndex) => {
-              const absoluteIndex = currentStepIndex + relativeIndex;
-              const isCurrent = absoluteIndex === currentStepIndex;
-              const isLockedCompleted =
-                absoluteIndex < Math.max(furthestStepReachedRef.current - 1, 0);
-              const previewExercise =
-                step.type === "exercise"
-                  ? step.exercise
-                  : findNextExerciseStep(absoluteIndex)?.exercise;
-              const previewImage = previewExercise
-                ? resolveExerciseImages(
-                    previewExercise.id,
-                    previewExercise.name,
-                  )[0]
-                : null;
+        {/* Round strip: grouped markers only (no titles) */}
+        <View style={{ paddingHorizontal: 12, paddingBottom: 6 }}>
+          <FlatList
+            data={roundGroups}
+            ref={topStripRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{ gap: 8, paddingHorizontal: 2 }}
+            renderItem={({ item: group }) => {
+              const roundCompleted = group.items.every(
+                (entry) => entry.absoluteIndex < currentStepIndex,
+              );
+              const roundActive = group.items.some(
+                (entry) => entry.absoluteIndex === currentStepIndex,
+              );
 
               return (
                 <View
-                  key={step.id}
-                  className={cn(
-                    "mb-2 flex-row items-center gap-3 rounded-xl px-3 py-2",
-                    isCurrent
-                      ? "bg-cyan-500/15"
-                      : isLockedCompleted
-                        ? "bg-emerald-500/12"
+                  style={{
+                    minWidth: 58,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: roundActive
+                      ? colors.primary
+                      : isDark
+                        ? "#2d3748"
+                        : "#dbe3ef",
+                    backgroundColor: roundCompleted
+                      ? isDark
+                        ? "#16311f"
+                        : "#ecfdf3"
+                      : roundActive
+                        ? colors.primary + "12"
                         : isDark
-                          ? "bg-dark-surface"
-                          : "bg-light-surface",
-                  )}
+                          ? "#151b25"
+                          : "#f8fafc",
+                    paddingHorizontal: 8,
+                    paddingVertical: 8,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
                 >
-                  {previewImage ? (
-                    <Image
-                      source={{ uri: previewImage }}
-                      style={{ width: 46, height: 46 }}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <View className="h-[46px] w-[46px] items-center justify-center">
-                      <Dumbbell size={18} color={colors.muted} />
-                    </View>
-                  )}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    {group.items.map((entry) => {
+                      const isCurrent =
+                        entry.absoluteIndex === currentStepIndex;
+                      const isDone = entry.absoluteIndex < currentStepIndex;
 
-                  <View className="flex-1">
-                    <Text className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                      {step.type === "exercise" ? step.exercise.name : "Rest"}
-                    </Text>
-                    <Text className="mt-0.5 text-xs text-gray-600 dark:text-gray-400">
-                      {step.type === "exercise"
-                        ? `Set ${step.setNumber}/${step.totalSets}`
-                        : `${step.restSeconds}s recovery`}
-                    </Text>
+                      if (entry.step.type === "rest") {
+                        return (
+                          <View
+                            key={entry.step.id}
+                            style={{
+                              width: 6,
+                              height: 6,
+                              borderRadius: 999,
+                              backgroundColor: isCurrent
+                                ? colors.primary
+                                : isDone
+                                  ? isDark
+                                    ? "#34d399"
+                                    : "#16a34a"
+                                  : isDark
+                                    ? "#4b5563"
+                                    : "#cbd5e1",
+                            }}
+                          />
+                        );
+                      }
+
+                      return (
+                        <View
+                          key={entry.step.id}
+                          style={{
+                            width: 14,
+                            height: 6,
+                            borderRadius: 3,
+                            backgroundColor: isCurrent
+                              ? colors.primary
+                              : isDone
+                                ? isDark
+                                  ? "#34d399"
+                                  : "#16a34a"
+                                : isDark
+                                  ? "#4b5563"
+                                  : "#cbd5e1",
+                          }}
+                        />
+                      );
+                    })}
                   </View>
-
-                  <Text className="text-xs font-semibold text-gray-600 dark:text-gray-400">
-                    {isCurrent
-                      ? "Now"
-                      : isLockedCompleted
-                        ? "Done"
-                        : `+${relativeIndex}`}
-                  </Text>
                 </View>
               );
-            })}
-          </ScrollView>
-        ) : null}
+            }}
+          />
+        </View>
+
+        {/* Expanded: accordion by round + drag reorder of complete rounds */}
+        <Animated.View
+          pointerEvents={sheetExpanded ? "auto" : "none"}
+          style={{ flex: 1, opacity: sheetContentOpacity }}
+        >
+          <DraggableFlatList
+            ref={progressListRef}
+            data={roundGroups}
+            keyExtractor={(item) => item.id}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{
+              paddingHorizontal: 12,
+              paddingBottom: 8,
+              gap: 8,
+            }}
+            onScrollToIndexFailed={() => {}}
+            activationDistance={8}
+            onDragEnd={({ data }) => {
+              handleRoundsReorder(data);
+            }}
+            renderItem={({ item: group, drag, isActive }) => {
+              // create a pan responder per item to support "drag to open" without blocking list scroll
+              const headerPan = PanResponder.create({
+                onStartShouldSetPanResponder: () => false,
+                onMoveShouldSetPanResponder: (evt, gestureState) => {
+                  const startX = evt.nativeEvent?.locationX ?? 0;
+                  const absDy = Math.abs(gestureState.dy ?? 0);
+                  const absDx = Math.abs(gestureState.dx ?? 0);
+
+                  // ignore gestures starting on the rightmost area (grip/chevron)
+                  if (startX > windowWidth - 80) return false;
+
+                  // only claim vertical drags beyond a small threshold
+                  return absDy > 12 && absDy > absDx;
+                },
+                onPanResponderRelease: (_, gestureState) => {
+                  if (Math.abs(gestureState.dy ?? 0) > 40) {
+                    toggleRound(group.id);
+                  }
+                },
+                onPanResponderTerminate: (_, gestureState) => {
+                  if (Math.abs(gestureState.dy ?? 0) > 40) {
+                    toggleRound(group.id);
+                  }
+                },
+              });
+              const isCurrentRound = group.id === currentRoundId;
+              const isOpen =
+                openRounds[group.id] !== undefined
+                  ? openRounds[group.id]
+                  : isCurrentRound;
+              const canDragRound = isRoundReorderable(group);
+
+              return (
+                <View
+                  style={{
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: isCurrentRound
+                      ? colors.primary
+                      : colors.cardBorder,
+                    backgroundColor: isDark ? "#151b25" : "#f8fafc",
+                    overflow: "hidden",
+                    opacity: isActive ? 0.85 : 1,
+                  }}
+                >
+                  <View
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 10,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <View
+                      {...headerPan.panHandlers}
+                      style={{ flex: 1, gap: 2 }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontWeight: "700",
+                          color: isCurrentRound
+                            ? colors.primary
+                            : colors.foreground,
+                        }}
+                      >
+                        {group.label}
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          color: isDark ? "#94a3b8" : "#64748b",
+                        }}
+                      >
+                        {group.items.length} items
+                      </Text>
+                    </View>
+
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 10,
+                      }}
+                    >
+                      <Pressable
+                        onLongPress={() => {
+                          if (canDragRound) {
+                            drag();
+                          }
+                        }}
+                        delayLongPress={180}
+                        hitSlop={10}
+                        style={{
+                          height: 28,
+                          width: 28,
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <GripVertical
+                          size={15}
+                          color={
+                            canDragRound ? colors.muted : colors.cardBorder
+                          }
+                        />
+                      </Pressable>
+                      <Pressable
+                        onPress={() => toggleRound(group.id)}
+                        hitSlop={8}
+                        style={{
+                          height: 28,
+                          width: 28,
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        {isOpen ? (
+                          <ChevronUp size={16} color={colors.muted} />
+                        ) : (
+                          <ChevronDown size={16} color={colors.muted} />
+                        )}
+                      </Pressable>
+                    </View>
+                  </View>
+
+                  {isOpen ? (
+                    <View style={{ paddingHorizontal: 8, paddingBottom: 8 }}>
+                      <FlatList
+                        data={group.items}
+                        keyExtractor={(entry) => entry.step.id}
+                        scrollEnabled={false}
+                        renderItem={({ item: entry }) => {
+                          const isDone = entry.absoluteIndex < currentStepIndex;
+                          const isCurrent =
+                            entry.absoluteIndex === currentStepIndex;
+
+                          const previewExercise =
+                            entry.step.type === "exercise"
+                              ? entry.step.exercise
+                              : steps.find(
+                                  (step): step is ExerciseStep =>
+                                    step.type === "exercise" &&
+                                    step.id ===
+                                      (entry.step.type === "rest"
+                                        ? entry.step.afterExerciseStepId
+                                        : ""),
+                                )?.exercise;
+
+                          const previewImage = previewExercise
+                            ? resolveExerciseImages(
+                                previewExercise.id,
+                                previewExercise.name,
+                              )[0]
+                            : null;
+
+                          return (
+                            <Pressable
+                              style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                gap: 10,
+                                paddingVertical: 8,
+                                paddingHorizontal: 10,
+                                borderRadius: 10,
+                                backgroundColor: isCurrent
+                                  ? colors.primary + "12"
+                                  : isDone
+                                    ? isDark
+                                      ? "#16311f"
+                                      : "#ecfdf3"
+                                    : isDark
+                                      ? "#1c2533"
+                                      : "#ffffff",
+                                marginBottom: 6,
+                              }}
+                            >
+                              {previewImage ? (
+                                <Image
+                                  source={{ uri: previewImage }}
+                                  style={{
+                                    width: 38,
+                                    height: 38,
+                                    borderRadius: 8,
+                                  }}
+                                  resizeMode="cover"
+                                />
+                              ) : (
+                                <View className="h-[38px] w-[38px] items-center justify-center">
+                                  <Dumbbell size={16} color={colors.muted} />
+                                </View>
+                              )}
+
+                              <View style={{ flex: 1 }}>
+                                <Text
+                                  style={{
+                                    fontSize: 12,
+                                    fontWeight: isCurrent ? "700" : "600",
+                                    color: isDark ? "#f3f4f6" : "#0f172a",
+                                  }}
+                                  numberOfLines={1}
+                                >
+                                  {entry.step.type === "exercise"
+                                    ? entry.step.exercise.name
+                                    : `Rest ${entry.step.restSeconds}s`}
+                                </Text>
+                                <Text
+                                  style={{
+                                    fontSize: 11,
+                                    color: isDark ? "#94a3b8" : "#64748b",
+                                  }}
+                                >
+                                  {entry.step.type === "exercise"
+                                    ? `${entry.step.targetReps || "--"}${entry.step.targetWeightKg ? ` • ${entry.step.targetWeightKg}kg` : ""}`
+                                    : "Recovery"}
+                                </Text>
+                              </View>
+
+                              {isDone ? (
+                                <CheckCircle2
+                                  size={15}
+                                  color={isDark ? "#4ade80" : "#16a34a"}
+                                />
+                              ) : (
+                                <Dumbbell size={15} color={colors.muted} />
+                              )}
+                            </Pressable>
+                          );
+                        }}
+                      />
+                    </View>
+                  ) : null}
+                </View>
+              );
+            }}
+          />
+        </Animated.View>
       </Animated.View>
 
-      {/* Edit modal */}
-      <ResponsiveModal
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        position="center"
-        maxWidth={Math.min(Math.max(viewportWidth - 40, 320), 920)}
+      <BottomSheetModal
+        visible={editOpen}
+        onClose={() => setEditOpen(false)}
+        title="Adjust Set Values"
       >
-        <ResponsiveModalHeader>
-          <ResponsiveModalTitle>Adjust Set Values</ResponsiveModalTitle>
-          <ResponsiveModalDescription>
-            {modalTargetStep
-              ? `Editing ${modalTargetStep.exercise.name} set ${modalTargetStep.setNumber}`
-              : "Update reps or weight for the upcoming set"}
-          </ResponsiveModalDescription>
-        </ResponsiveModalHeader>
+        <Text className="text-sm text-gray-600 dark:text-gray-400">
+          {modalTargetStep
+            ? `Editing ${modalTargetStep.exercise.name} set ${modalTargetStep.setNumber}`
+            : "Update reps or weight for the upcoming set"}
+        </Text>
 
-        <ResponsiveModalBody>
-          <View className="gap-3">
-            {!modalTargetStep?.durationSeconds ? (
-              <View>
-                <Text className="text-xs text-gray-600 dark:text-gray-400 mb-1">
-                  Reps
-                </Text>
+        <View className="gap-3 mt-1">
+          {!modalTargetStep?.durationSeconds ? (
+            <View className="rounded-2xl border border-light-border dark:border-dark-border p-3 gap-2">
+              <Text className="text-xs text-gray-600 dark:text-gray-400">
+                Reps
+              </Text>
+              <View className="flex-row items-center gap-2">
+                <Pressable
+                  onPress={() => adjustReps(-1)}
+                  className="h-10 w-10 rounded-xl items-center justify-center bg-light-surface dark:bg-dark-surface"
+                >
+                  <Minus size={16} color={colors.foreground} />
+                </Pressable>
                 <TextInput
                   value={editReps}
                   onChangeText={setEditReps}
                   keyboardType="number-pad"
                   className={cn(
-                    "rounded-lg px-3 py-2 text-base border",
+                    "flex-1 rounded-lg px-3 py-2 text-base border text-center",
                     isDark
                       ? "bg-dark-surface border-dark-border text-gray-100"
                       : "bg-white border-light-border text-gray-900",
                   )}
                 />
+                <Pressable
+                  onPress={() => adjustReps(1)}
+                  className="h-10 w-10 rounded-xl items-center justify-center bg-light-surface dark:bg-dark-surface"
+                >
+                  <Plus size={16} color={colors.foreground} />
+                </Pressable>
               </View>
-            ) : null}
+            </View>
+          ) : null}
 
-            <View>
-              <Text className="text-xs text-gray-600 dark:text-gray-400 mb-1">
-                Weight (kg)
-              </Text>
+          <View className="rounded-2xl border border-light-border dark:border-dark-border p-3 gap-2">
+            <Text className="text-xs text-gray-600 dark:text-gray-400">
+              Weight (kg)
+            </Text>
+            <View className="flex-row items-center gap-2">
+              <Pressable
+                onPress={() => adjustWeight(-2.5)}
+                className="h-10 w-10 rounded-xl items-center justify-center bg-light-surface dark:bg-dark-surface"
+              >
+                <Minus size={16} color={colors.foreground} />
+              </Pressable>
               <TextInput
                 value={editWeight}
                 onChangeText={setEditWeight}
@@ -1784,50 +2368,125 @@ export default function RunWorkoutScreen() {
                 placeholder="Optional"
                 placeholderTextColor={isDark ? "#7a808a" : "#9ca3af"}
                 className={cn(
-                  "rounded-lg px-3 py-2 text-base border",
+                  "flex-1 rounded-lg px-3 py-2 text-base border text-center",
                   isDark
                     ? "bg-dark-surface border-dark-border text-gray-100"
                     : "bg-white border-light-border text-gray-900",
                 )}
               />
+              <Pressable
+                onPress={() => adjustWeight(2.5)}
+                className="h-10 w-10 rounded-xl items-center justify-center bg-light-surface dark:bg-dark-surface"
+              >
+                <Plus size={16} color={colors.foreground} />
+              </Pressable>
             </View>
           </View>
-        </ResponsiveModalBody>
 
-        <ResponsiveModalFooter>
-          <Button
-            variant="secondary"
-            onPress={() => setEditOpen(false)}
-            className="flex-1"
-          >
-            Cancel
-          </Button>
-          <Button
-            onPress={() => {
-              setRepsDone(editReps || repsDone);
-              setWeightDone(editWeight);
-              setEditOpen(false);
-            }}
-            className="flex-1"
-          >
-            Save
-          </Button>
-        </ResponsiveModalFooter>
-      </ResponsiveModal>
+          <View className="flex-row gap-3 mt-1">
+            <Button
+              variant="secondary"
+              onPress={() => setEditOpen(false)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              onPress={() => {
+                const parsedWeight = editWeight
+                  ? Number(editWeight)
+                  : undefined;
+                setRepsDone(editReps || repsDone);
+                setWeightDone(editWeight);
 
-      {/* Close confirm modal */}
-      <ResponsiveModal
-        open={closeConfirmOpen}
-        onOpenChange={setCloseConfirmOpen}
+                // Apply overrides to future occurrences of this exercise
+                if (modalTargetStep) {
+                  setStepOverrides((prev) => {
+                    const next = { ...prev };
+                    for (let i = currentStepIndex; i < steps.length; i += 1) {
+                      const s = steps[i];
+                      if (s.type !== "exercise") continue;
+                      if (s.exercise.id !== modalTargetStep.exercise.id)
+                        continue;
+                      // Do not override sets already completed
+                      if (completedSets.some((cs) => cs.stepId === s.id))
+                        continue;
+                      next[s.id] = {
+                        targetReps: !modalTargetStep.durationSeconds
+                          ? editReps || s.targetReps
+                          : undefined,
+                        targetWeightKg:
+                          parsedWeight !== undefined
+                            ? parsedWeight
+                            : s.targetWeightKg,
+                      };
+                    }
+                    return next;
+                  });
+                }
+
+                setEditOpen(false);
+              }}
+              className="flex-1"
+            >
+              Save
+            </Button>
+          </View>
+        </View>
+      </BottomSheetModal>
+
+      <BottomSheetModal
+        visible={howToOpen}
+        onClose={() => setHowToOpen(false)}
+        title={
+          modalTargetStep
+            ? `How to: ${modalTargetStep.exercise.name}`
+            : "How to"
+        }
       >
-        <ResponsiveModalHeader>
-          <ResponsiveModalTitle>Leave workout session?</ResponsiveModalTitle>
-          <ResponsiveModalDescription>
-            You can pause now and continue within 24h, or end the session.
-          </ResponsiveModalDescription>
-        </ResponsiveModalHeader>
+        {howToImageUrl ? (
+          <Image
+            source={{ uri: howToImageUrl }}
+            style={{ width: "100%", height: 180, borderRadius: 14 }}
+            resizeMode="cover"
+          />
+        ) : (
+          <View className="h-[120px] rounded-2xl items-center justify-center bg-light-surface dark:bg-dark-surface">
+            <Dumbbell size={26} color={colors.muted} />
+          </View>
+        )}
 
-        <ResponsiveModalFooter>
+        {howToSteps.length > 0 ? (
+          <View className="gap-2 mt-1">
+            {howToSteps.map((step, index) => (
+              <View key={`how-to-${index}`} className="flex-row gap-2">
+                <Text className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                  {index + 1}.
+                </Text>
+                <Text className="text-sm text-gray-700 dark:text-gray-300 flex-1">
+                  {step}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <Text className="text-sm text-gray-600 dark:text-gray-400">
+            Instructions are not available for this exercise yet.
+          </Text>
+        )}
+      </BottomSheetModal>
+
+      {/* Close confirm modal (same visual system as adjust modal) */}
+      <BottomSheetModal
+        visible={closeConfirmOpen}
+        onClose={() => setCloseConfirmOpen(false)}
+        title="Leave workout session?"
+      >
+        <Text className="text-sm text-gray-600 dark:text-gray-400">
+          You can pause now and continue within 24h, or end the session.
+        </Text>
+
+        <View className="mt-1 flex-row gap-3">
           <Button
             variant="secondary"
             className="flex-1"
@@ -1849,8 +2508,8 @@ export default function RunWorkoutScreen() {
           >
             End
           </Button>
-        </ResponsiveModalFooter>
-      </ResponsiveModal>
+        </View>
+      </BottomSheetModal>
     </View>
   );
 }

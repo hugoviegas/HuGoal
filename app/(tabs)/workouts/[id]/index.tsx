@@ -1244,7 +1244,7 @@ export default function WorkoutDetailScreen() {
               size="lg"
               onPress={() => router.push(`/workouts/${id}/run`)}
             >
-              Continue
+              Resume Workout
             </Button>
             <Button
               className="flex-1"

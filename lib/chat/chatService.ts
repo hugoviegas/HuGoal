@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import { sendHomeChatMessage } from "@/lib/ai/homeChatAI";
 import {
   analyzeNutritionReviewText,
@@ -71,7 +72,14 @@ export interface ChatRouteDeps {
   signal?: AbortSignal;
 }
 
-const OFFLINE_PROBE_URL = "https://clients3.google.com/generate_204";
+// Use different probe URLs based on platform
+// Native: Google's generate_204 endpoint (stable, no CORS issues)
+// Web: Our own API that supports CORS (avoids CORS errors on localhost)
+const OFFLINE_PROBE_URL =
+  Platform.OS === "web"
+    ? `${typeof window !== "undefined" ? window.location.origin : "http://localhost:8081"}/api/ping`
+    : "https://clients3.google.com/generate_204";
+
 const OFFLINE_PROBE_TIMEOUT_MS = 2500;
 
 const inFlightRequests = new Map<
@@ -112,6 +120,12 @@ function finalizeRequest(context: ChatContext, requestId: number): void {
 async function assertOnline(signal: AbortSignal): Promise<void> {
   if (signal.aborted) {
     throw createAbortError("Request cancelled");
+  }
+
+  // Skip connectivity check on web to avoid CORS issues with third-party endpoints.
+  // The actual API call will fail appropriately if offline.
+  if (Platform.OS === "web") {
+    return;
   }
 
   const timeoutController = new AbortController();

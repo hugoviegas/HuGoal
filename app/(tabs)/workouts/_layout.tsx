@@ -16,7 +16,6 @@ export default function WorkoutsStackLayout() {
       <Stack.Screen name="settings" />
       <Stack.Screen name="library" />
       <Stack.Screen name="create" />
-      <Stack.Screen name="explore" />
       <Stack.Screen name="history" />
       <Stack.Screen name="[id]/index" />
       <Stack.Screen name="[id]/edit" />

@@ -3,7 +3,14 @@ import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ArrowLeft, Bell, Flame, Scale, Target } from "lucide-react-native";
+import {
+  ArrowLeft,
+  Bell,
+  Droplets,
+  Flame,
+  Scale,
+  Target,
+} from "lucide-react-native";
 
 import { typography } from "@/constants/typography";
 import { useNutritionGoal } from "@/hooks/useNutritionGoal";
@@ -16,6 +23,7 @@ import { useAuthStore } from "@/stores/auth.store";
 import { useThemeStore } from "@/stores/theme.store";
 import { useToastStore } from "@/stores/toast.store";
 import type {
+  NutritionGoalStrategy,
   NutritionActivityLevel,
   NutritionRdiGoal,
   NutritionSettings,
@@ -148,6 +156,41 @@ export default function NutritionSettingsScreen() {
         ...next,
         rdi_kcal: recalculated.rdi_kcal,
         macro_split: recalculated.macro_split,
+      };
+    });
+  };
+
+  const updateDraftRaw = <K extends keyof NutritionSettings>(
+    key: K,
+    value: NutritionSettings[K],
+  ) => {
+    setDraft((current) => {
+      if (!current) {
+        return current;
+      }
+
+      return { ...current, [key]: value };
+    });
+  };
+
+  const updateManualTarget = (
+    key: "calories" | "protein_g" | "carbs_g" | "fat_g",
+    delta: number,
+  ) => {
+    setDraft((current) => {
+      if (!current) {
+        return current;
+      }
+
+      const currentValue = current.manual_nutrient_targets?.[key] ?? 0;
+      const nextValue = Math.max(0, currentValue + delta);
+
+      return {
+        ...current,
+        manual_nutrient_targets: {
+          ...current.manual_nutrient_targets,
+          [key]: nextValue,
+        },
       };
     });
   };
@@ -508,6 +551,215 @@ export default function NutritionSettingsScreen() {
                 </View>
               </View>
 
+              <Text
+                style={[typography.smallMedium, { color: colors.foreground }]}
+              >
+                Goal strategy
+              </Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {(
+                  [
+                    "formula_only",
+                    "formula_plus_override",
+                    "manual_only",
+                  ] as NutritionGoalStrategy[]
+                ).map((item) => (
+                  <SegmentedOption
+                    key={item}
+                    value={item}
+                    selected={
+                      (draft.goal_strategy ?? "formula_plus_override") === item
+                    }
+                    onPress={(value) => updateDraftRaw("goal_strategy", value)}
+                  />
+                ))}
+              </View>
+
+              <View style={{ gap: 6 }}>
+                <Text
+                  style={[typography.smallMedium, { color: colors.foreground }]}
+                >
+                  Water target and cup size
+                </Text>
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  <Pressable
+                    onPress={() =>
+                      updateDraftRaw(
+                        "water_goal_ml",
+                        Math.max(500, (draft.water_goal_ml ?? 2000) - 100),
+                      )
+                    }
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 17,
+                      borderWidth: 1,
+                      borderColor: colors.cardBorder,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: colors.card,
+                    }}
+                  >
+                    <Text
+                      style={[
+                        typography.bodyMedium,
+                        { color: colors.foreground },
+                      ]}
+                    >
+                      -
+                    </Text>
+                  </Pressable>
+                  <Text
+                    style={[
+                      typography.bodyMedium,
+                      {
+                        color: colors.foreground,
+                        minWidth: 78,
+                        textAlign: "center",
+                      },
+                    ]}
+                  >
+                    {draft.water_goal_ml ?? 2000} ml
+                  </Text>
+                  <Pressable
+                    onPress={() =>
+                      updateDraftRaw(
+                        "water_goal_ml",
+                        Math.min(6000, (draft.water_goal_ml ?? 2000) + 100),
+                      )
+                    }
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 17,
+                      borderWidth: 1,
+                      borderColor: colors.cardBorder,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: colors.card,
+                    }}
+                  >
+                    <Text
+                      style={[
+                        typography.bodyMedium,
+                        { color: colors.foreground },
+                      ]}
+                    >
+                      +
+                    </Text>
+                  </Pressable>
+                </View>
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  {[200, 250, 300, 500].map((cup) => (
+                    <SegmentedOption
+                      key={cup}
+                      value={`${cup}ml`}
+                      selected={(draft.cup_size_ml ?? 250) === cup}
+                      onPress={(_value) => updateDraftRaw("cup_size_ml", cup)}
+                    />
+                  ))}
+                </View>
+              </View>
+
+              <View style={{ gap: 6 }}>
+                <Text
+                  style={[typography.smallMedium, { color: colors.foreground }]}
+                >
+                  Manual macro targets
+                </Text>
+                {(
+                  [
+                    ["calories", "Calories", 50, "kcal"],
+                    ["protein_g", "Protein", 5, "g"],
+                    ["carbs_g", "Carbs", 5, "g"],
+                    ["fat_g", "Fat", 5, "g"],
+                  ] as const
+                ).map(([key, label, step, unit]) => (
+                  <View
+                    key={key}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Text
+                      style={[
+                        typography.small,
+                        { color: colors.mutedForeground },
+                      ]}
+                    >
+                      {label}
+                    </Text>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
+                      <Pressable
+                        onPress={() => updateManualTarget(key, -step)}
+                        style={{
+                          width: 30,
+                          height: 30,
+                          borderRadius: 15,
+                          borderWidth: 1,
+                          borderColor: colors.cardBorder,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          backgroundColor: colors.card,
+                        }}
+                      >
+                        <Text
+                          style={[
+                            typography.smallMedium,
+                            { color: colors.foreground },
+                          ]}
+                        >
+                          -
+                        </Text>
+                      </Pressable>
+                      <Text
+                        style={[
+                          typography.smallMedium,
+                          {
+                            color: colors.foreground,
+                            minWidth: 76,
+                            textAlign: "center",
+                          },
+                        ]}
+                      >
+                        {(draft.manual_nutrient_targets?.[key] ?? 0).toString()}{" "}
+                        {unit}
+                      </Text>
+                      <Pressable
+                        onPress={() => updateManualTarget(key, step)}
+                        style={{
+                          width: 30,
+                          height: 30,
+                          borderRadius: 15,
+                          borderWidth: 1,
+                          borderColor: colors.cardBorder,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          backgroundColor: colors.card,
+                        }}
+                      >
+                        <Text
+                          style={[
+                            typography.smallMedium,
+                            { color: colors.foreground },
+                          ]}
+                        >
+                          +
+                        </Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                ))}
+              </View>
+
               <Pressable
                 onPress={handleSave}
                 disabled={saving}
@@ -577,6 +829,28 @@ export default function NutritionSettingsScreen() {
         </SectionCard>
 
         <SectionCard
+          icon={<Droplets size={16} color={colors.primary} />}
+          title="Hydration"
+          subtitle="Daily water goal and cup quick-add defaults"
+        >
+          <View
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: 12,
+              padding: 14,
+              alignItems: "center",
+            }}
+          >
+            <Text
+              style={[typography.caption, { color: colors.mutedForeground }]}
+            >
+              Current target: {draft?.water_goal_ml ?? 2000} ml · Cup:{" "}
+              {draft?.cup_size_ml ?? 250} ml
+            </Text>
+          </View>
+        </SectionCard>
+
+        <SectionCard
           icon={<Bell size={16} color={colors.primary} />}
           title="Meal reminders"
           subtitle="Notifications to log your meals on time"
@@ -592,7 +866,7 @@ export default function NutritionSettingsScreen() {
             <Text
               style={[typography.caption, { color: colors.mutedForeground }]}
             >
-              Meal reminders settings remain unchanged
+              Reminder scheduling wiring will be added in the next step
             </Text>
           </View>
         </SectionCard>

@@ -549,7 +549,7 @@ export default function FoodLibraryScreen() {
           onPress={() =>
             router.push({
               pathname: "/nutrition/add-food",
-              params: { mode: "manual", target: "pantry" },
+              params: { mode: "manual" },
             })
           }
           style={{

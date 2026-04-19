@@ -33,7 +33,17 @@ export function useNutritionGoal(): UseNutritionGoalResult {
       setIsLoading(true);
       setError(null);
       const data = await getNutritionSettings(user.uid);
-      setGoal(data);
+      if (!data) {
+        setGoal(null);
+        return;
+      }
+
+      setGoal({
+        ...data,
+        goal_strategy: data.goal_strategy ?? "formula_plus_override",
+        water_goal_ml: data.water_goal_ml ?? 2000,
+        cup_size_ml: data.cup_size_ml ?? 250,
+      });
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to load nutrition goal",
@@ -54,6 +64,9 @@ export function useNutritionGoal(): UseNutritionGoalResult {
         ...inputs,
         rdi_kcal: result.rdi_kcal,
         macro_split: result.macro_split,
+        goal_strategy: "formula_plus_override",
+        water_goal_ml: 2000,
+        cup_size_ml: 250,
         updated_at: new Date().toISOString(),
       };
 

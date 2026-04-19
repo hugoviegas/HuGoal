@@ -10,6 +10,7 @@ Phase 4 Test Checklist
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
+  Pressable,
   ScrollView,
   Text,
   View,
@@ -22,12 +23,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { format } from "date-fns";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { useNutritionChatPanel } from "@/components/nutrition/NutritionChat";
-import { MacroWidget } from "@/components/nutrition/MacroWidget";
+import { MacroSummary } from "@/components/nutrition/MacroSummary";
+import { MealSection } from "@/components/nutrition/MealSection";
 import { NutritionWeekCalendar } from "@/components/nutrition/NutritionWeekCalendar";
+import { WaterTracker } from "@/components/nutrition/WaterTracker";
+import { BottomSheetModal } from "@/components/ui/BottomSheetModal";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
-import { spacing } from "@/constants/spacing";
+import { radius } from "@/constants/radius";
 import { typography } from "@/constants/typography";
+import { elevation } from "@/constants/elevation";
 import {
   analyzeNutritionChatText,
   type NutritionChatItem,
@@ -43,6 +48,7 @@ import {
   saveTodayNutritionChatMessages,
 } from "@/lib/firestore/nutritionChat";
 import {
+  addWaterLog,
   createNutritionLog,
   listNutritionLogs,
   listWaterLogs,
@@ -57,6 +63,16 @@ import { useThemeStore } from "@/stores/theme.store";
 import { useToastStore } from "@/stores/toast.store";
 import type { ChatMessage } from "@/stores/nutrition.store";
 import type { MealType, NutritionItem, NutritionLog } from "@/types";
+import {
+  BookOpen,
+  CalendarDays,
+  Clock3,
+  Droplets,
+  Flame,
+  History,
+  Sparkles,
+  UtensilsCrossed,
+} from "lucide-react-native";
 
 type UserCoachMessageType = "user_text" | "user_audio_transcript";
 
@@ -68,6 +84,15 @@ const MEAL_TYPE_LABELS: Record<MealType, string> = {
   pre_workout: "Pre-workout",
   post_workout: "Post-workout",
 };
+
+const MEAL_DISPLAY_ORDER: MealType[] = [
+  "breakfast",
+  "lunch",
+  "snack",
+  "dinner",
+  "pre_workout",
+  "post_workout",
+];
 
 function dateKeyFromIso(isoDate: string): string {
   return isoDate.slice(0, 10);
@@ -130,7 +155,10 @@ function inferServingSizeInGrams(quantity: number, unit: string): number {
   return Math.max(1, q * 100);
 }
 
-function toNutritionItemFromAi(item: NutritionChatItem): NutritionItem {
+function toNutritionItemFromAi(
+  item: NutritionChatItem,
+  reviewSessionId?: string,
+): NutritionItem {
   return {
     food_name: item.name,
     serving_size_g: Math.round(
@@ -142,12 +170,41 @@ function toNutritionItemFromAi(item: NutritionChatItem): NutritionItem {
     fat_g: Math.max(0, Math.round(item.fat_g * 10) / 10),
     notes: `${item.quantity} ${item.unit}`,
     source: "ai_generated",
+    ai_suggested: true,
+    confidence:
+      item.confidence === "high"
+        ? 0.95
+        : item.confidence === "medium"
+          ? 0.8
+          : 0.6,
+    review_session_id: reviewSessionId,
   };
 }
 
 function buildAiSummary(items: NutritionChatItem[]): string {
   const totalCalories = items.reduce((sum, item) => sum + item.calories, 0);
   return `I found ${items.length} item${items.length === 1 ? "" : "s"} (~${Math.round(totalCalories)} kcal). Review and edit before saving.`;
+}
+
+function formatLogTime(loggedAt: string): string {
+  const parsed = new Date(loggedAt);
+  if (Number.isNaN(parsed.getTime())) {
+    return loggedAt;
+  }
+
+  return format(parsed, "HH:mm");
+}
+
+function sumNutritionItems(items: NutritionChatItem[]) {
+  return items.reduce(
+    (acc, item) => ({
+      calories: acc.calories + item.calories,
+      protein_g: acc.protein_g + item.protein_g,
+      carbs_g: acc.carbs_g + item.carbs_g,
+      fat_g: acc.fat_g + item.fat_g,
+    }),
+    { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 },
+  );
 }
 
 export default function NutritionScreen() {
@@ -165,6 +222,7 @@ export default function NutritionScreen() {
   const todayLogs = useNutritionStore((s) => s.todayLogs);
   const todayTotals = useNutritionStore((s) => s.todayTotals);
   const dailyGoal = useNutritionStore((s) => s.dailyGoal);
+  const waterMl = useNutritionStore((s) => s.waterMl);
   const isLoading = useNutritionStore((s) => s.isLoading);
   const selectedDate = useNutritionStore((s) => s.selectedDate);
   const streakDays = useNutritionStore((s) => s.streakDays);
@@ -187,6 +245,7 @@ export default function NutritionScreen() {
   const [sendingChat, setSendingChat] = useState(false);
   const [savingPendingItems, setSavingPendingItems] = useState(false);
   const [pendingAiItems, setPendingAiItems] = useState<NutritionChatItem[]>([]);
+  const [reviewSheetVisible, setReviewSheetVisible] = useState(false);
   const [editableTranscript, setEditableTranscript] = useState<{
     messageId: string;
     value: string;
@@ -291,6 +350,51 @@ export default function NutritionScreen() {
       perMeal,
     };
   }, [todayLogs]);
+
+  const mealSections = useMemo(() => {
+    const grouped: Record<MealType, NutritionItem[]> = {
+      breakfast: [],
+      lunch: [],
+      snack: [],
+      dinner: [],
+      pre_workout: [],
+      post_workout: [],
+    };
+
+    for (const log of todayLogs) {
+      grouped[log.meal_type].push(...log.items);
+    }
+
+    return MEAL_DISPLAY_ORDER.map((mealType) => ({
+      mealType,
+      items: grouped[mealType],
+    }));
+  }, [todayLogs]);
+
+  const mealSectionsWithSummary = useMemo(
+    () =>
+      mealSections.map((section) => ({
+        ...section,
+        calories: section.items.reduce((sum, item) => sum + item.calories, 0),
+      })),
+    [mealSections],
+  );
+
+  const latestLog = useMemo(() => todayLogs[0] ?? null, [todayLogs]);
+
+  const pendingReviewTotals = useMemo(
+    () => sumNutritionItems(pendingAiItems),
+    [pendingAiItems],
+  );
+
+  const goalProgress = Math.min(
+    todayTotals.calories / Math.max(dailyGoal.calories, 1),
+    1,
+  );
+
+  const mealCoverage = mealSections.filter(
+    (section) => section.items.length > 0,
+  ).length;
 
   const appendChat = useCallback(
     (message: Omit<ChatMessage, "id" | "createdAt">): ChatMessage => {
@@ -801,18 +905,28 @@ export default function NutritionScreen() {
     setSavingPendingItems(true);
 
     try {
+      const now = new Date().toISOString();
+      const reviewSessionId = generateId();
       const mealType = inferMealTypeFromTime(new Date());
       const nutritionItems: NutritionItem[] = pendingAiItems.map((item) =>
-        toNutritionItemFromAi(item),
+        toNutritionItemFromAi(item, reviewSessionId),
       );
 
       await createNutritionLog(user.uid, {
         meal_type: mealType,
         items: nutritionItems,
         notes: "Saved from nutrition coach chat",
+        confirmed_at: now,
+        saved_at: now,
+        metadata: {
+          source: "nutrition_review",
+          review_session_id: reviewSessionId,
+          is_final: true,
+        },
       });
 
       setPendingAiItems([]);
+      setReviewSheetVisible(false);
       appendChat({
         type: "ai_response",
         text: `Saved ${nutritionItems.length} item${nutritionItems.length === 1 ? "" : "s"} to ${MEAL_TYPE_LABELS[mealType]}.`,
@@ -838,6 +952,22 @@ export default function NutritionScreen() {
     showToast,
     user?.uid,
   ]);
+
+  const handleAddWaterQuick = useCallback(
+    async (ml: number) => {
+      if (!user?.uid || !isViewingToday || ml <= 0) {
+        return;
+      }
+
+      try {
+        await addWaterLog(user.uid, selectedDate, ml);
+        setWater(waterMl + ml);
+      } catch {
+        showToast("Failed to add water", "error");
+      }
+    },
+    [isViewingToday, selectedDate, setWater, showToast, user?.uid, waterMl],
+  );
 
   // Retained temporarily while tab-level chat logic is being migrated to the global overlay.
   void isDark;
@@ -903,90 +1033,602 @@ export default function NutritionScreen() {
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingTop: 14,
+          paddingTop: 18,
           paddingHorizontal: 16,
-          paddingBottom: insets.bottom + 160,
-          gap: spacing.md,
+          paddingBottom: insets.bottom + 220,
+          gap: 14,
         }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
         <View
           style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
+            borderRadius: radius.xl,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+            backgroundColor: colors.card,
+            padding: 16,
+            gap: 14,
+            overflow: "hidden",
+            ...elevation.sm,
           }}
         >
-          <View style={{ gap: 2 }}>
-            <Text
-              style={[typography.caption, { color: colors.mutedForeground }]}
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              top: -26,
+              right: -24,
+              width: 110,
+              height: 110,
+              borderRadius: 999,
+              backgroundColor: colors.primary + "15",
+            }}
+          />
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              bottom: -30,
+              left: -18,
+              width: 88,
+              height: 88,
+              borderRadius: 999,
+              backgroundColor: colors.accent + "10",
+            }}
+          />
+
+          <View
+            style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}
+          >
+            <View style={{ flex: 1, gap: 8 }}>
+              <View
+                style={{
+                  alignSelf: "flex-start",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                  borderRadius: 999,
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                  backgroundColor: isViewingToday
+                    ? colors.primary + "18"
+                    : colors.secondary,
+                }}
+              >
+                <CalendarDays size={13} color={colors.primary} />
+                <Text
+                  style={[
+                    typography.caption,
+                    { color: colors.primary, fontWeight: "700" },
+                  ]}
+                >
+                  {isViewingToday ? "Live day" : "History mode"}
+                </Text>
+              </View>
+
+              <Text style={[typography.h2, { color: colors.foreground }]}>
+                {selectedDateLabel}
+              </Text>
+              <Text
+                style={[typography.small, { color: colors.mutedForeground }]}
+              >
+                Track meals, hydration, and AI review in one place.
+              </Text>
+            </View>
+
+            <View
+              style={{
+                borderRadius: 18,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                backgroundColor: isViewingToday
+                  ? colors.primary + "16"
+                  : colors.secondary,
+                borderWidth: 1,
+                borderColor: isViewingToday
+                  ? colors.primary + "30"
+                  : colors.cardBorder,
+              }}
             >
-              {selectedDateLabel}
-            </Text>
-            <Text style={[typography.h2, { color: colors.foreground }]}>
-              Nutrition
-            </Text>
+              <Text
+                style={[
+                  typography.caption,
+                  { color: colors.mutedForeground, textAlign: "center" },
+                ]}
+              >
+                {isViewingToday ? "Today" : "Read only"}
+              </Text>
+              <Text
+                style={[
+                  typography.smallMedium,
+                  { color: colors.foreground, textAlign: "center" },
+                ]}
+              >
+                {todayLogs.length} logs
+              </Text>
+            </View>
           </View>
 
-          {isViewingToday ? (
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              <Button
-                size="sm"
-                variant="outline"
-                onPress={() => router.push("/nutrition/food-library")}
-              >
-                Food Library
-              </Button>
-              <Button size="sm" onPress={() => router.push("/nutrition/log")}>
-                Log meal
-              </Button>
-            </View>
-          ) : (
-            <Text
-              style={[typography.caption, { color: colors.mutedForeground }]}
-            >
-              Read-only history
-            </Text>
-          )}
-        </View>
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              gap: 8,
+            }}
+          >
+            {[
+              { label: "Logs", value: String(todayLogs.length), icon: History },
+              {
+                label: "Items",
+                value: String(logsSummary.totalItems),
+                icon: UtensilsCrossed,
+              },
+              { label: "Streak", value: `${streakDays.length}d`, icon: Flame },
+              {
+                label: "Water",
+                value: `${Math.round(waterMl)}ml`,
+                icon: Droplets,
+              },
+            ].map((pill) => {
+              const Icon = pill.icon;
 
-        <MacroWidget totals={todayTotals} goal={dailyGoal} />
+              return (
+                <View
+                  key={pill.label}
+                  style={{
+                    flexGrow: 1,
+                    flexBasis: "46%",
+                    borderRadius: 16,
+                    borderWidth: 1,
+                    borderColor: colors.cardBorder,
+                    backgroundColor: colors.background,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    gap: 4,
+                  }}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <Icon size={14} color={colors.primary} />
+                    <Text
+                      style={[
+                        typography.caption,
+                        { color: colors.mutedForeground, fontWeight: "700" },
+                      ]}
+                    >
+                      {pill.label}
+                    </Text>
+                  </View>
+                  <Text
+                    style={[
+                      typography.smallMedium,
+                      { color: colors.foreground },
+                    ]}
+                  >
+                    {pill.value}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+
+          <View
+            style={{
+              gap: 8,
+              borderRadius: 18,
+              backgroundColor: colors.background,
+              borderWidth: 1,
+              borderColor: colors.cardBorder,
+              padding: 12,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <View>
+                <Text
+                  style={[
+                    typography.caption,
+                    { color: colors.mutedForeground },
+                  ]}
+                >
+                  Calorie pace
+                </Text>
+                <Text
+                  style={[typography.smallMedium, { color: colors.foreground }]}
+                >
+                  {Math.round(todayTotals.calories)} /{" "}
+                  {Math.round(dailyGoal.calories)} kcal
+                </Text>
+              </View>
+              <Text
+                style={[typography.caption, { color: colors.mutedForeground }]}
+              >
+                {Math.round(goalProgress * 100)}%
+              </Text>
+            </View>
+
+            <View
+              style={{
+                height: 8,
+                borderRadius: 999,
+                backgroundColor: colors.cardBorder,
+                overflow: "hidden",
+              }}
+            >
+              <View
+                style={{
+                  height: 8,
+                  borderRadius: 999,
+                  width: `${Math.min(goalProgress * 100, 100)}%`,
+                  backgroundColor: colors.primary,
+                }}
+              />
+            </View>
+          </View>
+
+          <MacroSummary totals={todayTotals} goal={dailyGoal} />
+
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+            {[
+              {
+                label: "Log meal",
+                hint: "Open the meal editor",
+                icon: UtensilsCrossed,
+                onPress: () => router.push("/nutrition/log"),
+                tone: colors.primary,
+              },
+              {
+                label: "Food library",
+                hint: "Reuse saved foods",
+                icon: BookOpen,
+                onPress: () => router.push("/nutrition/food-library"),
+                tone: colors.accent,
+              },
+              {
+                label: "History",
+                hint: "Review previous days",
+                icon: History,
+                onPress: () => router.push("/nutrition/history"),
+                tone: colors.destructive,
+              },
+              {
+                label: pendingAiItems.length > 0 ? "Review AI" : "Water +250",
+                hint:
+                  pendingAiItems.length > 0
+                    ? "Confirm pending items"
+                    : "Quick hydration add",
+                icon: pendingAiItems.length > 0 ? Sparkles : Droplets,
+                onPress:
+                  pendingAiItems.length > 0
+                    ? () => setReviewSheetVisible(true)
+                    : () => handleAddWaterQuick(250),
+                tone:
+                  pendingAiItems.length > 0 ? colors.primary : colors.primary,
+              },
+            ].map((action) => {
+              const Icon = action.icon;
+
+              return (
+                <Pressable
+                  key={action.label}
+                  onPress={action.onPress}
+                  style={({ pressed }) => ({
+                    flexBasis: "48%",
+                    flexGrow: 1,
+                    minHeight: 96,
+                    borderRadius: 18,
+                    borderWidth: 1,
+                    borderColor: action.tone + "26",
+                    backgroundColor: action.tone + (pressed ? "1F" : "14"),
+                    padding: 14,
+                    gap: 10,
+                    opacity: isViewingToday ? 1 : 0.72,
+                    justifyContent: "space-between",
+                  })}
+                  disabled={!isViewingToday && action.label !== "History"}
+                >
+                  <View
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 12,
+                      backgroundColor: colors.background,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Icon size={17} color={action.tone} />
+                  </View>
+                  <View style={{ gap: 2 }}>
+                    <Text
+                      style={[
+                        typography.smallMedium,
+                        { color: colors.foreground },
+                      ]}
+                    >
+                      {action.label}
+                    </Text>
+                    <Text
+                      style={[
+                        typography.caption,
+                        { color: colors.mutedForeground },
+                      ]}
+                    >
+                      {action.hint}
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
 
         <View
           style={{
-            backgroundColor: colors.card,
-            borderColor: colors.cardBorder,
+            borderRadius: radius.xl,
             borderWidth: 1,
-            borderRadius: 12,
-            padding: spacing.sm,
-            gap: spacing.xs,
+            borderColor: colors.cardBorder,
+            backgroundColor: colors.card,
+            padding: 14,
+            gap: 12,
+            ...elevation.sm,
           }}
         >
-          <Text style={[typography.smallMedium, { color: colors.foreground }]}>
-            Day summary
-          </Text>
-          <Text style={[typography.small, { color: colors.mutedForeground }]}>
-            {todayLogs.length} logs · {logsSummary.totalItems} items ·{" "}
-            {Math.round(todayTotals.calories)} kcal
-          </Text>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <View>
+              <Text
+                style={[typography.smallMedium, { color: colors.foreground }]}
+              >
+                Hydration
+              </Text>
+              <Text
+                style={[typography.caption, { color: colors.mutedForeground }]}
+              >
+                Quick adds from the dashboard
+              </Text>
+            </View>
+            <Droplets size={18} color={colors.primary} />
+          </View>
+          <WaterTracker
+            current={waterMl}
+            target={2000}
+            onAdd={isViewingToday ? handleAddWaterQuick : undefined}
+          />
+        </View>
 
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            {(Object.keys(logsSummary.perMeal) as MealType[]).map(
-              (mealType) => {
-                const meal = logsSummary.perMeal[mealType];
-                if (!meal) return null;
+        {pendingAiItems.length > 0 ? (
+          <View
+            style={{
+              borderRadius: radius.xl,
+              borderWidth: 1,
+              borderColor: colors.primary + "26",
+              backgroundColor: colors.primary + "0F",
+              padding: 14,
+              gap: 12,
+              ...elevation.sm,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+              }}
+            >
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 10,
+                  flex: 1,
+                }}
+              >
+                <View
+                  style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 12,
+                    backgroundColor: colors.background,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Sparkles size={18} color={colors.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={[
+                      typography.smallMedium,
+                      { color: colors.foreground },
+                    ]}
+                  >
+                    AI review ready
+                  </Text>
+                  <Text
+                    style={[
+                      typography.caption,
+                      { color: colors.mutedForeground },
+                    ]}
+                  >
+                    Saved when you confirm the review sheet.
+                  </Text>
+                </View>
+              </View>
+              <Pressable
+                onPress={() => setReviewSheetVisible(true)}
+                style={{
+                  borderRadius: 999,
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  backgroundColor: colors.primary,
+                }}
+              >
+                <Text
+                  style={[
+                    typography.caption,
+                    { color: colors.primaryForeground, fontWeight: "700" },
+                  ]}
+                >
+                  Open
+                </Text>
+              </Pressable>
+            </View>
 
-                return (
+            <Text style={[typography.bodyMedium, { color: colors.foreground }]}>
+              {buildAiSummary(pendingAiItems)}
+            </Text>
+
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              {[
+                {
+                  label: `${pendingAiItems.length} items`,
+                  color: colors.primary,
+                },
+                {
+                  label: `${Math.round(pendingReviewTotals.calories)} kcal`,
+                  color: colors.accent,
+                },
+                {
+                  label: `${Math.round(pendingReviewTotals.protein_g)}g protein`,
+                  color: colors.destructive,
+                },
+              ].map((pill) => (
+                <View
+                  key={pill.label}
+                  style={{
+                    borderRadius: 999,
+                    paddingHorizontal: 10,
+                    paddingVertical: 6,
+                    backgroundColor: pill.color + "16",
+                    borderWidth: 1,
+                    borderColor: pill.color + "30",
+                  }}
+                >
+                  <Text
+                    style={[
+                      typography.caption,
+                      { color: pill.color, fontWeight: "700" },
+                    ]}
+                  >
+                    {pill.label}
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            <Button
+              onPress={() => setReviewSheetVisible(true)}
+              variant="outline"
+              size="sm"
+            >
+              Review & save
+            </Button>
+          </View>
+        ) : null}
+
+        <View
+          style={{
+            borderRadius: radius.xl,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+            backgroundColor: colors.card,
+            padding: 14,
+            gap: 12,
+            ...elevation.sm,
+          }}
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+            }}
+          >
+            <View>
+              <Text
+                style={[typography.smallMedium, { color: colors.foreground }]}
+              >
+                Meals
+              </Text>
+              <Text
+                style={[typography.caption, { color: colors.mutedForeground }]}
+              >
+                {" "}
+                {mealCoverage}/6 meal slots filled
+              </Text>
+            </View>
+            <Text
+              style={[typography.caption, { color: colors.mutedForeground }]}
+            >
+              {" "}
+              {Math.round(todayTotals.calories)} kcal today
+            </Text>
+          </View>
+
+          <View style={{ gap: 12 }}>
+            {mealSectionsWithSummary.map((section) => (
+              <View
+                key={section.mealType}
+                style={{
+                  borderRadius: 18,
+                  borderWidth: 1,
+                  borderColor: colors.cardBorder,
+                  backgroundColor: colors.background,
+                  padding: 8,
+                  gap: 8,
+                }}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    paddingHorizontal: 6,
+                  }}
+                >
+                  <View>
+                    <Text
+                      style={[
+                        typography.smallMedium,
+                        { color: colors.foreground },
+                      ]}
+                    >
+                      {MEAL_TYPE_LABELS[section.mealType]}
+                    </Text>
+                    <Text
+                      style={[
+                        typography.caption,
+                        { color: colors.mutedForeground },
+                      ]}
+                    >
+                      {" "}
+                      {section.items.length} items
+                    </Text>
+                  </View>
                   <View
-                    key={mealType}
                     style={{
-                      borderRadius: 999,
-                      borderWidth: 1,
-                      borderColor: colors.cardBorder,
-                      paddingHorizontal: 10,
-                      paddingVertical: 5,
-                      backgroundColor: colors.background,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
                     }}
                   >
                     <Text
@@ -995,28 +1637,207 @@ export default function NutritionScreen() {
                         { color: colors.mutedForeground },
                       ]}
                     >
-                      {MEAL_TYPE_LABELS[mealType]} {Math.round(meal.calories)}{" "}
-                      kcal
+                      {section.calories} kcal
+                    </Text>
+                    <Clock3 size={13} color={colors.mutedForeground} />
+                  </View>
+                </View>
+
+                <MealSection
+                  mealType={section.mealType}
+                  items={section.items}
+                  defaultExpanded={section.items.length > 0}
+                  onAddItem={
+                    isViewingToday
+                      ? () =>
+                          router.push({
+                            pathname: "/nutrition/log",
+                            params: { mealType: section.mealType },
+                          })
+                      : undefined
+                  }
+                />
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View
+          style={{
+            borderRadius: radius.xl,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+            backgroundColor: colors.card,
+            padding: 14,
+            gap: 10,
+            ...elevation.sm,
+          }}
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <View>
+              <Text
+                style={[typography.smallMedium, { color: colors.foreground }]}
+              >
+                Latest log
+              </Text>
+              <Text
+                style={[typography.caption, { color: colors.mutedForeground }]}
+              >
+                Synced from Firestore
+              </Text>
+            </View>
+            <History size={18} color={colors.primary} />
+          </View>
+
+          {latestLog ? (
+            <View style={{ gap: 10 }}>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                <View
+                  style={{
+                    borderRadius: 999,
+                    paddingHorizontal: 10,
+                    paddingVertical: 6,
+                    backgroundColor: colors.primary + "16",
+                  }}
+                >
+                  <Text
+                    style={[
+                      typography.caption,
+                      { color: colors.primary, fontWeight: "700" },
+                    ]}
+                  >
+                    {MEAL_TYPE_LABELS[latestLog.meal_type]}
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    borderRadius: 999,
+                    paddingHorizontal: 10,
+                    paddingVertical: 6,
+                    backgroundColor: colors.secondary,
+                  }}
+                >
+                  <Text
+                    style={[
+                      typography.caption,
+                      { color: colors.secondaryForeground, fontWeight: "700" },
+                    ]}
+                  >
+                    {formatLogTime(latestLog.logged_at)}
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    borderRadius: 999,
+                    paddingHorizontal: 10,
+                    paddingVertical: 6,
+                    backgroundColor: colors.secondary,
+                  }}
+                >
+                  <Text
+                    style={[
+                      typography.caption,
+                      { color: colors.secondaryForeground, fontWeight: "700" },
+                    ]}
+                  >
+                    {latestLog.items.length} items
+                  </Text>
+                </View>
+              </View>
+
+              <Text
+                style={[typography.bodyMedium, { color: colors.foreground }]}
+              >
+                {Math.round(latestLog.total.calories)} kcal · P{" "}
+                {Math.round(latestLog.total.protein_g)}g · C{" "}
+                {Math.round(latestLog.total.carbs_g)}g · F{" "}
+                {Math.round(latestLog.total.fat_g)}g
+              </Text>
+
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {latestLog.items.slice(0, 4).map((item) => (
+                  <View
+                    key={`${item.food_name}-${item.serving_size_g}`}
+                    style={{
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      borderColor: colors.cardBorder,
+                      backgroundColor: colors.background,
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                    }}
+                  >
+                    <Text
+                      style={[
+                        typography.caption,
+                        { color: colors.mutedForeground },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {item.food_name}
                     </Text>
                   </View>
-                );
-              },
-            )}
-          </View>
+                ))}
+              </View>
+
+              <Button
+                size="sm"
+                variant="outline"
+                onPress={() => router.push("/nutrition/history")}
+              >
+                Open history
+              </Button>
+            </View>
+          ) : (
+            <View style={{ gap: 8 }}>
+              <Text
+                style={[typography.small, { color: colors.mutedForeground }]}
+              >
+                No logs yet for this day. Log a meal or open the food library to
+                start building the timeline.
+              </Text>
+              {isViewingToday ? (
+                <View style={{ flexDirection: "row", gap: 10 }}>
+                  <Button
+                    size="sm"
+                    onPress={() => router.push("/nutrition/log")}
+                  >
+                    Log meal
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onPress={() => router.push("/nutrition/food-library")}
+                  >
+                    Food library
+                  </Button>
+                </View>
+              ) : null}
+            </View>
+          )}
         </View>
 
         {!isViewingToday ? (
           <View
             style={{
-              backgroundColor: colors.secondary,
-              borderColor: colors.cardBorder,
+              borderRadius: radius.xl,
               borderWidth: 1,
-              borderRadius: 12,
-              padding: spacing.sm,
+              borderColor: colors.cardBorder,
+              backgroundColor: colors.secondary,
+              padding: 14,
             }}
           >
             <Text
-              style={[typography.small, { color: colors.secondaryForeground }]}
+              style={[
+                typography.smallMedium,
+                { color: colors.secondaryForeground },
+              ]}
             >
               You are viewing a past day. Entries are read-only.
             </Text>
@@ -1027,9 +1848,9 @@ export default function NutritionScreen() {
           <View
             style={{
               backgroundColor: colors.destructive + "14",
-              borderRadius: 12,
-              padding: spacing.md,
-              gap: spacing.xs,
+              borderRadius: radius.xl,
+              padding: 14,
+              gap: 8,
               borderWidth: 1,
               borderColor: colors.destructive + "30",
             }}
@@ -1049,6 +1870,125 @@ export default function NutritionScreen() {
           </View>
         ) : null}
       </ScrollView>
+
+      <BottomSheetModal
+        visible={reviewSheetVisible}
+        onClose={() => setReviewSheetVisible(false)}
+        title="AI review ready"
+        contentStyle={{ paddingHorizontal: 16 }}
+      >
+        <View style={{ gap: 12 }}>
+          <Text style={[typography.small, { color: colors.mutedForeground }]}>
+            Review the detected items below and confirm when you are ready to
+            save them to the day log.
+          </Text>
+
+          <View style={{ gap: 8, maxHeight: 360 }}>
+            {pendingAiItems.map((item, index) => (
+              <View
+                key={`${item.name}-${index}`}
+                style={{
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  borderColor: colors.cardBorder,
+                  backgroundColor: colors.background,
+                  padding: 12,
+                  gap: 6,
+                }}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 10,
+                  }}
+                >
+                  <Text
+                    style={[
+                      typography.smallMedium,
+                      { color: colors.foreground, flex: 1 },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {item.name}
+                  </Text>
+                  <Text
+                    style={[
+                      typography.caption,
+                      { color: colors.mutedForeground },
+                    ]}
+                  >
+                    {item.quantity} {item.unit}
+                  </Text>
+                </View>
+                <Text
+                  style={[
+                    typography.caption,
+                    { color: colors.mutedForeground },
+                  ]}
+                >
+                  {" "}
+                  {Math.round(item.calories)} kcal · P{" "}
+                  {Math.round(item.protein_g)}g · C {Math.round(item.carbs_g)}g
+                  · F {Math.round(item.fat_g)}g
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            <View
+              style={{
+                borderRadius: 999,
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                backgroundColor: colors.primary + "16",
+              }}
+            >
+              <Text
+                style={[
+                  typography.caption,
+                  { color: colors.primary, fontWeight: "700" },
+                ]}
+              >
+                {pendingAiItems.length} items
+              </Text>
+            </View>
+            <View
+              style={{
+                borderRadius: 999,
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                backgroundColor: colors.secondary,
+              }}
+            >
+              <Text
+                style={[
+                  typography.caption,
+                  { color: colors.secondaryForeground, fontWeight: "700" },
+                ]}
+              >
+                {Math.round(pendingReviewTotals.calories)} kcal
+              </Text>
+            </View>
+          </View>
+
+          <Button
+            onPress={handleSaveAllPending}
+            isLoading={savingPendingItems}
+            disabled={!isViewingToday || pendingAiItems.length === 0}
+          >
+            Save to daily log
+          </Button>
+          <Button
+            variant="outline"
+            onPress={() => setReviewSheetVisible(false)}
+          >
+            Close
+          </Button>
+        </View>
+      </BottomSheetModal>
     </View>
   );
 }

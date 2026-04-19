@@ -1630,14 +1630,25 @@ export default function WorkoutSettingsScreen() {
           <View
             style={{
               backgroundColor: colors.background,
-              borderTopLeftRadius: 18,
-              borderTopRightRadius: 18,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
               paddingTop: 12,
               paddingHorizontal: 16,
               paddingBottom: insets.bottom + 12,
               gap: 12,
             }}
           >
+            {/* Drag handle */}
+            <View
+              style={{
+                width: 40,
+                height: 4,
+                borderRadius: 2,
+                backgroundColor: isDark ? "#374151" : "#e5e7eb",
+                alignSelf: "center",
+                marginBottom: 4,
+              }}
+            />
             <View
               style={{
                 flexDirection: "row",
@@ -1771,14 +1782,25 @@ export default function WorkoutSettingsScreen() {
             style={{
               height: "86%",
               backgroundColor: colors.background,
-              borderTopLeftRadius: 18,
-              borderTopRightRadius: 18,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
               paddingTop: 12,
               paddingHorizontal: 16,
               paddingBottom: insets.bottom + 12,
               gap: 10,
             }}
           >
+            {/* Drag handle */}
+            <View
+              style={{
+                width: 40,
+                height: 4,
+                borderRadius: 2,
+                backgroundColor: isDark ? "#374151" : "#e5e7eb",
+                alignSelf: "center",
+                marginBottom: 4,
+              }}
+            />
             <View
               style={{
                 flexDirection: "row",

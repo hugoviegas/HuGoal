@@ -47,9 +47,9 @@ import {
   toNutritionItemFromSearch,
   type FoodSearchResult,
 } from "@/lib/food-service";
-import { upsertFoodLibraryItemFromNutritionItem } from "@/lib/firestore/nutrition";
 import { upsertPantryItem, type PantryItemInput } from "@/lib/firestore/pantry";
 import { analyzeMealPhoto } from "@/lib/nutrition-ai";
+import { nutritionItemToPantryInput } from "@/lib/nutrition/unified-food";
 import { spacing } from "@/constants/spacing";
 import { typography } from "@/constants/typography";
 import { radius } from "@/constants/radius";
@@ -67,7 +67,6 @@ const MACRO_COLORS = {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 type AddFoodMode = "pick" | "library" | "manual";
-type AddFoodSaveTarget = "food-library" | "pantry";
 type ServingUnit = "g" | "ml" | "unit";
 
 function toSafeString(value: number | undefined): string {
@@ -412,9 +411,8 @@ function AITipsModal({
 export default function AddFoodScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { mode: modeParam, target: targetParam } = useLocalSearchParams<{
+  const { mode: modeParam } = useLocalSearchParams<{
     mode?: string;
-    target?: string;
   }>();
   const mode: AddFoodMode =
     modeParam === "library"
@@ -422,8 +420,6 @@ export default function AddFoodScreen() {
       : modeParam === "manual"
         ? "manual"
         : "pick";
-  const saveTarget: AddFoodSaveTarget =
-    targetParam === "pantry" ? "pantry" : "food-library";
 
   const user = useAuthStore((s) => s.user);
   const profile = useAuthStore((s) => s.profile);
@@ -578,14 +574,15 @@ export default function AddFoodScreen() {
     try {
       setSavingId(result.id);
       const item = toNutritionItemFromSearch(result);
-      await upsertFoodLibraryItemFromNutritionItem(user.uid, item);
+      const pantryInput = nutritionItemToPantryInput(item, "g");
+      await upsertPantryItem(user.uid, pantryInput);
       if (alsoUse) {
         setSelectedFoodSelection(item, null);
         showToast("Food saved and selected", "success");
         router.back();
         return;
       }
-      showToast("Food saved to your library", "success");
+      showToast("Food saved", "success");
       await runLibrarySearch();
     } catch {
       showToast("Failed to save food", "error");
@@ -641,26 +638,12 @@ export default function AddFoodScreen() {
     }
     try {
       setSavingManual(true);
-      if (saveTarget === "pantry") {
-        const serving = item.serving_size_g > 0 ? item.serving_size_g : 100;
-        const toPer100 = (value: number) =>
-          Math.max(0, Math.round((value / serving) * 100 * 100) / 100);
+      const pantryInput: PantryItemInput = nutritionItemToPantryInput(
+        item,
+        manualUnit,
+      );
 
-        const pantryInput: PantryItemInput = {
-          name: item.food_name,
-          brand: item.brand,
-          calories_per_100g: toPer100(item.calories),
-          protein_per_100g: toPer100(item.protein_g),
-          carbs_per_100g: toPer100(item.carbs_g),
-          fat_per_100g: toPer100(item.fat_g),
-          serving_size_g: serving,
-          serving_unit: manualUnit,
-        };
-
-        await upsertPantryItem(user.uid, pantryInput);
-      } else {
-        await upsertFoodLibraryItemFromNutritionItem(user.uid, item);
-      }
+      await upsertPantryItem(user.uid, pantryInput);
       if (alsoUse) {
         const editIndex = selectedFoodSelection?.editIndex ?? null;
         setSelectedFoodSelection(item, editIndex);
@@ -668,12 +651,7 @@ export default function AddFoodScreen() {
         router.back();
         return;
       }
-      showToast(
-        saveTarget === "pantry"
-          ? "Manual food saved"
-          : "Manual food saved to library",
-        "success",
-      );
+      showToast("Manual food saved", "success");
       router.back();
     } catch (error) {
       const message =

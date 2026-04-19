@@ -29,7 +29,7 @@ import { useThemeStore } from "@/stores/theme.store";
 interface NutritionReviewCardProps {
   messageId: string;
   items: NutritionReviewItem[];
-  status: "pending" | "confirmed" | "cancelled";
+  status: "pending" | "confirmed" | "saved" | "cancelled";
   onConfirm: (messageId: string) => Promise<void>;
   onCancel: (messageId: string) => void;
   onUpdateItem: (
@@ -105,10 +105,12 @@ function MacroPill({
 function ReviewRow({
   messageId,
   item,
+  locked,
   onUpdateItem,
 }: {
   messageId: string;
   item: NutritionReviewItem;
+  locked: boolean;
   onUpdateItem: NutritionReviewCardProps["onUpdateItem"];
 }) {
   const colors = useThemeStore((state) => state.colors);
@@ -143,6 +145,10 @@ function ReviewRow({
   );
 
   const commitWeight = (nextValue: string) => {
+    if (locked) {
+      return;
+    }
+
     const parsed = Number(nextValue.replace(",", "."));
     if (!Number.isFinite(parsed)) {
       return;
@@ -154,7 +160,7 @@ function ReviewRow({
   };
 
   const moveCandidate = (direction: -1 | 1) => {
-    if (!showPicker) {
+    if (!showPicker || locked) {
       return;
     }
 
@@ -209,9 +215,11 @@ function ReviewRow({
               <>
                 <Pressable
                   onPress={() => moveCandidate(-1)}
+                  disabled={locked}
                   hitSlop={12}
                   accessibilityRole="button"
                   accessibilityLabel="Previous candidate"
+                  style={{ opacity: locked ? 0.4 : 1 }}
                 >
                   <ChevronLeft size={18} color={colors.mutedForeground} />
                 </Pressable>
@@ -222,9 +230,11 @@ function ReviewRow({
                 </Text>
                 <Pressable
                   onPress={() => moveCandidate(1)}
+                  disabled={locked}
                   hitSlop={12}
                   accessibilityRole="button"
                   accessibilityLabel="Next candidate"
+                  style={{ opacity: locked ? 0.4 : 1 }}
                 >
                   <ChevronRight size={18} color={colors.mutedForeground} />
                 </Pressable>
@@ -292,7 +302,12 @@ function ReviewRow({
         >
           <TextInput
             value={weightText}
+            editable={!locked}
             onChangeText={(nextValue) => {
+              if (locked) {
+                return;
+              }
+
               setWeightText(nextValue);
               const parsed = Number(nextValue.replace(",", "."));
               if (Number.isFinite(parsed)) {
@@ -320,6 +335,7 @@ function ReviewRow({
               color: colors.foreground,
               ...typography.smallMedium,
               textAlign: "right",
+              opacity: locked ? 0.65 : 1,
             }}
           />
           <Text
@@ -369,6 +385,7 @@ export function NutritionReviewCard({
   isSubmitting = false,
 }: NutritionReviewCardProps) {
   const colors = useThemeStore((state) => state.colors);
+  const isLocked = status !== "pending";
 
   const totals = useMemo(() => {
     return items.reduce(
@@ -434,7 +451,8 @@ export function NutritionReviewCard({
             borderRadius: radius.full,
             paddingHorizontal: spacing.sm,
             paddingVertical: 4,
-            backgroundColor: colors.primary,
+            backgroundColor:
+              status === "saved" ? colors.accent : colors.primary,
           }}
         >
           <Text
@@ -448,12 +466,45 @@ export function NutritionReviewCard({
         </View>
       </View>
 
+      {status !== "pending" ? (
+        <View
+          style={{
+            borderRadius: radius.full,
+            alignSelf: "flex-start",
+            paddingHorizontal: spacing.sm,
+            paddingVertical: 4,
+            backgroundColor:
+              status === "saved"
+                ? withOpacity(colors.accent, 0.14)
+                : withOpacity(colors.primary, 0.14),
+            borderWidth: 1,
+            borderColor:
+              status === "saved"
+                ? withOpacity(colors.accent, 0.24)
+                : withOpacity(colors.primary, 0.24),
+          }}
+        >
+          <Text
+            style={[
+              typography.caption,
+              {
+                color: status === "saved" ? colors.accent : colors.primary,
+                fontWeight: "700",
+              },
+            ]}
+          >
+            {status === "saved" ? "Saved" : "Locked"}
+          </Text>
+        </View>
+      ) : null}
+
       <View style={{ gap: spacing.sm }}>
         {items.map((item) => (
           <ReviewRow
             key={item.id}
             messageId={messageId}
             item={item}
+            locked={isLocked}
             onUpdateItem={onUpdateItem}
           />
         ))}
@@ -535,6 +586,28 @@ export function NutritionReviewCard({
               Cancel
             </Text>
           </Pressable>
+        </View>
+      ) : null}
+
+      {status === "saved" ? (
+        <View
+          style={{
+            borderRadius: radius.full,
+            borderWidth: 1,
+            borderColor: withOpacity(colors.accent, 0.24),
+            backgroundColor: withOpacity(colors.accent, 0.08),
+            paddingVertical: 10,
+            alignItems: "center",
+          }}
+        >
+          <Text
+            style={[
+              typography.smallMedium,
+              { color: colors.accent, fontWeight: "700" },
+            ]}
+          >
+            Saved to daily log
+          </Text>
         </View>
       ) : null}
     </View>
