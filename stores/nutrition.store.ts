@@ -1,5 +1,9 @@
 import { create } from "zustand";
 import type { NutritionLog, DailyNutritionGoal } from "@/types";
+import {
+  computeTotalsFromLogs,
+  type NutritionTotals,
+} from "@/lib/shared/nutrition-utils";
 
 interface NutritionState {
   // Today's state
@@ -27,16 +31,8 @@ interface NutritionState {
   reset: () => void;
 }
 
-function computeTotals(logs: NutritionLog[]) {
-  return logs.reduce(
-    (acc, log) => ({
-      calories: acc.calories + log.total.calories,
-      protein_g: acc.protein_g + log.total.protein_g,
-      carbs_g: acc.carbs_g + log.total.carbs_g,
-      fat_g: acc.fat_g + log.total.fat_g,
-    }),
-    { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 },
-  );
+function computeTotals(logs: NutritionLog[]): NutritionTotals {
+  return computeTotalsFromLogs(logs);
 }
 
 const DEFAULT_GOAL: DailyNutritionGoal = {

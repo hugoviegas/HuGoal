@@ -9,6 +9,7 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { computeTotalsFromItems } from "@/lib/shared/nutrition-utils";
 import type {
   NutritionLog,
   NutritionItem,
@@ -77,25 +78,13 @@ export async function getNutritionLog(logId: string): Promise<NutritionLog | nul
   return { id: snapshot.id, ...snapshot.data() } as NutritionLog;
 }
 
-function computeTotals(items: NutritionItem[]) {
-  return items.reduce(
-    (acc, item) => ({
-      calories: acc.calories + (item.calories ?? 0),
-      protein_g: acc.protein_g + (item.protein_g ?? 0),
-      carbs_g: acc.carbs_g + (item.carbs_g ?? 0),
-      fat_g: acc.fat_g + (item.fat_g ?? 0),
-    }),
-    { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 },
-  );
-}
-
 export async function createNutritionLog(
   uid: string,
   input: NutritionLogInput,
 ): Promise<NutritionLog> {
   const now = new Date().toISOString();
   const reference = doc(nutritionLogsCollection());
-  const total = computeTotals(input.items);
+  const total = computeTotalsFromItems(input.items);
 
   const payload: NutritionLog = {
     id: reference.id,
@@ -129,7 +118,7 @@ export async function updateNutritionLog(
 
     const existing = snapshot.data() as NutritionLog;
     const items = patch.items ?? existing.items;
-    const total = computeTotals(items);
+    const total = computeTotalsFromItems(items);
 
     const writePatch = stripUndefined({
       ...patch,
